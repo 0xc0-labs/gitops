@@ -4,3 +4,6 @@ metadata:
   name: mariadb
   labels:
     pod-security.kubernetes.io/enforce: restricted
+  # No pruning: deleting it deletes everything in it.
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false

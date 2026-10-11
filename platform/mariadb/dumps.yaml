@@ -6,6 +6,9 @@ kind: PersistentVolumeClaim
 metadata:
   name: mariadb-dumps
   namespace: mariadb
+  # No pruning: it holds data.
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
 spec:
   accessModes: [ReadWriteOnce]
   storageClassName: longhorn

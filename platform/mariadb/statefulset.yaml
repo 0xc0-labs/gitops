@@ -31,6 +31,9 @@ kind: StatefulSet
 metadata:
   name: mariadb
   namespace: mariadb
+  # No pruning: its volumeClaimTemplates hold the datadir.
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
 spec:
   serviceName: mariadb-headless
   replicas: 1
