@@ -57,6 +57,3 @@ replacements:
           name: payload-app
         fieldPaths: [spec.path]
         options: {delimiter: /, index: 0}
-# No pruning: it holds data.
-commonAnnotations:
-  argocd.argoproj.io/sync-options: Prune=false

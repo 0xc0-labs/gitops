@@ -25,6 +25,9 @@ kind: PersistentVolumeClaim
 metadata:
   name: mautic-data
   namespace: mautic
+  # No pruning: it holds data.
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
 spec:
   accessModes: [ReadWriteOnce]
   storageClassName: longhorn
