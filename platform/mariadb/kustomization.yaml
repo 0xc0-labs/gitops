@@ -18,10 +18,10 @@ resources:
   - statefulset.yaml
   - dumps.yaml
   - databases.yaml
+# Hashed, so a change rolls the pod; Argo CD prunes the old one. So no
+# commonAnnotations: Prune=false sits on what holds data alone, the Namespace,
+# the StatefulSet and the dumps' PVC, each in its own manifest.
 configMapGenerator:
   - name: mariadb-config
     files:
       - 0xc0.cnf
-# No pruning: it holds data.
-commonAnnotations:
-  argocd.argoproj.io/sync-options: Prune=false

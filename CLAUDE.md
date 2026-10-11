@@ -14,7 +14,9 @@ What runs in the Kubernetes cluster, as manifests ArgoCD applies.
   directory. Its Application's destination namespace is the directory's name:
   Argo CD puts there what a chart leaves without one, because Kustomize's
   `namespace` field does not reach what `helmCharts` inflates. A component
-  holding data or CRDs sets `Prune=false` through `commonAnnotations`.
+  holding data or CRDs sets `Prune=false` through `commonAnnotations`, unless
+  it generates something with a hashed name: then on each resource that holds
+  data, in its own manifest, as an application does.
 - `apps/<application>/` — the applications, the same pattern under the
   `apps` ApplicationSet and its narrower `AppProject`: namespaced resources
   only, and their own Namespace. An application is one folder with one
