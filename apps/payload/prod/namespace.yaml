@@ -7,3 +7,6 @@ metadata:
     gateway.0xc0.cc/web: "true"
     gateway.0xc0.cc/internal: "true"
     vault.0xc0.cc/apps: "true"
+  # No pruning: deleting it deletes everything in it.
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false

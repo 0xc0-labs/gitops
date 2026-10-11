@@ -13,11 +13,8 @@ resources:
   - vault-secrets.yaml
   - deployment.yaml
   - httproute.yaml
-# Hashed, so a change rolls the pod. Old ones stay behind (no pruning).
+# Hashed, so a change rolls the pod; Argo CD prunes the old one.
 configMapGenerator:
   - name: mautic-supervisord
     files:
       - supervisord.conf
-# No pruning: it holds data.
-commonAnnotations:
-  argocd.argoproj.io/sync-options: Prune=false
