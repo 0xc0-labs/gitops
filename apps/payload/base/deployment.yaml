@@ -110,17 +110,23 @@ spec:
           ports:
             - name: http
               containerPort: 3000
-          # Payload has no health route of its own: a TCP check, with room for
-          # the first start.
+          # The port opens before Payload initialises, which it does on its
+          # first request, and only then starts its jobs' crons (#162): the
+          # readiness probe is that request. /api/users/me answers 200 with no
+          # session. The first one took 8s on staging, hence the timeout.
+          # Startup and liveness stay TCP, so a database blip never restarts
+          # the pod.
           startupProbe:
             tcpSocket:
               port: http
             periodSeconds: 10
             failureThreshold: 30
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              path: /api/users/me
               port: http
             periodSeconds: 10
+            timeoutSeconds: 10
           livenessProbe:
             tcpSocket:
               port: http
