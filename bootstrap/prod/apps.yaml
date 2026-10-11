@@ -6,19 +6,22 @@ metadata:
 spec:
   goTemplate: true
   goTemplateOptions: ["missingkey=error"]
+  # One directory per environment of an application: apps/<app>/prod is
+  # <app>, apps/<app>/staging is <app>-staging, as Application and namespace.
   generators:
     - git:
         repoURL: https://github.com/0xc0-labs/gitops.git
         revision: main
         directories:
-          - path: apps/*
+          - path: apps/*/prod
+          - path: apps/*/staging
   # Deleting the ApplicationSet or an Application never deletes what it
   # deployed.
   syncPolicy:
     preserveResourcesOnDeletion: true
   template:
     metadata:
-      name: "{{ .path.basename }}"
+      name: '{{ index .path.segments 1 }}{{ if eq .path.basename "staging" }}-staging{{ end }}'
       # Fields the API server defaults (a listener's tls.mode, a route's
       # weight) are not drift.
       annotations:
@@ -33,7 +36,7 @@ spec:
         server: https://kubernetes.default.svc
         # For what a chart leaves without one: Kustomize's namespace field
         # does not reach what helmCharts inflates.
-        namespace: "{{ .path.basename }}"
+        namespace: '{{ index .path.segments 1 }}{{ if eq .path.basename "staging" }}-staging{{ end }}'
       syncPolicy:
         # Components holding data or CRDs opt out with Prune=false.
         automated:
