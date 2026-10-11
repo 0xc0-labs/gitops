@@ -1,10 +1,10 @@
 # Payload CMS in staging: the same application as prod, its own namespace,
-# database, volumes and Vault path, reached over WARP only, filled with the
+# database, bucket and Vault path, reached over WARP only, filled with the
 # seed. ../README.md.
 #
 # Backups:
-# - payload-media (Longhorn, 2Gi): the seed's media and what is uploaded in
-#   tests, covered by PBS's nightly backup of the RKE2 VMs (03:00).
+# - The media uploaded in tests: the R2 bucket payload-staging-media, which
+#   keeps no copies of its own. The seed holds no media.
 # - Its database: platform/postgres's nightly dump,
 #   postgres-dumps/payload-staging.
 apiVersion: kustomize.config.k8s.io/v1beta1
@@ -27,19 +27,14 @@ configMapGenerator:
     literals:
       - APP_VERSION=v0.2.0-rc.1
       - APP_ENVIRONMENT=staging
+  # The media in R2, served by Payload itself at /api/media/file/, over
+  # WARP: the bucket has no public hostname.
   - name: payload
     behavior: merge
     literals:
       - PAYLOAD_PUBLIC_SERVER_URL=https://payload-staging.int.0xc0.cc
-patches:
-  # The seed and the tests need little room.
-  - target:
-      kind: PersistentVolumeClaim
-      name: payload-media
-    patch: |-
-      - op: replace
-        path: /spec/resources/requests/storage
-        value: 2Gi
+      - S3_ENDPOINT=https://ca1599ae7852d5b4718cba351adad927.r2.cloudflarestorage.com
+      - S3_BUCKET=payload-staging-media
 # The environment's own Vault paths start with its namespace
 # (../base/vault-secrets.yaml).
 replacements:
@@ -55,5 +50,10 @@ replacements:
       - select:
           kind: VaultStaticSecret
           name: payload-app
+        fieldPaths: [spec.path]
+        options: {delimiter: /, index: 0}
+      - select:
+          kind: VaultStaticSecret
+          name: payload-media
         fieldPaths: [spec.path]
         options: {delimiter: /, index: 0}

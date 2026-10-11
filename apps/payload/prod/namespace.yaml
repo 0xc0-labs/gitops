@@ -1,10 +1,12 @@
+# Reached over WARP only: the internal listener, never websecure, so no
+# gateway.0xc0.cc/web. The media is public at media.0xc0.cc, served by
+# Cloudflare from the bucket, not from here.
 apiVersion: v1
 kind: Namespace
 metadata:
   name: payload
   labels:
     pod-security.kubernetes.io/enforce: restricted
-    gateway.0xc0.cc/web: "true"
     gateway.0xc0.cc/internal: "true"
     vault.0xc0.cc/apps: "true"
   # No pruning: deleting it deletes everything in it.

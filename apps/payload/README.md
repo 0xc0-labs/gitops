@@ -8,15 +8,17 @@ Argo CD application of its own:
 |---|---|---|
 | Application and namespace | `payload` | `payload-staging` |
 | Admin, API, GraphQL | `https://payload.int.0xc0.cc`, over WARP | `https://payload-staging.int.0xc0.cc`, over WARP |
-| Public | `https://payload.0xc0.cc/api/media/file/`, the uploaded files alone | nothing |
+| Public | nothing of Payload: its media alone, at `https://media.0xc0.cc`, served by Cloudflare | nothing |
 | Data | its own | the seed, versioned in 0xc0-labs/payload |
-| Media volume | 10Gi | 2Gi |
+| Media | the R2 bucket `payload-media` | the R2 bucket `payload-staging-media`, served by Payload over WARP |
 | Vault | `apps/payload/*` | `apps/payload-staging/*` |
 | Database | `payload` on platform/postgres | `payload-staging` on platform/postgres |
 
 `base/` holds what both share; `prod/` and `staging/` add the namespace, the
-routes, the URL and the pin. One replica each: the media sits on a Longhorn
-RWO volume.
+routes, the URL, the bucket and the pin. One replica each, with no volume: a
+new version or a restart starts the new pod and stops the old one once the
+new one is ready (`RollingUpdate`, `maxUnavailable: 0`), so the CMS keeps
+serving.
 
 ## Before the first sync: the secrets
 
@@ -61,10 +63,36 @@ patch`.
 The image is private: both environments pull it with `apps/shared/ghcr-pull`,
 a token that can only read packages, which Vault Secrets Operator turns into
 the `ghcr-pull-vault` pull secret (`base/vault-secrets.yaml`). The `vault`
-repo's README writes it. `platform/postgres/` needs `platform/postgres/superuser`
+repo's README writes it, and each environment's R2 token (Media, below).
+`platform/postgres/` needs `platform/postgres/superuser`
 too, as its own manifests say. Then sync `postgres` in Argo CD, so its
 databases Job creates each environment's database and role, and then
 `payload` and `payload-staging`.
+
+## Media
+
+Each environment keeps `media`'s files in its own Cloudflare R2 bucket,
+`<namespace>-media`, created by `infrastructure`'s Cloudflare root. The pod
+reads and writes it with a token scoped to that bucket, `access_key_id` and
+`secret_access_key` at `apps/<namespace>/media`, which the operator writes as
+the `vault` repo's README says. Each overlay sets the image's `S3_ENDPOINT`
+and `S3_BUCKET`; the server, the migrations and the seed all get them, since
+all three load the same config.
+
+- **Prod** sets `MEDIA_PUBLIC_URL=https://media.0xc0.cc` too: documents point
+  there, and Cloudflare serves the bucket through its cache, with `nosniff`
+  and a `default-src 'none'` CSP. Payload serves no file, and nothing of it is
+  public: its own names are `payload.int.0xc0.cc`, over WARP.
+- **Staging**'s bucket has no hostname: Payload serves its files at
+  `/api/media/file/`, over WARP.
+
+The way out is HTTPS to Cloudflare's published IPv4 ranges
+(`base/network-policy.yaml`, `egress-r2`, with the date they were read).
+Changing where files go moves none: what was uploaded to the volume before
+stays there.
+
+R2 keeps no copies of its own. A nightly copy to the Storage Box, with a timed
+restore, is in place before prod holds real files (workspace#88).
 
 ## Delivery
 
@@ -116,17 +144,19 @@ what lets the previous version run on the newer schema.
 After every sync, once the new version serves, a Job runs the image with
 `seed` (`staging/seed.yaml`): it fills an empty database with the seed and
 does nothing on one that has data. The seed is tenants and test users alone.
-They and the super-admin log in with `SEED_PASSWORD`, the `seed-password`
-key at `apps/payload-staging/app` (above), which the repo never holds. To
-read it:
+The super-admin logs in with `SEED_PASSWORD`, the `seed-password` key at
+`apps/payload-staging/app` (above), which the repo never holds. The editors
+get random passwords nobody knows: to test as one, the super-admin sets its
+password from the admin. To read `SEED_PASSWORD`:
 
 ```sh
 mise exec -- vault kv get -mount=apps -field=seed-password payload-staging/app
 ```
 
 Without the key, the seed of an empty database exits non-zero with its own
-message, and the sync shows the hook failed. A new value reaches the users at
-the next reset, not before: the seed does not touch a database with data.
+message, and the sync shows the hook failed. A new value reaches the
+super-admin at the next reset, not before: the seed does not touch a database
+with data.
 
 To reset staging to the seed, run the same Job with `seed --reset`, which
 empties the database first:
@@ -149,6 +179,3 @@ copies it within the hour (`refreshAfter`), to the environment, which
 restarts the pod, and to platform/postgres; then sync `postgres`, whose
 databases Job sets the role's password to Vault's. Between the two, the pod
 cannot connect.
-
-With one replica and an RWO volume, a new version or a restart stops the pod
-before it starts the next: the CMS is down for that moment.
