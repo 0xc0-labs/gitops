@@ -16,12 +16,12 @@ resources:
 # must equal newTag (pin / check). Until the first release, a placeholder.
 images:
   - name: ghcr.io/0xc0-labs/payload
-    newTag: v0.1.0
-    digest: sha256:7d344cec3ed8ac1c8fe61643b3905a94c620446ced8d9e7883136e1b69527117
+    newTag: v0.2.0
+    digest: sha256:7aa66d5bf1cd845b7883ba7edd0227ff0b2d0d0e0b9f2119d784c28ac642b1e0
 configMapGenerator:
   - name: release
     literals:
-      - APP_VERSION=v0.1.0
+      - APP_VERSION=v0.2.0
       - APP_ENVIRONMENT=prod
   - name: payload
     behavior: merge
