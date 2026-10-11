@@ -45,8 +45,18 @@ for env in payload payload-staging; do
     -custom-metadata=owner=operator -custom-metadata=rotated_at="$(date +%F)" "$env/app"
 done
 
+# Staging alone: the seed users' password (Staging's data, below), beside
+# payload-secret. kv patch adds the key and keeps payload-secret.
+openssl rand -base64 24 | tr -d '\n' | mise exec -- vault kv patch -mount=apps payload-staging/app seed-password=-
+mise exec -- vault kv metadata put -mount=apps \
+  -custom-metadata=owner=operator -custom-metadata=rotated_at="$(date +%F)" payload-staging/app
+
 rm -f ~/.vault-token
 ```
+
+`kv put` writes a secret whole: run again on `payload-staging/app`, it
+drops `seed-password`. A later change to one of its keys goes through `kv
+patch`.
 
 The image is private: both environments pull it with `apps/shared/ghcr-pull`,
 a token that can only read packages, which Vault Secrets Operator turns into
@@ -105,8 +115,21 @@ what lets the previous version run on the newer schema.
 
 After every sync, once the new version serves, a Job runs the image with
 `seed` (`staging/seed.yaml`): it fills an empty database with the seed and
-does nothing on one that has data. To reset staging to the seed, run the same
-Job with `seed --reset`, which empties the database first:
+does nothing on one that has data. The seed is tenants and test users alone.
+They and the super-admin log in with `SEED_PASSWORD`, the `seed-password`
+key at `apps/payload-staging/app` (above), which the repo never holds. To
+read it:
+
+```sh
+mise exec -- vault kv get -mount=apps -field=seed-password payload-staging/app
+```
+
+Without the key, the seed of an empty database exits non-zero with its own
+message, and the sync shows the hook failed. A new value reaches the users at
+the next reset, not before: the seed does not touch a database with data.
+
+To reset staging to the seed, run the same Job with `seed --reset`, which
+empties the database first:
 
 ```sh
 kubectl -n payload-staging get job payload-seed -o json \

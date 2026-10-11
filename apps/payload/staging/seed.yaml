@@ -56,6 +56,16 @@ spec:
                 secretKeyRef:
                   name: payload-app-vault
                   key: payload-secret
+            # The test users' and the super-admin's password, never in the
+            # repo. Optional: without the key, the seed of an empty database
+            # fails with its own message, instead of the pod never starting
+            # while the hook waits. One with data does not read it.
+            - name: SEED_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: payload-app-vault
+                  key: seed-password
+                  optional: true
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: service.version=$(APP_VERSION),deployment.environment=$(APP_ENVIRONMENT)
           securityContext:
