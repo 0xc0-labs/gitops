@@ -2,8 +2,9 @@
 # frontends (operator decision, 2026-10-09; workspace#64). ../README.md.
 #
 # Backups:
-# - payload-media (Longhorn, 10Gi): the uploaded media, covered by PBS's
-#   nightly backup of the RKE2 VMs (03:00).
+# - The uploaded media: the R2 bucket payload-media, which keeps no copies
+#   of its own. A nightly copy to the Storage Box comes before prod holds
+#   real files (workspace#88).
 # - Its database: platform/postgres's nightly dump, postgres-dumps/payload.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -23,10 +24,15 @@ configMapGenerator:
     literals:
       - APP_VERSION=v0.2.0
       - APP_ENVIRONMENT=prod
+  # The media in R2, served by Cloudflare at media.0xc0.cc: Payload serves
+  # no file, and nothing of it is public (../README.md).
   - name: payload
     behavior: merge
     literals:
-      - PAYLOAD_PUBLIC_SERVER_URL=https://payload.0xc0.cc
+      - PAYLOAD_PUBLIC_SERVER_URL=https://payload.int.0xc0.cc
+      - S3_ENDPOINT=https://ca1599ae7852d5b4718cba351adad927.r2.cloudflarestorage.com
+      - S3_BUCKET=payload-media
+      - MEDIA_PUBLIC_URL=https://media.0xc0.cc
 # The environment's own Vault paths start with its namespace
 # (../base/vault-secrets.yaml).
 replacements:
@@ -42,5 +48,10 @@ replacements:
       - select:
           kind: VaultStaticSecret
           name: payload-app
+        fieldPaths: [spec.path]
+        options: {delimiter: /, index: 0}
+      - select:
+          kind: VaultStaticSecret
+          name: payload-media
         fieldPaths: [spec.path]
         options: {delimiter: /, index: 0}

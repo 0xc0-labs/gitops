@@ -56,16 +56,28 @@ spec:
                 secretKeyRef:
                   name: payload-app-vault
                   key: payload-secret
-            # The test users' and the super-admin's password, never in the
-            # repo. Optional: without the key, the seed of an empty database
-            # fails with its own message, instead of the pod never starting
-            # while the hook waits. One with data does not read it.
+            # The super-admin's password, never in the repo; the editors get
+            # random ones nobody knows. Optional: without the key, the seed of
+            # an empty database fails with its own message, instead of the pod
+            # never starting while the hook waits. One with data does not read
+            # it.
             - name: SEED_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: payload-app-vault
                   key: seed-password
                   optional: true
+            # Its config loads the media storage plugin, as the server's does.
+            - name: S3_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: payload-media-vault
+                  key: access_key_id
+            - name: S3_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: payload-media-vault
+                  key: secret_access_key
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: service.version=$(APP_VERSION),deployment.environment=$(APP_ENVIRONMENT)
           securityContext:

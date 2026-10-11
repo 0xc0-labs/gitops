@@ -1,22 +1,6 @@
 # The image is each environment's pin (its kustomization.yaml, images), never
-# a tag here.
-#
-# Backup: PBS's nightly backup of the RKE2 VMs (each environment's
-# kustomization.yaml, Backups).
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: payload-media
-  # No pruning: it holds data.
-  annotations:
-    argocd.argoproj.io/sync-options: Prune=false
-spec:
-  accessModes: [ReadWriteOnce]
-  storageClassName: longhorn
-  resources:
-    requests:
-      storage: 10Gi
----
+# a tag here. No volume: the media is in each environment's R2 bucket
+# (its kustomization.yaml, S3_BUCKET).
 apiVersion: v1
 kind: Service
 metadata:
@@ -38,11 +22,13 @@ metadata:
     # version serving.
     argocd.argoproj.io/sync-wave: "2"
 spec:
-  # One replica: the media volume is RWO.
   replicas: 1
-  # RWO: the old pod releases the volume before the new one starts.
+  # No volume to hand over: the new pod serves before the old one stops.
   strategy:
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: payload
@@ -100,6 +86,18 @@ spec:
                 secretKeyRef:
                   name: payload-app-vault
                   key: payload-secret
+            # The environment's R2 bucket (S3_BUCKET, S3_ENDPOINT), with a
+            # token scoped to it.
+            - name: S3_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: payload-media-vault
+                  key: access_key_id
+            - name: S3_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: payload-media-vault
+                  key: secret_access_key
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: service.version=$(APP_VERSION),deployment.environment=$(APP_ENVIRONMENT)
             # Optional: without it RUM stays off.
@@ -140,16 +138,11 @@ spec:
             limits:
               memory: 768Mi
           volumeMounts:
-            - name: media
-              mountPath: /app/media
             - name: cache
               mountPath: /app/.next/cache
             - name: tmp
               mountPath: /tmp
       volumes:
-        - name: media
-          persistentVolumeClaim:
-            claimName: payload-media
         - name: cache
           emptyDir:
             sizeLimit: 512Mi
