@@ -15,4 +15,4 @@ jobs:
   validate:
     uses: 0xc0-labs/.github/.github/workflows/kustomize-validate.yml@main
     with:
-      components: platform/* apps/*
+      components: platform/* apps/*/prod apps/*/staging

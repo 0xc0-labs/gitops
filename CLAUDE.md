@@ -17,8 +17,12 @@ What runs in the Kubernetes cluster, as manifests ArgoCD applies.
   holding data or CRDs sets `Prune=false` through `commonAnnotations`.
 - `apps/<application>/` — the applications, the same pattern under the
   `apps` ApplicationSet and its narrower `AppProject`: namespaced resources
-  only, and their own Namespace. Today: Mautic and offby1-cc, the offby1.cc
-  landing page.
+  only, and their own Namespace. An application is one folder with one
+  directory per environment, each its own `Application`: `prod/` is
+  `<application>`, in the namespace of that name; `staging/`, when it has
+  one, is `<application>-staging`, in its own. What both share goes in
+  `base/`. Today: Mautic, offby1-cc (the offby1.cc landing page) and Payload
+  CMS, each in prod alone.
 - ArgoCD itself is installed and upgraded by RKE2's helm-controller, never
   from here.
 
@@ -101,8 +105,8 @@ The network is decided by `../infrastructure/environments/prod/terraform.tfvars`
 
 ## Promotion
 
-Each application decides whether it has a test environment. One that does
-promotes test→prod with **the same digest**: the image is never rebuilt
+Each application decides whether it has staging. One that does promotes
+staging→prod with **the same digest**: the image is never rebuilt
 between environments. One that does not deploys the digest from `main`
 straight to prod.
 
@@ -129,6 +133,9 @@ comes out, with the tools in `mise.toml` (CI runs the same on every PR):
 kustomize build --enable-helm platform/<component> \
   | kubeconform -strict -ignore-missing-schemas -kubernetes-version 1.36.0 -summary
 ```
+
+An application renders the same way, one environment at a time:
+`apps/<application>/prod`, `apps/<application>/staging`.
 
 `kustomize` downloads the charts into `platform/<component>/charts/`, which
 git ignores: nothing is vendored.

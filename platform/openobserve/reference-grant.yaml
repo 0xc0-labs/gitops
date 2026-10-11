@@ -1,4 +1,4 @@
-# offby1.cc's RUM intake (apps/offby1-cc/httproute.yaml).
+# offby1.cc's RUM intake (apps/offby1-cc/prod/httproute.yaml).
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: ReferenceGrant
 metadata:
