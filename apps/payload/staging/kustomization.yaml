@@ -20,12 +20,12 @@ resources:
 # its checks pass. Until the first rc, a placeholder.
 images:
   - name: ghcr.io/0xc0-labs/payload
-    newTag: v0.2.1-rc.1
-    digest: sha256:05156a8de36949146c0f003129124adc772c2d2074e7c5e9e1b5b0ec00902814
+    newTag: v0.2.1-rc.2
+    digest: sha256:1ca41f27eb497d8d622d89f983fb608db4d99e19c97ce1c3c2e29989436df7fb
 configMapGenerator:
   - name: release
     literals:
-      - APP_VERSION=v0.2.1-rc.1
+      - APP_VERSION=v0.2.1-rc.2
       - APP_ENVIRONMENT=staging
   # The media in R2, served by Payload itself at /api/media/file/, over
   # WARP: the bucket has no public hostname.
