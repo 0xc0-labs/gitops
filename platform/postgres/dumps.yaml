@@ -33,7 +33,9 @@ spec:
           labels:
             app.kubernetes.io/name: postgres-dumps
         spec:
-          restartPolicy: OnFailure
+          # A failed attempt keeps its pod, and its logs, until the Job's TTL:
+          # with OnFailure the pod was deleted when the Job gave up.
+          restartPolicy: Never
           automountServiceAccountToken: false
           securityContext:
             runAsNonRoot: true

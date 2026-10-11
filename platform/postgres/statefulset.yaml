@@ -107,11 +107,67 @@ spec:
               mountPath: /var/run/postgresql
             - name: tmp
               mountPath: /tmp
+        # The superuser's password follows the Secret: the server takes
+        # POSTGRES_PASSWORD at initdb alone, so a new value in Vault would
+        # leave the Jobs that log in with it (databases.yaml, dumps.yaml)
+        # locked out. This sets the role to the mounted Secret, over the local
+        # socket, once the server is up and whenever the file changes (Vault
+        # Secrets Operator's refresh, then the kubelet's, within the hour).
+        - name: superuser
+          image: docker.io/library/postgres:18.6@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336
+          command:
+            - bash
+            - -euo
+            - pipefail
+            - -c
+            - |
+              applied=
+              while true; do
+                sum=$(sha256sum < /superuser/password)
+                if [ "$sum" != "$applied" ] && pg_isready -q -U postgres; then
+                  # The value never reaches a command line: psql reads it
+                  # from the file and quotes it itself.
+                  if psql -U postgres -d postgres -v ON_ERROR_STOP=1 -q <<'SQL'
+              \set pw `cat /superuser/password`
+              ALTER ROLE postgres PASSWORD :'pw';
+              SQL
+                  then
+                    applied=$sum
+                    echo "superuser password set from the Secret"
+                  fi
+                fi
+                sleep 10
+              done
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          volumeMounts:
+            - name: run
+              mountPath: /var/run/postgresql
+            - name: superuser
+              mountPath: /superuser
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
       volumes:
         - name: run
           emptyDir: {}
         - name: tmp
           emptyDir: {}
+        - name: superuser
+          secret:
+            secretName: postgres-superuser-vault
+            items:
+              - key: password
+                path: password
   # Backup: PBS's nightly backup of the RKE2 VMs, plus dumps.yaml.
   volumeClaimTemplates:
     - metadata:
