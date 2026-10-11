@@ -29,12 +29,19 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: postgres-databases
+        # Each environment of an application: its server and its Jobs.
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: payload
           podSelector:
             matchLabels:
-              app.kubernetes.io/name: payload
+              app.kubernetes.io/part-of: payload
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: payload-staging
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: payload
       ports:
         - protocol: TCP
           port: 5432

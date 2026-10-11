@@ -1,24 +1,13 @@
-# The public name serves what the frontends read: the REST and GraphQL APIs
-# and the media. The admin UI and the GraphQL playground are refused there
-# (403, no hint of the internal name) and served only on
-# payload.int.0xc0.cc. Checked against Payload v3's routes: recheck on a
+# The public name serves only the uploaded files, the media collection's file
+# route: anything else there answers 404, since no rule matches it. The admin,
+# the REST and GraphQL APIs and authentication stay on payload.int.0xc0.cc,
+# over WARP (workspace docs/design.md, Application delivery). The route is
+# Payload v3's for an upload collection with slug media: recheck it on a
 # major upgrade.
-#
-# Gateway API cannot refuse a request: an allow list only loopback matches.
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: refuse
-  namespace: payload
-spec:
-  ipAllowList:
-    sourceRange: [127.0.0.1/32]
----
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: payload
-  namespace: payload
   annotations:
     gateway.0xc0.cc/public: "true"
 spec:
@@ -29,20 +18,10 @@ spec:
   hostnames:
     - payload.0xc0.cc
   rules:
+    # By path element: /api/media/file/<filename>, never /api/media/filex.
     - matches:
-        - path: {type: PathPrefix, value: /admin}
-        - path: {type: PathPrefix, value: /api/graphql-playground}
-      filters:
-        - type: ExtensionRef
-          extensionRef:
-            group: traefik.io
-            kind: Middleware
-            name: refuse
-      # Never reached: the middleware answers first.
+        - path: {type: PathPrefix, value: /api/media/file}
       backendRefs:
-        - name: payload
-          port: 80
-    - backendRefs:
         - name: payload
           port: 80
 ---
@@ -50,7 +29,6 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: payload-admin
-  namespace: payload
 spec:
   parentRefs:
     - name: traefik-gateway

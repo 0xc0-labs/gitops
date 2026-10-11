@@ -32,6 +32,12 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: offby1-cc
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: payload
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: payload-staging
       ports:
         - protocol: TCP
           port: 4317
