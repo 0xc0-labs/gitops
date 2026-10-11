@@ -1,0 +1,87 @@
+# The migrations, from the image being deployed, before the server (workspace
+# docs/design.md, Application delivery). A Sync hook in the wave before the
+# Deployment's, not a PreSync one: PreSync runs before anything else in
+# the sync is applied, so on an environment's first sync, or when this sync
+# brings a secret the Job needs (the GHCR pull secret), its namespace or its
+# secrets would not exist yet and it could never run. Here they are applied
+# in wave 0, the Job runs in wave 1, and the Deployment waits in wave 2: when
+# the Job fails, the sync stops and the running version keeps serving. Every
+# migration is expand and contract, so that version works on the new schema.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: payload-migrate
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  backoffLimit: 2
+  # A pull or a migration that hangs fails the sync instead of holding it.
+  activeDeadlineSeconds: 900
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: payload-migrate
+        app.kubernetes.io/part-of: payload
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      imagePullSecrets:
+        - name: ghcr-pull-vault
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        # The server's settings (deployment.yaml), without what only serving
+        # needs.
+        - name: migrate
+          image: ghcr.io/0xc0-labs/payload
+          args: [migrate]
+          envFrom:
+            - configMapRef:
+                name: payload
+            - configMapRef:
+                name: release
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: payload-database-vault
+                  key: password
+            - name: DATABASE_URI
+              value: postgres://$(NAMESPACE):$(DATABASE_PASSWORD)@postgres.postgres.svc.cluster.local:5432/$(NAMESPACE)
+            - name: PAYLOAD_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: payload-app-vault
+                  key: payload-secret
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: service.version=$(APP_VERSION),deployment.environment=$(APP_ENVIRONMENT)
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 768Mi
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 128Mi

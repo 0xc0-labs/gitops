@@ -1,0 +1,17 @@
+# What payload's environments share (README.md). Each environment adds its
+# namespace and routes, its URL, and its pin: prod/, staging/.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - network-policy.yaml
+  - vault-secrets.yaml
+  - migrate.yaml
+  - deployment.yaml
+# What the server and its Jobs read besides their secrets. Each environment
+# merges its PAYLOAD_PUBLIC_SERVER_URL in. Hashed, so a change rolls the pod.
+configMapGenerator:
+  - name: payload
+    literals:
+      - NEXT_TELEMETRY_DISABLED=1
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
+      - OTEL_SERVICE_NAME=payload

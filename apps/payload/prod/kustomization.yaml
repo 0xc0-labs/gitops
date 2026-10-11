@@ -1,5 +1,5 @@
-# Payload CMS, one multi-tenant instance, the backend of several frontends
-# (operator decision, 2026-10-09; workspace#64). README.md.
+# Payload CMS in prod, one multi-tenant instance, the backend of several
+# frontends (operator decision, 2026-10-09; workspace#64). ../README.md.
 #
 # Backups:
 # - payload-media (Longhorn, 10Gi): the uploaded media, covered by PBS's
@@ -10,10 +10,40 @@ kind: Kustomization
 namespace: payload
 resources:
   - namespace.yaml
-  - network-policy.yaml
-  - vault-secrets.yaml
-  - deployment.yaml
+  - ../base
   - httproute.yaml
+# The pin: a release's PR changes only newTag, digest and APP_VERSION, which
+# must equal newTag (pin / check). Until the first release, a placeholder.
+images:
+  - name: ghcr.io/0xc0-labs/payload
+    newTag: v0.0.0
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+configMapGenerator:
+  - name: release
+    literals:
+      - APP_VERSION=v0.0.0
+      - APP_ENVIRONMENT=prod
+  - name: payload
+    behavior: merge
+    literals:
+      - PAYLOAD_PUBLIC_SERVER_URL=https://payload.0xc0.cc
+# The environment's own Vault paths start with its namespace
+# (../base/vault-secrets.yaml).
+replacements:
+  - source:
+      kind: Namespace
+      fieldPath: metadata.name
+    targets:
+      - select:
+          kind: VaultStaticSecret
+          name: payload-database
+        fieldPaths: [spec.path]
+        options: {delimiter: /, index: 0}
+      - select:
+          kind: VaultStaticSecret
+          name: payload-app
+        fieldPaths: [spec.path]
+        options: {delimiter: /, index: 0}
 # No pruning: it holds data.
 commonAnnotations:
   argocd.argoproj.io/sync-options: Prune=false

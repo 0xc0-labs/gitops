@@ -21,8 +21,8 @@ What runs in the Kubernetes cluster, as manifests ArgoCD applies.
   directory per environment, each its own `Application`: `prod/` is
   `<application>`, in the namespace of that name; `staging/`, when it has
   one, is `<application>-staging`, in its own. What both share goes in
-  `base/`. Today: Mautic, offby1-cc (the offby1.cc landing page) and Payload
-  CMS, each in prod alone.
+  `base/`. Today: Mautic and offby1-cc (the offby1.cc landing page), in prod
+  alone, and Payload CMS, in prod and staging.
 - ArgoCD itself is installed and upgraded by RKE2's helm-controller, never
   from here.
 
@@ -109,6 +109,15 @@ Each application decides whether it has staging. One that does promotes
 staging→prod with **the same digest**: the image is never rebuilt
 between environments. One that does not deploys the digest from `main`
 straight to prod.
+
+An application with delivery (`payload` today, its README) is pinned in each
+environment's `kustomization.yaml`: its `images:` entry, tag and digest, and
+`APP_VERSION` in the `release` ConfigMap, which must equal the tag (`pin /
+check`). Each release candidate opens a PR that changes staging's pin alone
+and merges itself once its checks pass; each release, one that changes
+prod's, merged by the operator. The bots that open them change pins and
+nothing else: `pin / check` fails any other line. Rolling back is reverting
+that PR.
 
 ## Before opening a PR
 

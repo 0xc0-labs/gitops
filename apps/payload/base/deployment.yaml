@@ -1,15 +1,12 @@
-# The image is pinned by digest: each bump is the tag@digest that the
-# container-image job of 0xc0-labs/payload prints in its summary.
+# The image is each environment's pin (its kustomization.yaml, images), never
+# a tag here.
 #
-# FIRST DEPLOYMENT: the image does not exist yet. The all-zero digest below is
-# a placeholder; replace it with the first image's tag@digest before merging.
-#
-# Backup: PBS's nightly backup of the RKE2 VMs (kustomization.yaml, Backups).
+# Backup: PBS's nightly backup of the RKE2 VMs (each environment's
+# kustomization.yaml, Backups).
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: payload-media
-  namespace: payload
 spec:
   accessModes: [ReadWriteOnce]
   storageClassName: longhorn
@@ -21,7 +18,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: payload
-  namespace: payload
 spec:
   selector:
     app.kubernetes.io/name: payload
@@ -34,7 +30,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: payload
-  namespace: payload
+  annotations:
+    # After the migrations (migrate.yaml): a failed one leaves the running
+    # version serving.
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   # One replica: the media volume is RWO.
   replicas: 1
@@ -48,9 +47,12 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: payload
+        app.kubernetes.io/part-of: payload
     spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
+      imagePullSecrets:
+        - name: ghcr-pull-vault
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -61,35 +63,42 @@ spec:
           type: RuntimeDefault
       containers:
         - name: web
-          image: ghcr.io/0xc0-labs/payload:sha-0000000@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          image: ghcr.io/0xc0-labs/payload
+          args: [serve]
+          # What the server and its Jobs share (kustomization.yaml), and the
+          # version this environment runs (its pin).
+          envFrom:
+            - configMapRef:
+                name: payload
+            - configMapRef:
+                name: release
           env:
             # Next.js binds to $HOSTNAME, which Kubernetes sets to the pod's
             # name.
             - name: HOSTNAME
               value: 0.0.0.0
-            - name: NEXT_TELEMETRY_DISABLED
-              value: "1"
-            # Expanded by Kubernetes: this one must stay below the password.
-            # The password is hex, so it needs no URL escaping
-            # (README.md).
+            # Expanded by Kubernetes: these stay above DATABASE_URI. The
+            # role and the database are named after the namespace
+            # (platform/postgres), and the password is hex, so it needs no
+            # URL escaping (README.md).
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: payload-database-vault
                   key: password
             - name: DATABASE_URI
-              value: postgres://payload:$(DATABASE_PASSWORD)@postgres.postgres.svc.cluster.local:5432/payload
+              value: postgres://$(NAMESPACE):$(DATABASE_PASSWORD)@postgres.postgres.svc.cluster.local:5432/$(NAMESPACE)
             - name: PAYLOAD_SECRET
               valueFrom:
                 secretKeyRef:
                   name: payload-app-vault
                   key: payload-secret
-            - name: PAYLOAD_PUBLIC_SERVER_URL
-              value: https://payload.0xc0.cc
-            - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
-            - name: OTEL_SERVICE_NAME
-              value: payload
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: service.version=$(APP_VERSION),deployment.environment=$(APP_ENVIRONMENT)
             # Optional: without it RUM stays off.
             - name: OPENOBSERVE_RUM_CLIENT_TOKEN
               valueFrom:

@@ -20,6 +20,23 @@ spec:
     transformation:
       excludeRaw: true
 ---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: payload-staging-database
+  namespace: postgres
+spec:
+  vaultAuthRef: vault-secrets
+  type: kv-v2
+  mount: apps
+  path: payload-staging/database
+  refreshAfter: 1h
+  destination:
+    name: payload-staging-database-vault
+    create: true
+    transformation:
+      excludeRaw: true
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -93,12 +110,21 @@ spec:
             - name: payload
               mountPath: /databases/payload
               readOnly: true
+            - name: payload-staging
+              mountPath: /databases/payload-staging
+              readOnly: true
             - name: tmp
               mountPath: /tmp
       volumes:
         - name: payload
           secret:
             secretName: payload-database-vault
+            items:
+              - key: password
+                path: password
+        - name: payload-staging
+          secret:
+            secretName: payload-staging-database-vault
             items:
               - key: password
                 path: password
