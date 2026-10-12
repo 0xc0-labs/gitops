@@ -1,0 +1,13 @@
+name: semgrep
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  semgrep:
+    uses: 0xc0-labs/.github/.github/workflows/semgrep.yml@main

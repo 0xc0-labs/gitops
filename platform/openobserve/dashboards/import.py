@@ -21,6 +21,8 @@ import urllib.parse
 import urllib.request
 
 BASE = os.environ.get("O2_URL", "http://openobserve.openobserve.svc.cluster.local:5080")
+if urllib.parse.urlsplit(BASE).scheme not in ("http", "https"):
+    sys.exit("O2_URL must be an http(s) URL")
 ORG = "default"
 FOLDER = "0xc0"
 DIR = os.environ.get("DASHBOARDS_DIR", "/dashboards")
@@ -35,7 +37,7 @@ def call(method, path, query=None, body=None):
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(url, data=data, method=method, headers={
         "Authorization": AUTH, "Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=30) as r:
+    with urllib.request.urlopen(req, timeout=30) as r:  # nosemgrep: dynamic-urllib-use-detected - BASE's scheme is checked as http(s) at the top of this file
         raw = r.read()
         return json.loads(raw) if raw else None
 
@@ -43,7 +45,7 @@ def call(method, path, query=None, body=None):
 def wait_ready():
     for _ in range(60):
         try:
-            urllib.request.urlopen(BASE + "/healthz", timeout=5)
+            urllib.request.urlopen(BASE + "/healthz", timeout=5)  # nosemgrep: dynamic-urllib-use-detected - BASE's scheme is checked as http(s) at the top of this file
             return
         except (urllib.error.URLError, OSError):
             time.sleep(5)
