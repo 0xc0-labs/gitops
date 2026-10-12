@@ -35,7 +35,7 @@ def call(method, path, query=None, body=None):
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(url, data=data, method=method, headers={
         "Authorization": AUTH, "Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=30) as r:  # nosemgrep: dynamic-urllib-use-detected - BASE is this Job's own env, never user input
+    with urllib.request.urlopen(req, timeout=30) as r:
         raw = r.read()
         return json.loads(raw) if raw else None
 
@@ -43,10 +43,10 @@ def call(method, path, query=None, body=None):
 def wait_ready():
     for _ in range(60):
         try:
-            urllib.request.urlopen(BASE + "/healthz", timeout=5)  # nosemgrep: dynamic-urllib-use-detected - BASE is this Job's own env, never user input
+            urllib.request.urlopen(BASE + "/healthz", timeout=5)
             return
         except (urllib.error.URLError, OSError):
-            time.sleep(5)  # nosemgrep: arbitrary-sleep - the wait for OpenObserve's startup is the point
+            time.sleep(5)
     sys.exit("OpenObserve not ready after 5 minutes")
 
 
@@ -69,8 +69,7 @@ def main():
                                             {"folder": fid, "pageSize": 1000})["dashboards"]}
     wanted = set()
     for path in sorted(glob.glob(os.path.join(DIR, "*.json"))):
-        with open(path, encoding="utf-8") as f:
-            dash = json.load(f)
+        dash = json.load(open(path))
         title = dash["title"]
         wanted.add(title)
         for key in ("dashboardId", "owner", "created", "updatedAt"):

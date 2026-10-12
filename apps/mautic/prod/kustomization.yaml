@@ -17,3 +17,7 @@ configMapGenerator:
   - name: mautic-supervisord
     files:
       - supervisord.conf
+  - name: mautic-apache
+    files:
+      - apache/ports.conf
+      - apache/000-default.conf
