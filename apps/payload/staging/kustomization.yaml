@@ -35,6 +35,30 @@ configMapGenerator:
       - PAYLOAD_PUBLIC_SERVER_URL=https://payload-staging.int.0xc0.cc
       - S3_ENDPOINT=https://ca1599ae7852d5b4718cba351adad927.r2.cloudflarestorage.com
       - S3_BUCKET=payload-staging-media
+  - name: payload-email
+    behavior: merge
+    literals:
+      - EMAIL_FROM_NAME=0xc0 (staging)
+# Every email to the one inbox at redirect_to, kept in Vault because this
+# repo is public (../README.md, Email). Not optional: without it the new pod
+# does not start, so staging never mails a real recipient.
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: payload
+      spec:
+        template:
+          spec:
+            containers:
+              - name: web
+                env:
+                  - name: EMAIL_REDIRECT_TO
+                    valueFrom:
+                      secretKeyRef:
+                        name: payload-email-vault
+                        key: redirect_to
 # The environment's own Vault paths start with its namespace
 # (../base/vault-secrets.yaml).
 replacements:
@@ -55,5 +79,10 @@ replacements:
       - select:
           kind: VaultStaticSecret
           name: payload-media
+        fieldPaths: [spec.path]
+        options: {delimiter: /, index: 0}
+      - select:
+          kind: VaultStaticSecret
+          name: payload-email
         fieldPaths: [spec.path]
         options: {delimiter: /, index: 0}
