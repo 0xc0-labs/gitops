@@ -1,5 +1,8 @@
 {
   "$schema": "https://code.claude.com/schemas/settings.json",
+  "model": "sonnet",
+  "effortLevel": "medium",
+  "env": { "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet" },
   "enabledPlugins": {
     "0xc0@0xc0-labs": true
   },
