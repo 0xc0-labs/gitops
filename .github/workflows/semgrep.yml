@@ -12,5 +12,3 @@ permissions:
 jobs:
   semgrep:
     uses: 0xc0-labs/.github/.github/workflows/semgrep.yml@main
-    with:
-      sarif: true
