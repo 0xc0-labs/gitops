@@ -94,7 +94,7 @@ spec:
               value: "7.2.1"
             - name: MAUTIC_ZIP_SHA256
               value: 5c86cf1fe8b4f9818232ce8bb755760f502d47846706e9164d144865d031ecbd
-          securityContext:
+          securityContext: # nosemgrep: run-as-non-root-container-level - the image starts apache as root and drops to www-data
             capabilities:
               drop: [NET_RAW]
           resources:
@@ -109,7 +109,7 @@ spec:
             - name: grapesjs-assets
               mountPath: /dist
       containers:
-        - name: web
+        - name: web # nosemgrep: writable-filesystem-container - the image writes under /var/www/html at startup
           image: docker.io/mautic/mautic:7.2.1-apache@sha256:ff584fd13c8db06b4a7dd640e837dbbde69bd8c40da62140ff6c3c2dd0402abc
           env:
             - name: DOCKER_MAUTIC_ROLE
@@ -149,7 +149,8 @@ spec:
               port: http
             periodSeconds: 20
             failureThreshold: 6
-          securityContext: &security
+          securityContext: &security # nosemgrep: run-as-non-root-container-level - the image starts apache as root and drops to www-data
+            allowPrivilegeEscalation: false
             capabilities:
               drop: [NET_RAW]
           resources:
@@ -176,7 +177,7 @@ spec:
             - name: grapesjs-assets
               mountPath: /var/www/html/docroot/plugins/GrapesJsBuilderBundle/Assets/library/js/dist
               readOnly: true
-        - name: cron
+        - name: cron # nosemgrep: writable-filesystem-container - the image writes under /var/www/html at startup
           image: docker.io/mautic/mautic:7.2.1-apache@sha256:ff584fd13c8db06b4a7dd640e837dbbde69bd8c40da62140ff6c3c2dd0402abc
           env:
             - name: DOCKER_MAUTIC_ROLE
@@ -184,7 +185,7 @@ spec:
             - *password
             - *mailer
           envFrom: *env
-          securityContext: *security
+          securityContext: *security # nosemgrep: run-as-non-root-container-level - the image starts apache as root and drops to www-data
           resources:
             requests:
               cpu: 20m
@@ -206,7 +207,7 @@ spec:
               subPath: media/images
             - name: cache-cron
               mountPath: /var/www/html/var/cache
-        - name: worker
+        - name: worker # nosemgrep: writable-filesystem-container - the image writes under /var/www/html at startup
           image: docker.io/mautic/mautic:7.2.1-apache@sha256:ff584fd13c8db06b4a7dd640e837dbbde69bd8c40da62140ff6c3c2dd0402abc
           env:
             - name: DOCKER_MAUTIC_ROLE
@@ -214,7 +215,7 @@ spec:
             - *password
             - *mailer
           envFrom: *env
-          securityContext: *security
+          securityContext: *security # nosemgrep: run-as-non-root-container-level - the image starts apache as root and drops to www-data
           resources:
             requests:
               cpu: 50m
