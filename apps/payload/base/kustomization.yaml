@@ -15,3 +15,12 @@ configMapGenerator:
       - NEXT_TELEMETRY_DISABLED=1
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
       - OTEL_SERVICE_NAME=payload
+  # The server's alone: the Jobs send nothing, and with SMTP_HOST set
+  # Payload's config does not load without SMTP_PASS (../README.md, Email).
+  # Each environment merges its EMAIL_FROM_NAME in.
+  - name: payload-email
+    literals:
+      - SMTP_HOST=smtp.resend.com
+      - SMTP_PORT=587
+      - SMTP_USER=resend
+      - EMAIL_FROM_ADDRESS=noreply@0xc0.cc

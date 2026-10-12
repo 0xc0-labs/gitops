@@ -3,8 +3,8 @@
 #
 # Backups:
 # - The uploaded media: the R2 bucket payload-media, which keeps no copies
-#   of its own. A nightly copy to the Storage Box comes before prod holds
-#   real files (workspace#88).
+#   of its own, and nothing copies outside Cloudflare: an accepted risk, in
+#   the workspace's docs/accepted-risks.md (workspace#89).
 # - Its database: platform/postgres's nightly dump, postgres-dumps/payload.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -33,6 +33,10 @@ configMapGenerator:
       - S3_ENDPOINT=https://ca1599ae7852d5b4718cba351adad927.r2.cloudflarestorage.com
       - S3_BUCKET=payload-media
       - MEDIA_PUBLIC_URL=https://media.0xc0.cc
+  - name: payload-email
+    behavior: merge
+    literals:
+      - EMAIL_FROM_NAME=0xc0
 # The environment's own Vault paths start with its namespace
 # (../base/vault-secrets.yaml).
 replacements:
@@ -53,5 +57,10 @@ replacements:
       - select:
           kind: VaultStaticSecret
           name: payload-media
+        fieldPaths: [spec.path]
+        options: {delimiter: /, index: 0}
+      - select:
+          kind: VaultStaticSecret
+          name: payload-email
         fieldPaths: [spec.path]
         options: {delimiter: /, index: 0}

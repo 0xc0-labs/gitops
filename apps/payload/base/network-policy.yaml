@@ -1,5 +1,6 @@
 # The only ways out are PostgreSQL, the R2 bucket, traces to the collector
-# and DNS, for the server and its Jobs alike (app.kubernetes.io/part-of).
+# and DNS, for the server and its Jobs alike (app.kubernetes.io/part-of), and
+# SMTP, for the server alone.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -139,3 +140,29 @@ spec:
       ports:
         - protocol: TCP
           port: 443
+---
+# Resend's SMTP server has no fixed range (smtp.resend.com is an AWS load
+# balancer), so the way out is its port alone, to anything outside the
+# private ranges: nothing inside the network is reached on it.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: egress-smtp
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: payload
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+      ports:
+        - protocol: TCP
+          port: 587

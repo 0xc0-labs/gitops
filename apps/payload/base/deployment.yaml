@@ -54,11 +54,14 @@ spec:
         - name: web
           image: ghcr.io/0xc0-labs/payload
           args: [serve]
-          # What the server and its Jobs share (kustomization.yaml), and the
-          # version this environment runs (its pin).
+          # What the server and its Jobs share (kustomization.yaml), the
+          # server's SMTP settings, and the version this environment runs (its
+          # pin).
           envFrom:
             - configMapRef:
                 name: payload
+            - configMapRef:
+                name: payload-email
             - configMapRef:
                 name: release
           env:
@@ -98,6 +101,12 @@ spec:
                 secretKeyRef:
                   name: payload-media-vault
                   key: secret_access_key
+            # Resend takes its API key as the SMTP password.
+            - name: SMTP_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: payload-email-vault
+                  key: api_key
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: service.version=$(APP_VERSION),deployment.environment=$(APP_ENVIRONMENT)
             # Optional: without it RUM stays off.

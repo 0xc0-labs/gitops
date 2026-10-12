@@ -15,10 +15,10 @@ Argo CD application of its own:
 | Database | `payload` on platform/postgres | `payload-staging` on platform/postgres |
 
 `base/` holds what both share; `prod/` and `staging/` add the namespace, the
-routes, the URL, the bucket and the pin. One replica each, with no volume: a
-new version or a restart starts the new pod and stops the old one once the
-new one is ready (`RollingUpdate`, `maxUnavailable: 0`), so the CMS keeps
-serving.
+routes, the URL, the bucket, the email sender's name and the pin. One replica
+each, with no volume: a new version or a restart starts the new pod and stops
+the old one once the new one is ready (`RollingUpdate`, `maxUnavailable: 0`),
+so the CMS keeps serving.
 
 ## Before the first sync: the secrets
 
@@ -32,10 +32,12 @@ and `apps/payload-staging/`:
 | `app` | `payload-secret` | generated: `openssl rand -base64 48`, one per environment. It signs sessions and tokens |
 | `app`, staging alone | `seed-password` | generated: `openssl rand -base64 24`. The seed's super-admin (Staging's data, below) |
 | `media` | `access_key_id`, `secret_access_key` | an R2 token scoped to the environment's bucket (Media, below) |
+| `email` | `api_key` | a Resend API key, one per environment (Email, below) |
+| `email`, staging alone | `redirect_to` | the inbox staging's email goes to (Email, below) |
 
-Staging's, in order, with why `app` takes `kv put` then `kv patch`:
-[`vault`'s README, Application delivery: what the operator
-writes][vault-delivery], steps 4 and 5.
+Where each comes from, and staging's in order, with why `app` takes `kv put`
+then `kv patch`: [`vault`'s README, Application delivery: what the operator
+writes][vault-delivery], steps 4 to 6.
 
 No value ends in a newline. platform/postgres's databases Job reads the
 password with psql's backquotes, which drop it, while the pod's environment
@@ -72,8 +74,36 @@ The way out is HTTPS to Cloudflare's published IPv4 ranges
 Changing where files go moves none: what was uploaded to the volume before
 stays there.
 
-R2 keeps no copies of its own. A nightly copy to the Storage Box, with a timed
-restore, is in place before prod holds real files (workspace#88).
+R2 keeps no copies of its own, and nothing copies the media outside
+Cloudflare: an accepted risk, in the workspace's
+[`docs/accepted-risks.md`][accepted-risks] (workspace#89).
+
+## Email
+
+The server sends Payload's email through Resend's SMTP server,
+`smtp.resend.com:587`, from `noreply@0xc0.cc`: as `0xc0` in prod, as
+`0xc0 (staging)` in staging. What it sends, and how the image takes the
+settings: [payload's README, Email][payload-email].
+
+- The settings are the `payload-email` ConfigMap (`base/kustomization.yaml`)
+  and each environment's `EMAIL_FROM_NAME`. The password, `SMTP_PASS`, is a
+  Resend API key, `api_key` at `apps/<namespace>/email`, written as
+  [`vault`'s README][vault-delivery] says (step 6). A new key restarts the
+  pod.
+- The server alone reads them. The migrations and the seed send nothing, so
+  they hold neither the key nor `SMTP_HOST`: with one and not the other,
+  Payload's config does not load.
+- **Staging sends to one inbox.** `EMAIL_REDIRECT_TO`, from `redirect_to` at
+  `apps/payload-staging/email`, takes every message instead of its
+  recipients, marked as staging's. The address lives in Vault because this
+  repo is public. Its key is not optional: without it, staging's new pod does
+  not start, so staging never mails a real recipient. Prod sets no redirect.
+- The way out is TCP 587 to anything outside the private ranges, for the
+  server's pod alone (`base/network-policy.yaml`, `egress-smtp`): Resend's
+  server is an AWS load balancer, with no fixed range.
+
+To check it: "Forgot password?" on each environment's admin. Prod's email
+reaches the user; staging's, the one inbox.
 
 ## Delivery
 
@@ -163,3 +193,5 @@ cannot connect.
 
 [vault-write]: https://github.com/0xc0-labs/vault/blob/main/README.md#writing-or-rotating-a-secret
 [vault-delivery]: https://github.com/0xc0-labs/vault/blob/main/README.md#application-delivery-what-the-operator-writes
+[accepted-risks]: https://github.com/0xc0-labs/workspace/blob/main/docs/accepted-risks.md
+[payload-email]: https://github.com/0xc0-labs/payload/blob/main/README.md#email
