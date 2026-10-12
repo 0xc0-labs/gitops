@@ -23,6 +23,9 @@ image:
 
 kube-state-metrics:
   enabled: true
+  image:
+    tag: v2.15.0
+    sha: sha256:db384bf43222b066c378e77027a675d4cd9911107adba46c2922b3a55e10d6fb
   resources:
     requests:
       cpu: 10m
