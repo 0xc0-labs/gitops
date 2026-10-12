@@ -3,6 +3,8 @@ name: issue
 on:
   pull_request:
     types: [opened, edited, reopened, synchronize]
+  merge_group:
+    types: [checks_requested]
 
 permissions: {}
 
