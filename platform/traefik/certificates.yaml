@@ -1,5 +1,4 @@
-# Adding a domain: a Certificate here, its two listeners, and its zone in the
-# Cloudflare token. sergioaten.cloud has none: the token does not reach it.
+# sergioaten.cloud has none: the Cloudflare token does not reach it.
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:

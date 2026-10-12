@@ -60,7 +60,6 @@ spec:
               value: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
             - name: OTEL_SERVICE_NAME
               value: offby1-cc
-            # Optional: without it the page renders with RUM off.
             - name: OPENOBSERVE_RUM_CLIENT_TOKEN
               valueFrom:
                 secretKeyRef:

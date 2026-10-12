@@ -1,6 +1,5 @@
 # Reached over WARP only: the internal listener, never websecure, so no
-# gateway.0xc0.cc/web. The media is public at media.0xc0.cc, served by
-# Cloudflare from the bucket, not from here.
+# gateway.0xc0.cc/web.
 apiVersion: v1
 kind: Namespace
 metadata:

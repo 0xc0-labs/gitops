@@ -1,6 +1,5 @@
-# A Sync hook in wave 1, between what it needs (wave 0) and the Deployment
-# (wave 2), never PreSync: workspace docs/design/delivery.md, Application
-# delivery. PreSync would also run before a secret this same sync brings,
+# A Sync hook, never PreSync (workspace docs/design/delivery.md, Application
+# delivery): PreSync would also run before a secret this same sync brings,
 # such as the GHCR pull secret.
 apiVersion: batch/v1
 kind: Job
@@ -33,8 +32,7 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       containers:
-        # The server's settings (deployment.yaml), without what only serving
-        # needs.
+        # The server's settings (deployment.yaml), less what only serving needs.
         - name: migrate
           image: ghcr.io/0xc0-labs/payload
           args: [migrate]

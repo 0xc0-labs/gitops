@@ -20,8 +20,7 @@ gateway:
   # The public tunnel (infrastructure: tofu output public_tunnel_id).
   annotations:
     external-dns.kubernetes.io/target: 2bca7b27-f56a-4d12-bb93-079837015367.cfargotunnel.com
-  # Only namespaces labelled gateway.0xc0.cc/web: "true" attach routes. The
-  # API server's defaults are written out, or Argo CD sees a diff forever.
+  # The API server's defaults are written out, or Argo CD sees a diff forever.
   listeners:
     web:
       port: 8000
@@ -62,7 +61,7 @@ gateway:
           group: ""
           kind: Secret
       namespacePolicy: *routes
-    # WARP only. A namespace opts in with gateway.0xc0.cc/internal: "true".
+    # WARP only.
     internal:
       port: 8444
       protocol: HTTPS

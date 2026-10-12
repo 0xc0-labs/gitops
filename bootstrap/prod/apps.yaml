@@ -6,8 +6,6 @@ metadata:
 spec:
   goTemplate: true
   goTemplateOptions: ["missingkey=error"]
-  # One directory per environment of an application: apps/<app>/prod is
-  # <app>, apps/<app>/staging is <app>-staging, as Application and namespace.
   generators:
     - git:
         repoURL: https://github.com/0xc0-labs/gitops.git
@@ -34,11 +32,10 @@ spec:
         path: "{{ .path.path }}"
       destination:
         server: https://kubernetes.default.svc
-        # For what a chart leaves without one: Kustomize's namespace field
-        # does not reach what helmCharts inflates.
+        # What a chart leaves without a namespace lands here (CLAUDE.md).
         namespace: '{{ index .path.segments 1 }}{{ if eq .path.basename "staging" }}-staging{{ end }}'
       syncPolicy:
-        # Components holding data or CRDs opt out with Prune=false.
+        # What holds data opts out with Prune=false, in its own manifest.
         automated:
           prune: true
           selfHeal: true

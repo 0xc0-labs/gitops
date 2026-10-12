@@ -1,4 +1,4 @@
-# This app's own headers; Traefik sets the baseline, the app its CSP.
+# This app's own headers (README.md, Headers).
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:

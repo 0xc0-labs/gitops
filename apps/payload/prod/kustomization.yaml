@@ -1,10 +1,6 @@
-# Payload CMS in prod, one multi-tenant instance, the backend of several
-# frontends (operator decision, 2026-10-09; workspace#64). ../README.md.
-#
 # Backups:
-# - The uploaded media: the R2 bucket payload-media, which keeps no copies
-#   of its own, and nothing copies outside Cloudflare: an accepted risk, in
-#   the workspace's docs/accepted-risks.md (workspace#89).
+# - The uploaded media: the R2 bucket payload-media, with no copy: an
+#   accepted risk (../README.md, Media).
 # - Its database: platform/postgres's nightly dump, postgres-dumps/payload.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -13,8 +9,7 @@ resources:
   - namespace.yaml
   - ../base
   - httproute.yaml
-# The pin: a release's PR changes only newTag, digest and APP_VERSION, which
-# must equal newTag (pin / check). Until the first release, a placeholder.
+# The pin (../README.md, Delivery).
 images:
   - name: ghcr.io/0xc0-labs/payload
     newTag: v0.2.0
@@ -24,8 +19,6 @@ configMapGenerator:
     literals:
       - APP_VERSION=v0.2.0
       - APP_ENVIRONMENT=prod
-  # The media in R2, served by Cloudflare at media.0xc0.cc: Payload serves
-  # no file, and nothing of it is public (../README.md).
   - name: payload
     behavior: merge
     literals:
@@ -37,8 +30,7 @@ configMapGenerator:
     behavior: merge
     literals:
       - EMAIL_FROM_NAME=0xc0
-# The environment's own Vault paths start with its namespace
-# (../base/vault-secrets.yaml).
+# Each Vault path starts with the namespace (../base/vault-secrets.yaml).
 replacements:
   - source:
       kind: Namespace

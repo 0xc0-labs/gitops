@@ -15,8 +15,7 @@ spec:
     - group: "*"
       kind: "*"
 ---
-# An application writes only to its own namespace, listed here; a
-# cluster-scoped kind it needs goes through platform/.
+# A cluster-scoped kind an application needs goes through platform/.
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:

@@ -1,8 +1,5 @@
-# Renders every component under platform/ and apps/ as Argo CD does, and validates it and
-# the bootstrap's manifests; and checks every environment's pin. On every PR,
-# with no paths filter: both checks are required, and a required check must
-# report on every PR. The steps live in the reusable workflows in
-# 0xc0-labs/.github.
+# No paths filter: both checks are required, and a required check must
+# report on every PR.
 name: validate
 
 on:
@@ -18,7 +15,5 @@ jobs:
     with:
       components: platform/* apps/*/prod apps/*/staging
 
-  # Each APP_VERSION is its image's newTag, and the org's bots change pins
-  # only: pin / check.
   pin:
     uses: 0xc0-labs/.github/.github/workflows/pin-check.yml@main
