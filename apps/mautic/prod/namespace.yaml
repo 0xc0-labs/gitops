@@ -1,10 +1,9 @@
-# baseline, not restricted: the image starts as root to chown its volumes.
 apiVersion: v1
 kind: Namespace
 metadata:
   name: mautic
   labels:
-    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/enforce: restricted
     gateway.0xc0.cc/web: "true"
     gateway.0xc0.cc/internal: "true"
     vault.0xc0.cc/apps: "true"

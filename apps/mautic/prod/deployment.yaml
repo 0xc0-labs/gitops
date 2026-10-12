@@ -67,7 +67,15 @@ spec:
         app.kubernetes.io/name: mautic
     spec:
       automountServiceAccountToken: false
+      # 33 is www-data, the image's own unprivileged user. fsGroup makes the
+      # volume writable to it, which the image's entrypoint (root, chown)
+      # no longer does: the containers below skip that entrypoint.
       securityContext:
+        runAsUser: 33
+        runAsGroup: 33
+        runAsNonRoot: true
+        fsGroup: 33
+        fsGroupChangePolicy: OnRootMismatch
         seccompProfile:
           type: RuntimeDefault
       # The 7.2 image lacks GrapesJS's compiled assets
@@ -94,9 +102,11 @@ spec:
               value: "7.2.1"
             - name: MAUTIC_ZIP_SHA256
               value: 5c86cf1fe8b4f9818232ce8bb755760f502d47846706e9164d144865d031ecbd
-          securityContext:
+          securityContext: &security
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
-              drop: [NET_RAW]
+              drop: [ALL]
           resources:
             requests:
               cpu: 50m
@@ -111,6 +121,20 @@ spec:
       containers:
         - name: web
           image: docker.io/mautic/mautic:7.2.1-apache@sha256:ff584fd13c8db06b4a7dd640e837dbbde69bd8c40da62140ff6c3c2dd0402abc
+          # The image's entrypoint chowns volumes and runs the migrations
+          # through su, both root's: the same steps, without it.
+          command:
+            - bash
+            - -euo
+            - pipefail
+            - -c
+            - |
+              config=/var/www/html/config
+              [ -f "$config/local.php" ] || cp /templates/local.php "$config/local.php"
+              if php -r "include('$config/local.php'); exit(!empty(\$parameters['db_driver']) && !empty(\$parameters['site_url']) ? 0 : 1);"; then
+                php /var/www/html/bin/console doctrine:migrations:migrate -n
+              fi
+              exec apache2-foreground
           env:
             - name: DOCKER_MAUTIC_ROLE
               value: mautic_web
@@ -133,7 +157,7 @@ spec:
                 name: mautic-env
           ports:
             - name: http
-              containerPort: 80
+              containerPort: 8080
           # Migrations run before apache listens (README.md, Upgrades).
           startupProbe:
             tcpSocket:
@@ -149,9 +173,7 @@ spec:
               port: http
             periodSeconds: 20
             failureThreshold: 6
-          securityContext: &security
-            capabilities:
-              drop: [NET_RAW]
+          securityContext: *security
           resources:
             requests:
               cpu: 100m
@@ -173,11 +195,49 @@ spec:
               subPath: media/images
             - name: cache-web
               mountPath: /var/www/html/var/cache
+            - name: var-tmp
+              mountPath: /var/www/html/var/tmp
+            - name: tmp
+              mountPath: /tmp
+            - name: apache-run
+              mountPath: /var/run/apache2
+            - name: apache-run
+              mountPath: /var/lock/apache2
+            - name: apache
+              mountPath: /etc/apache2/ports.conf
+              subPath: ports.conf
+              readOnly: true
+            - name: apache
+              mountPath: /etc/apache2/sites-available/000-default.conf
+              subPath: 000-default.conf
+              readOnly: true
             - name: grapesjs-assets
               mountPath: /var/www/html/docroot/plugins/GrapesJsBuilderBundle/Assets/library/js/dist
               readOnly: true
         - name: cron
           image: docker.io/mautic/mautic:7.2.1-apache@sha256:ff584fd13c8db06b4a7dd640e837dbbde69bd8c40da62140ff6c3c2dd0402abc
+          # The image's cron daemon is root's: the same three jobs of its
+          # crontab, on a loop. One at a time, so a slow one skips a slot
+          # instead of overlapping.
+          command:
+            - bash
+            - -euo
+            - pipefail
+            - -c
+            - |
+              until php -r "include('/var/www/html/config/local.php'); exit(!empty(\$parameters['db_driver']) && !empty(\$parameters['site_url']) ? 0 : 1);"; do
+                sleep 5
+              done
+              while :; do
+                case $(( 10#$(date +%M) % 15 )) in
+                  0) job=mautic:segments:update ;;
+                  5) job=mautic:campaigns:update ;;
+                  10) job=mautic:campaigns:trigger ;;
+                  *) job= ;;
+                esac
+                [ -z "$job" ] || php /var/www/html/bin/console "$job" || true
+                sleep $(( 60 - 10#$(date +%S) ))
+              done
           env:
             - name: DOCKER_MAUTIC_ROLE
               value: mautic_cron
@@ -206,8 +266,22 @@ spec:
               subPath: media/images
             - name: cache-cron
               mountPath: /var/www/html/var/cache
+            - name: var-tmp
+              mountPath: /var/www/html/var/tmp
+            - name: tmp
+              mountPath: /tmp
         - name: worker
           image: docker.io/mautic/mautic:7.2.1-apache@sha256:ff584fd13c8db06b4a7dd640e837dbbde69bd8c40da62140ff6c3c2dd0402abc
+          command:
+            - bash
+            - -euo
+            - pipefail
+            - -c
+            - |
+              until php -r "include('/var/www/html/config/local.php'); exit(!empty(\$parameters['db_driver']) && !empty(\$parameters['site_url']) ? 0 : 1);"; do
+                sleep 5
+              done
+              exec supervisord -c /etc/supervisor/conf.d/supervisord.conf
           env:
             - name: DOCKER_MAUTIC_ROLE
               value: mautic_worker
@@ -236,6 +310,10 @@ spec:
               subPath: media/images
             - name: cache-worker
               mountPath: /var/www/html/var/cache
+            - name: var-tmp
+              mountPath: /var/www/html/var/tmp
+            - name: tmp
+              mountPath: /tmp
             - name: supervisord
               mountPath: /etc/supervisor/conf.d/supervisord.conf
               subPath: supervisord.conf
@@ -265,14 +343,7 @@ spec:
                   seen="$seen$f "
                 done
               done
-          securityContext:
-            runAsUser: 33
-            runAsGroup: 33
-            runAsNonRoot: true
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop: [ALL]
+          securityContext: *security
           resources:
             requests:
               cpu: 5m
@@ -294,6 +365,19 @@ spec:
         # Symfony's cache, outside the image: the image's own is stale and
         # cache:clear cannot rename it on overlayfs. One per container, so no
         # two warm it at once.
+        - name: apache
+          configMap:
+            name: mautic-apache
+        - name: apache-run
+          emptyDir:
+            medium: Memory
+            sizeLimit: 8Mi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 512Mi
+        - name: var-tmp
+          emptyDir:
+            sizeLimit: 512Mi
         - name: cache-web
           emptyDir:
             sizeLimit: 512Mi
