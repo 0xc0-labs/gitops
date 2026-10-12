@@ -9,11 +9,30 @@ says.
 
 ## Upgrades
 
-Every push to `main` in 0xc0-labs/offby1.cc publishes
-`ghcr.io/0xc0-labs/offby1.cc` as `sha-<7>` and `main`, and its
-`container-image` job prints the image as `tag@digest` in its summary. An
-upgrade is that string in `deployment.yaml`, in a PR here; Argo CD rolls it
+Every push to `main` in 0xc0-labs/offby1.cc is a release, `vX.Y.Z`, with
+no staging and no release candidate ([`.github`'s README, Application
+repos][github-apps]). Its PR here moves the pin alone, in
+`kustomization.yaml`, and merging it is prod's approval; Argo CD rolls it
 out one pod at a time, never below two ready (`maxUnavailable: 0`).
+
+```yaml
+images:
+  - name: ghcr.io/0xc0-labs/offby1.cc
+    newTag: v0.1.0
+    digest: sha256:<64 hex>
+configMapGenerator:
+  - name: release
+    literals:
+      - APP_VERSION=v0.1.0
+      - APP_ENVIRONMENT=prod
+```
+
+Until the first release, the pin is the `sha-<7>` tag the image job
+publishes. Every signal carries the version and the environment, from the
+`release` ConfigMap: `OTEL_RESOURCE_ATTRIBUTES`.
+
+To roll back, revert the release's PR: the previous pin comes back, and with
+it the previous digest.
 
 The package on GHCR is public, so the cluster pulls with no secret.
 
@@ -26,3 +45,4 @@ framing, Permissions-Policy, COOP/CORP). The app sets its own
 Content-Security-Policy, with a nonce per request.
 
 [vault-write]: https://github.com/0xc0-labs/vault/blob/main/README.md#writing-or-rotating-a-secret
+[github-apps]: https://github.com/0xc0-labs/.github/blob/main/README.md#application-repos
