@@ -1,10 +1,6 @@
-# Payload CMS in staging: the same application as prod, its own namespace,
-# database, bucket and Vault path, reached over WARP only, filled with the
-# seed. ../README.md.
-#
 # Backups:
-# - The media uploaded in tests: the R2 bucket payload-staging-media, which
-#   keeps no copies of its own. The seed holds no media.
+# - The media uploaded in tests: the R2 bucket payload-staging-media, with no
+#   copy. The seed holds no media.
 # - Its database: platform/postgres's nightly dump,
 #   postgres-dumps/payload-staging.
 apiVersion: kustomize.config.k8s.io/v1beta1
@@ -15,9 +11,7 @@ resources:
   - ../base
   - httproute.yaml
   - seed.yaml
-# The pin: each release candidate's PR changes only newTag, digest and
-# APP_VERSION, which must equal newTag (pin / check), and merges itself once
-# its checks pass. Until the first rc, a placeholder.
+# The pin (../README.md, Delivery).
 images:
   - name: ghcr.io/0xc0-labs/payload
     newTag: v0.3.0-rc.4
@@ -27,8 +21,7 @@ configMapGenerator:
     literals:
       - APP_VERSION=v0.3.0-rc.4
       - APP_ENVIRONMENT=staging
-  # The media in R2, served by Payload itself at /api/media/file/, over
-  # WARP: the bucket has no public hostname.
+  # No MEDIA_PUBLIC_URL: Payload serves the files itself (../README.md, Media).
   - name: payload
     behavior: merge
     literals:
@@ -39,9 +32,7 @@ configMapGenerator:
     behavior: merge
     literals:
       - EMAIL_FROM_NAME=0xc0 (staging)
-# Every email to the one inbox at redirect_to, kept in Vault because this
-# repo is public (../README.md, Email). Not optional: without it the new pod
-# does not start, so staging never mails a real recipient.
+# Not optional: staging never mails a real recipient (../README.md, Email).
 patches:
   - patch: |-
       apiVersion: apps/v1
@@ -59,8 +50,7 @@ patches:
                       secretKeyRef:
                         name: payload-email-vault
                         key: redirect_to
-# The environment's own Vault paths start with its namespace
-# (../base/vault-secrets.yaml).
+# Each Vault path starts with the namespace (../base/vault-secrets.yaml).
 replacements:
   - source:
       kind: Namespace

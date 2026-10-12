@@ -29,7 +29,6 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: postgres-databases
-        # Each environment of an application: its server and its Jobs.
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: payload

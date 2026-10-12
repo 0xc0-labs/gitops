@@ -13,7 +13,6 @@ resources:
   - vault-secrets.yaml
   - deployment.yaml
   - httproute.yaml
-# Hashed, so a change rolls the pod; Argo CD prunes the old one.
 configMapGenerator:
   - name: mautic-supervisord
     files:

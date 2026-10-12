@@ -31,8 +31,7 @@ spec:
         path: "{{ .path.path }}"
       destination:
         server: https://kubernetes.default.svc
-        # For what a chart leaves without one: Kustomize's namespace field
-        # does not reach what helmCharts inflates.
+        # What a chart leaves without a namespace lands here (CLAUDE.md).
         namespace: "{{ .path.basename }}"
       syncPolicy:
         # Components holding data or CRDs opt out with Prune=false.

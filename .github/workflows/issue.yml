@@ -1,4 +1,3 @@
-# Every PR must link an issue. The check itself lives in 0xc0-labs/.github.
 name: issue
 
 on:

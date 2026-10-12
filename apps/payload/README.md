@@ -1,8 +1,8 @@
 # payload
 
 Payload CMS (v3), one multi-tenant instance per environment, the backend of
-several frontends. The code is 0xc0-labs/payload. Two environments, each an
-Argo CD application of its own:
+several frontends (operator decision, 2026-10-09; workspace#64). The code is
+0xc0-labs/payload. Two environments, each an Argo CD application of its own:
 
 | | prod | staging |
 |---|---|---|

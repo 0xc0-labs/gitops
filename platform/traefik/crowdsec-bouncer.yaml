@@ -13,7 +13,6 @@ spec:
       crowdsecLapiKeyFile: /etc/traefik/crowdsec/key
       crowdsecAppsecEnabled: true
       crowdsecAppsecHost: crowdsec-appsec-service.crowdsec.svc.cluster.local:7422
-      # The WAF fails closed.
       crowdsecAppsecUnreachableBlock: true
       crowdsecAppsecFailureBlock: true
       # The client is the last X-Forwarded-For address that is not a load

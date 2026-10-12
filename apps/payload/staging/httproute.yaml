@@ -1,5 +1,4 @@
-# Everything, admin included, over WARP only: never the public annotation,
-# never a websecure listener.
+# Nothing of staging is public (../README.md).
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:

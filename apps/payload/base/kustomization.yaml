@@ -1,5 +1,3 @@
-# What payload's environments share (README.md). Each environment adds its
-# namespace and routes, its URL, and its pin: prod/, staging/.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
@@ -7,17 +5,15 @@ resources:
   - vault-secrets.yaml
   - migrate.yaml
   - deployment.yaml
-# What the server and its Jobs read besides their secrets. Each environment
-# merges its PAYLOAD_PUBLIC_SERVER_URL in. Hashed, so a change rolls the pod.
+# Each environment merges its URL and its R2 bucket in.
 configMapGenerator:
   - name: payload
     literals:
       - NEXT_TELEMETRY_DISABLED=1
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
       - OTEL_SERVICE_NAME=payload
-  # The server's alone: the Jobs send nothing, and with SMTP_HOST set
-  # Payload's config does not load without SMTP_PASS (../README.md, Email).
-  # Each environment merges its EMAIL_FROM_NAME in.
+  # The server's alone (../README.md, Email). Each environment merges its
+  # EMAIL_FROM_NAME in.
   - name: payload-email
     literals:
       - SMTP_HOST=smtp.resend.com

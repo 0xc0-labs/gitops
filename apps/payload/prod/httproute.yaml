@@ -1,6 +1,4 @@
-# The admin, the REST and GraphQL APIs and authentication, over WARP alone.
-# Nothing of Payload is public: the media is at media.0xc0.cc, served by
-# Cloudflare from the bucket (../README.md).
+# Nothing of Payload is public (../README.md).
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:

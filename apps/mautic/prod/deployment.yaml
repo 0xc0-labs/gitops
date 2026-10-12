@@ -120,7 +120,7 @@ spec:
                 secretKeyRef:
                   name: mautic-database-vault
                   key: password
-            # Wins over local.php's DSN. Optional: without it, nothing is sent.
+            # Wins over local.php's DSN (README.md, The sending provider).
             - &mailer
               name: MAUTIC_MAILER_DSN
               valueFrom:
@@ -134,7 +134,7 @@ spec:
           ports:
             - name: http
               containerPort: 80
-          # Migrations run before apache listens: minutes after an upgrade.
+          # Migrations run before apache listens (README.md, Upgrades).
           startupProbe:
             tcpSocket:
               port: http
