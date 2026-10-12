@@ -3,6 +3,10 @@ manager:
   collectorImage:
     repository: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-k8s
     tag: "0.160.0@sha256:76d7a04f2291da1d8b7ce259468d09f0f9f44f71f67a5737539f64ca82b5bdb1"
+  # Unset, the operator falls back to its built-in default, by tag alone.
+  targetAllocatorImage:
+    repository: ghcr.io/open-telemetry/opentelemetry-operator/target-allocator
+    tag: "0.160.0@sha256:df98ddd322a68fa354f1008523bb4e32ad2d250fba7883214c479bb976ddc3ea"
   resources:
     requests:
       cpu: 10m

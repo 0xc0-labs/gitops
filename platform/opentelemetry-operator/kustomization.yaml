@@ -17,6 +17,12 @@ helmCharts:
 resources:
   - namespace.yaml
   - network-policy.yaml
+# Here, not in values: the chart copies manager.image.tag into every
+# resource's version label.
+images:
+  - name: ghcr.io/open-telemetry/opentelemetry-operator/opentelemetry-operator
+    newTag: "0.160.0"
+    digest: sha256:5323a0df9508bca24be1e7f4e7305a293bb790f460baf6287515274e664211f1
 # No pruning: it brings CRDs.
 commonAnnotations:
   argocd.argoproj.io/sync-options: Prune=false
