@@ -109,9 +109,9 @@ repo's own.
 
 How an application is promoted, and why: the workspace's
 [`docs/design/delivery.md`][design-delivery], Application delivery. Here, an
-application with delivery (`payload` today, its README) is pinned in each
-environment's `kustomization.yaml`: its `images:` entry, tag and digest, and
-`APP_VERSION` in the `release` ConfigMap. `pin / check` fails when
+application with delivery (`payload` and `offby1-cc` today, their READMEs)
+is pinned in each environment's `kustomization.yaml`: its `images:` entry,
+tag and digest, and `APP_VERSION` in the `release` ConfigMap. `pin / check` fails when
 `APP_VERSION` is not the tag, and when a bot's PR changes any line but a pin.
 One without delivery deploys the digest from `main` straight to prod.
 

@@ -48,7 +48,12 @@ spec:
               app.kubernetes.io/name: offby1-cc
       containers:
         - name: web
-          image: ghcr.io/0xc0-labs/offby1.cc:sha-6aaa9cc@sha256:5dfd78da1b032e6172610ce739230f43669ff7ae6c4fc4a043484ccb9affda4e
+          # The pin is kustomization.yaml's, never a tag here (README.md,
+          # Upgrades).
+          image: ghcr.io/0xc0-labs/offby1.cc
+          envFrom:
+            - configMapRef:
+                name: release
           env:
             # Next.js binds to $HOSTNAME, which Kubernetes sets to the pod's
             # name.
@@ -60,6 +65,8 @@ spec:
               value: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
             - name: OTEL_SERVICE_NAME
               value: offby1-cc
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: service.version=$(APP_VERSION),deployment.environment=$(APP_ENVIRONMENT)
             - name: OPENOBSERVE_RUM_CLIENT_TOKEN
               valueFrom:
                 secretKeyRef:

@@ -9,3 +9,13 @@ resources:
   - pdb.yaml
   - httproute.yaml
   - vault-secrets.yaml
+# The pin (README.md, Upgrades).
+images:
+  - name: ghcr.io/0xc0-labs/offby1.cc
+    newTag: sha-6aaa9cc
+    digest: sha256:5dfd78da1b032e6172610ce739230f43669ff7ae6c4fc4a043484ccb9affda4e
+configMapGenerator:
+  - name: release
+    literals:
+      - APP_VERSION=sha-6aaa9cc
+      - APP_ENVIRONMENT=prod
