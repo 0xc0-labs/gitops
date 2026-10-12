@@ -12,10 +12,10 @@ resources:
 # The pin (README.md, Upgrades).
 images:
   - name: ghcr.io/0xc0-labs/offby1.cc
-    newTag: sha-6aaa9cc
-    digest: sha256:5dfd78da1b032e6172610ce739230f43669ff7ae6c4fc4a043484ccb9affda4e
+    newTag: v0.1.0
+    digest: sha256:c5b5406dc3e42cd1eff561f6595fca6b6642d33936dbe1419e8dec1085e75a08
 configMapGenerator:
   - name: release
     literals:
-      - APP_VERSION=sha-6aaa9cc
+      - APP_VERSION=v0.1.0
       - APP_ENVIRONMENT=prod
