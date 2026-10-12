@@ -40,7 +40,9 @@ spec:
           prune: true
           selfHeal: true
         syncOptions:
-          # Some CRDs are too large for client-side apply's annotation.
+          # Server-Side Diff's dry-run apply drops a field removed from git
+          # only if Argo CD's apply owns it. A client-side sync owns what it
+          # changes as an update, whose removal the diff would not show (#179).
           - ServerSideApply=true
         # Retrying, not sync waves, orders components that need another's CRDs.
         retry:
