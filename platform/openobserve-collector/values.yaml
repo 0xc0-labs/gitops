@@ -82,6 +82,36 @@ agent:
             - set(severity_number, SEVERITY_NUMBER_WARN) where severity_text == "WARN"
             - set(severity_number, SEVERITY_NUMBER_ERROR) where severity_text == "ERROR"
             - set(severity_number, SEVERITY_NUMBER_FATAL) where severity_text == "FATAL"
+    # The org's log line (@0xc0-labs/observability) as an OpenTelemetry log
+    # record: severity, body, timestamp, trace context, event name and scope
+    # from the data model's own fields, the rest as attributes. Recognised by
+    # its fields, not its namespace, so an app adopting the format needs no
+    # change here: lowercase level label, UTC millisecond time, msg and
+    # name. Any other line passes through as it came.
+    # https://github.com/open-telemetry/opentelemetry-specification/blob/v1.61.0/specification/compatibility/logging_trace_context.md
+    transform/otel_log:
+      error_mode: ignore
+      log_statements:
+        - context: log
+          statements:
+            - set(cache["rec"], ParseJSON(body)) where IsString(body) and IsMatch(body, "^\\{")
+            - set(cache["org"], true) where cache["rec"] != nil and IsString(cache["rec"]["level"]) and IsMatch(cache["rec"]["level"], "^(trace|debug|info|warn|error|fatal)$") and IsString(cache["rec"]["time"]) and IsMatch(cache["rec"]["time"], "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$") and IsString(cache["rec"]["msg"]) and IsString(cache["rec"]["name"])
+            - set(log.severity_text, ToUpperCase(cache["rec"]["level"])) where cache["org"] == true
+            - set(log.severity_number, SEVERITY_NUMBER_TRACE) where cache["org"] == true and log.severity_text == "TRACE"
+            - set(log.severity_number, SEVERITY_NUMBER_DEBUG) where cache["org"] == true and log.severity_text == "DEBUG"
+            - set(log.severity_number, SEVERITY_NUMBER_INFO) where cache["org"] == true and log.severity_text == "INFO"
+            - set(log.severity_number, SEVERITY_NUMBER_WARN) where cache["org"] == true and log.severity_text == "WARN"
+            - set(log.severity_number, SEVERITY_NUMBER_ERROR) where cache["org"] == true and log.severity_text == "ERROR"
+            - set(log.severity_number, SEVERITY_NUMBER_FATAL) where cache["org"] == true and log.severity_text == "FATAL"
+            - set(log.time, Time(cache["rec"]["time"], "%Y-%m-%dT%H:%M:%S.%LZ")) where cache["org"] == true
+            - set(log.trace_id.string, cache["rec"]["trace_id"]) where cache["org"] == true and IsString(cache["rec"]["trace_id"])
+            - set(log.span_id.string, cache["rec"]["span_id"]) where cache["org"] == true and IsString(cache["rec"]["span_id"])
+            - set(log.flags, ParseInt(cache["rec"]["trace_flags"], 16)) where cache["org"] == true and IsString(cache["rec"]["trace_flags"]) and IsMatch(cache["rec"]["trace_flags"], "^[0-9a-f]{2}$")
+            - set(log.event_name, cache["rec"]["event_name"]) where cache["org"] == true and IsString(cache["rec"]["event_name"])
+            - set(instrumentation_scope.name, cache["rec"]["name"]) where cache["org"] == true
+            - set(log.body, cache["rec"]["msg"]) where cache["org"] == true
+            - delete_matching_keys(cache["rec"], "^(level|time|msg|name|trace_id|span_id|trace_flags|event_name)$") where cache["org"] == true
+            - merge_maps(log.attributes, cache["rec"], "upsert") where cache["org"] == true
     # Mautic's worker banner, every five minutes. After k8sattributes, which
     # sets the namespace.
     filter/noise:
@@ -93,7 +123,7 @@ agent:
     pipelines:
       logs:
         receivers: [filelog/std]
-        processors: [memory_limiter, transform/severity, resourcedetection, attributes, k8sattributes, filter/noise, batch]
+        processors: [memory_limiter, transform/severity, transform/otel_log, resourcedetection, attributes, k8sattributes, filter/noise, batch]
         exporters: [otlphttp/openobserve]
 
 gateway:
