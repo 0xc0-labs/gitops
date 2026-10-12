@@ -1,12 +1,7 @@
-# The migrations, from the image being deployed, before the server (workspace
-# docs/design.md, Application delivery). A Sync hook in the wave before the
-# Deployment's, not a PreSync one: PreSync runs before anything else in
-# the sync is applied, so on an environment's first sync, or when this sync
-# brings a secret the Job needs (the GHCR pull secret), its namespace or its
-# secrets would not exist yet and it could never run. Here they are applied
-# in wave 0, the Job runs in wave 1, and the Deployment waits in wave 2: when
-# the Job fails, the sync stops and the running version keeps serving. Every
-# migration is expand and contract, so that version works on the new schema.
+# A Sync hook in wave 1, between what it needs (wave 0) and the Deployment
+# (wave 2), never PreSync: workspace docs/design/delivery.md, Application
+# delivery. PreSync would also run before a secret this same sync brings,
+# such as the GHCR pull secret.
 apiVersion: batch/v1
 kind: Job
 metadata:

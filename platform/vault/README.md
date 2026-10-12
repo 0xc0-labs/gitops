@@ -1,9 +1,10 @@
 # Vault: initialise and unseal
 
 Vault comes up sealed, and stays sealed after every restart of a pod, until it
-is unsealed by hand (`docs/design.md`). The pods are not Ready while sealed:
-Argo CD shows the Application as Progressing until then. Everything below
-runs from a WARP client, through kubectl on a server:
+is unsealed by hand (the workspace's
+[`docs/design/platform.md`][design-platform]). The pods are not Ready while
+sealed: Argo CD shows the Application as Progressing until then. Everything
+below runs from a WARP client, through kubectl on a server:
 
 ```sh
 # -t: the unseal prompt needs a terminal.
@@ -50,3 +51,5 @@ k -n vault exec vault-0 -- vault operator raft list-peers
   volumes too, crash-consistent).
 
 The UI: <https://vault.int.0xc0.cc>, over WARP only.
+
+[design-platform]: https://github.com/0xc0-labs/workspace/blob/main/docs/design/platform.md

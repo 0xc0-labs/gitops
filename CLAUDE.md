@@ -36,7 +36,7 @@ Operator decision, 2026-09-29: an ApplicationSet over Kustomize
 components, instead of hand-written `Application`s with inline values.
 
 ArgoCD syncs `bootstrap/prod/`, and through it `platform/` and `apps/`, from
-`main` (workspace `docs/design.md`).
+`main` (the workspace's [`docs/design/delivery.md`][design-delivery]).
 
 ## What goes where
 
@@ -44,7 +44,7 @@ One RKE2 cluster, in the `platform` zone, holds every shared service and
 application:
 
 - **Shared services**: ArgoCD, Vault, OpenObserve (metrics, logs, traces), and
-  the data services: one shared MariaDB.
+  the data services: one shared MariaDB and one shared PostgreSQL.
 - **Applications**.
 
 They are separated by namespace and NetworkPolicy. Traffic enters through the
@@ -56,11 +56,9 @@ The network is decided by `../infrastructure/environments/prod/terraform.tfvars`
 
 ## Hard rules
 
-- Everything written is in English: files, file names, comments, commits,
-  branches and PRs.
-- No work without an issue on the org project board. The PR links it
-  (`Closes #N` / `Refs owner/repo#N`) or the `issue` check fails. See the
-  workspace `CLAUDE.md`, section Tracking.
+The workspace's `CLAUDE.md` holds the rules of every repo; these are this
+repo's own.
+
 - **Images pinned by digest.** Never `latest`, never a tag alone.
 - **TLS ends at Traefik**, with a Let's Encrypt wildcard per domain from
   cert-manager (`platform/traefik/certificates.yaml`), on the HTTPS listeners
@@ -95,35 +93,27 @@ The network is decided by `../infrastructure/environments/prod/terraform.tfvars`
   NetworkPolicies. Data services accept connections and initiate none.
 - **Every persistent volume declares its backup** in a comment: destination
   and frequency. Without that, the service is not deployed.
-- **Secrets:** all from Vault, never in this repo, not even encrypted
-  (.github#6). What RKE2 and ArgoCD boot with (the RKE2 token, ArgoCD's admin
-  password) Ansible reads from Vault in `infrastructure`; everything else
-  reaches the cluster through Vault Secrets Operator. A component gets its
-  secrets through Vault Secrets Operator: its own
-  `VaultAuth` (Kubernetes auth, role named after its namespace, defined in the
-  `vault` repo) and a `VaultStaticSecret` or `VaultDynamicSecret` per secret.
-  It reads only `platform/<namespace>/*` (an application, `apps/<namespace>/*`),
-  and the `shared/<name>` secrets its policy grants by name.
-  Paths are kebab-case, keys inside snake_case.
+- **Secrets reach the cluster through Vault Secrets Operator.** What RKE2
+  and ArgoCD boot with (the RKE2 token, ArgoCD's admin password) Ansible
+  reads from Vault in `infrastructure`. A component gets the rest through its
+  own `VaultAuth` (Kubernetes auth, role named after its namespace, defined
+  in the `vault` repo) and a `VaultStaticSecret` or `VaultDynamicSecret` per
+  secret. It reads only `platform/<namespace>/*` (an application,
+  `apps/<namespace>/*`), and the `shared/<name>` secrets its policy grants by
+  name. Paths are kebab-case, keys inside snake_case.
 - **Portals** (OpenObserve, ArgoCD) are internal: reached only over WARP, never
   published (operator decision, 2026-09-29). **Vault, the Kubernetes API and
   other admin interfaces are never published** either.
 
 ## Promotion
 
-Each application decides whether it has staging. One that does promotes
-staging→prod with **the same digest**: the image is never rebuilt
-between environments. One that does not deploys the digest from `main`
-straight to prod.
-
-An application with delivery (`payload` today, its README) is pinned in each
+How an application is promoted, and why: the workspace's
+[`docs/design/delivery.md`][design-delivery], Application delivery. Here, an
+application with delivery (`payload` today, its README) is pinned in each
 environment's `kustomization.yaml`: its `images:` entry, tag and digest, and
-`APP_VERSION` in the `release` ConfigMap, which must equal the tag (`pin /
-check`). Each release candidate opens a PR that changes staging's pin alone
-and merges itself once its checks pass; each release, one that changes
-prod's, merged by the operator. The bots that open them change pins and
-nothing else: `pin / check` fails any other line. Rolling back is reverting
-that PR.
+`APP_VERSION` in the `release` ConfigMap. `pin / check` fails when
+`APP_VERSION` is not the tag, and when a bot's PR changes any line but a pin.
+One without delivery deploys the digest from `main` straight to prod.
 
 ## Before opening a PR
 
@@ -154,3 +144,5 @@ An application renders the same way, one environment at a time:
 
 `kustomize` downloads the charts into `platform/<component>/charts/`, which
 git ignores: nothing is vendored.
+
+[design-delivery]: https://github.com/0xc0-labs/workspace/blob/main/docs/design/delivery.md

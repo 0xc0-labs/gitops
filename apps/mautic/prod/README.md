@@ -5,25 +5,13 @@ admin at `https://mautic.int.0xc0.cc` over WARP only (`httproute.yaml`).
 
 ## Before the first sync: the secrets
 
-The operator writes them, as the `vault` repo's README says (values on
-stdin, never on a command line):
+The operator writes them as [`vault`'s README, Writing or rotating a
+secret][vault-write] says:
 
-```sh
-export VAULT_ADDR=https://vault.int.0xc0.cc
-mise exec -- vault login -no-print
-
-# The database user's password: read by Mautic, and by platform/mariadb to
-# create the user (databases.yaml there).
-openssl rand -base64 24 | tr -d '\n' | mise exec -- vault kv put -mount=apps mautic/database password=-
-mise exec -- vault kv metadata put -mount=apps \
-  -custom-metadata=owner=operator -custom-metadata=rotated_at="$(date +%F)" mautic/database
-
-# The admin's login: a person's, in ops/, read by no machine. Kept in the
-# password manager too.
-read -rs v && printf '%s' "$v" | mise exec -- vault kv put -mount=ops mautic/admin email=you@example.com password=- ; unset v
-
-rm -f ~/.vault-token
-```
+| Path | Key | Value |
+|---|---|---|
+| `apps/mautic/database` | `password` | generated: `openssl rand -base64 24`. Read by Mautic, and by platform/mariadb to create the user (`databases.yaml` there) |
+| `ops/mautic/admin` | `email`, `password` | the admin's login: a person's, read by no machine, and kept in the password manager too. The email is not a secret |
 
 Then sync `mariadb` in Argo CD, so its databases Job creates the `mautic`
 database and user, and then `mautic`.
@@ -58,17 +46,14 @@ Job sets the user's password to Vault's), then `db_password` in
 ## The sending provider
 
 Mautic sends through `MAUTIC_MAILER_DSN`, from `apps/mautic/mailer` (key
-`dsn`), a Symfony mailer DSN: `smtp://user:pass@host:587`, or the
-provider's own scheme. A real environment variable wins over `local.php`,
-so the DSN field in Configuration → Email Settings is not used; the sender's
-name and address still are. Writing it is the whole change, and Vault
-Secrets Operator restarts the pod:
-
-```sh
-read -rs v && printf '%s' "$v" | mise exec -- vault kv put -mount=apps mautic/mailer dsn=- ; unset v
-mise exec -- vault kv metadata put -mount=apps \
-  -custom-metadata=owner=operator -custom-metadata=rotated_at="$(date +%F)" mautic/mailer
-```
+`dsn`): an SMTP DSN, `smtp://user:pass@host:587`. SMTP only, never a
+provider's own scheme, so a new provider is new credentials and nothing else
+(the workspace's [`docs/design/platform.md`][design-platform], email). A real
+environment variable wins over `local.php`, so the DSN field in
+Configuration → Email Settings is not used; the sender's name and address
+still are. Writing the DSN, as [`vault`'s README][vault-write] says for a
+value shown once, is the whole change, and Vault Secrets Operator restarts
+the pod.
 
 Without it, Mautic sends nothing.
 
@@ -84,3 +69,5 @@ kubectl -n mautic exec deploy/mautic -c worker -- \
   su -s /bin/bash www-data -c 'php /var/www/html/bin/console messenger:stop-workers'
 ```
 
+[vault-write]: https://github.com/0xc0-labs/vault/blob/main/README.md#writing-or-rotating-a-secret
+[design-platform]: https://github.com/0xc0-labs/workspace/blob/main/docs/design/platform.md

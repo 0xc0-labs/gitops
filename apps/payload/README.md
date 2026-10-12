@@ -22,62 +22,43 @@ serving.
 
 ## Before the first sync: the secrets
 
-The operator writes them, as the `vault` repo's README says (values on
-stdin, never on a command line). Every value ends without a newline (`tr -d
-'\n'`). platform/postgres's databases Job reads the password with psql's
-backquotes, which drop the trailing newline, while the pod's environment
+The operator writes them as [`vault`'s README, Writing or rotating a
+secret][vault-write] says, each environment at its own path, `apps/payload/`
+and `apps/payload-staging/`:
+
+| Path | Key | Value |
+|---|---|---|
+| `database` | `password` | generated: `openssl rand -hex 24`, hex because it goes into a URL. Read by the environment, and by platform/postgres to create the role (`databases.yaml` there) |
+| `app` | `payload-secret` | generated: `openssl rand -base64 48`, one per environment. It signs sessions and tokens |
+| `app`, staging alone | `seed-password` | generated: `openssl rand -base64 24`. The seed's super-admin (Staging's data, below) |
+| `media` | `access_key_id`, `secret_access_key` | an R2 token scoped to the environment's bucket (Media, below) |
+
+Staging's, in order, with why `app` takes `kv put` then `kv patch`:
+[`vault`'s README, Application delivery: what the operator
+writes][vault-delivery], steps 4 and 5.
+
+No value ends in a newline. platform/postgres's databases Job reads the
+password with psql's backquotes, which drop it, while the pod's environment
 keeps it: a stored newline makes the role's password and the one Payload
 sends differ.
 
-```sh
-export VAULT_ADDR=https://vault.int.0xc0.cc
-mise exec -- vault login -no-print
-
-for env in payload payload-staging; do
-  # The database role's password: read by the environment, and by
-  # platform/postgres to create the role (databases.yaml there). Hex, because
-  # it goes into a URL.
-  openssl rand -hex 24 | tr -d '\n' | mise exec -- vault kv put -mount=apps "$env/database" password=-
-  mise exec -- vault kv metadata put -mount=apps \
-    -custom-metadata=owner=operator -custom-metadata=rotated_at="$(date +%F)" "$env/database"
-
-  # PAYLOAD_SECRET, which signs sessions and tokens: one per environment.
-  openssl rand -base64 48 | tr -d '\n' | mise exec -- vault kv put -mount=apps "$env/app" payload-secret=-
-  mise exec -- vault kv metadata put -mount=apps \
-    -custom-metadata=owner=operator -custom-metadata=rotated_at="$(date +%F)" "$env/app"
-done
-
-# Staging alone: the seed users' password (Staging's data, below), beside
-# payload-secret. kv patch adds the key and keeps payload-secret.
-openssl rand -base64 24 | tr -d '\n' | mise exec -- vault kv patch -mount=apps payload-staging/app seed-password=-
-mise exec -- vault kv metadata put -mount=apps \
-  -custom-metadata=owner=operator -custom-metadata=rotated_at="$(date +%F)" payload-staging/app
-
-rm -f ~/.vault-token
-```
-
-`kv put` writes a secret whole: run again on `payload-staging/app`, it
-drops `seed-password`. A later change to one of its keys goes through `kv
-patch`.
-
 The image is private: both environments pull it with `apps/shared/ghcr-pull`,
 a token that can only read packages, which Vault Secrets Operator turns into
-the `ghcr-pull-vault` pull secret (`base/vault-secrets.yaml`). The `vault`
-repo's README writes it, and each environment's R2 token (Media, below).
-`platform/postgres/` needs `platform/postgres/superuser`
-too, as its own manifests say. Then sync `postgres` in Argo CD, so its
-databases Job creates each environment's database and role, and then
-`payload` and `payload-staging`.
+the `ghcr-pull-vault` pull secret (`base/vault-secrets.yaml`), written as the
+same section of `vault`'s README says (step 3). `platform/postgres/` needs
+`platform/postgres/superuser` too, as its own manifests say. Then sync
+`postgres` in Argo CD, so its databases Job creates each environment's
+database and role, and then `payload` and `payload-staging`.
 
 ## Media
 
 Each environment keeps `media`'s files in its own Cloudflare R2 bucket,
 `<namespace>-media`, created by `infrastructure`'s Cloudflare root. The pod
 reads and writes it with a token scoped to that bucket, `access_key_id` and
-`secret_access_key` at `apps/<namespace>/media`, which the operator writes as
-the `vault` repo's README says. Each overlay sets the image's `S3_ENDPOINT`
-and `S3_BUCKET`; the server, the migrations and the seed all get them, since
-all three load the same config.
+`secret_access_key` at `apps/<namespace>/media`, which the operator makes in
+Cloudflare and writes as [`vault`'s README][vault-delivery] says (step 5).
+Each overlay sets the image's `S3_ENDPOINT` and `S3_BUCKET`; the server, the
+migrations and the seed all get them, since all three load the same config.
 
 - **Prod** sets `MEDIA_PUBLIC_URL=https://media.0xc0.cc` too: documents point
   there, and Cloudflare serves the bucket through its cache, with `nosniff`
@@ -179,3 +160,6 @@ copies it within the hour (`refreshAfter`), to the environment, which
 restarts the pod, and to platform/postgres; then sync `postgres`, whose
 databases Job sets the role's password to Vault's. Between the two, the pod
 cannot connect.
+
+[vault-write]: https://github.com/0xc0-labs/vault/blob/main/README.md#writing-or-rotating-a-secret
+[vault-delivery]: https://github.com/0xc0-labs/vault/blob/main/README.md#application-delivery-what-the-operator-writes
