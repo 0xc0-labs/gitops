@@ -7,8 +7,8 @@ it; what they collect is in their `kustomization.yaml`.
 
 ## Credentials: the root user and the collectors' service account
 
-Two, both from Vault through Vault Secrets Operator (the `vault` repo, README,
-"Secrets: the standard"):
+Two, both from Vault through Vault Secrets Operator, written as [`vault`'s
+README, Writing or rotating a secret][vault-write] says:
 
 | What | Vault | Read by |
 |---|---|---|
@@ -24,20 +24,12 @@ read the password when needed:
 `vault kv get -mount=platform -field=password openobserve/root`.
 
 **The service account** is made in OpenObserve (IAM, then Service accounts),
-and OpenObserve generates its token. Its token goes to Vault with `read -rs`,
-never on the command line:
+and OpenObserve generates its token, shown once: `token` at
+`platform/openobserve-collector/ingest`, beside `email`, the account's
+address (`collector@0xc0.cc`), which is not a secret.
 
-```sh
-export VAULT_ADDR=https://vault.int.0xc0.cc
-mise exec -- vault login -no-print
-read -rs t && printf '%s' "$t" | mise exec -- vault kv put -mount=platform openobserve-collector/ingest email=collector@0xc0.cc token=- ; unset t
-mise exec -- vault kv metadata put -mount=platform \
-  -custom-metadata=owner=operator -custom-metadata=rotated_at="$(date +%F)" openobserve-collector/ingest
-rm -f ~/.vault-token
-```
-
-Rotating it is a new token in OpenObserve, the same `kv put`, then the old
-token revoked there. Vault Secrets Operator rewrites the collectors' Secret
+Rotating it is a new token in OpenObserve, written with `kv patch`, then the
+old token revoked there. Vault Secrets Operator rewrites the collectors' Secret
 within the hour and restarts them. Changing the root user's password does not
 touch ingestion.
 
@@ -144,3 +136,5 @@ The target allocator lists them:
 kubectl -n openobserve-collector port-forward deploy/openobserve-collector-gateway-targetallocator 8080:8080
 curl -s localhost:8080/jobs | jq 'keys'
 ```
+
+[vault-write]: https://github.com/0xc0-labs/vault/blob/main/README.md#writing-or-rotating-a-secret
