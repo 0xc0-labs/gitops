@@ -12,7 +12,8 @@ config:
   RUST_LOG: warn
   # On by default, outside RUST_LOG: ~3,500 lines a minute of query plans.
   ZO_PRINT_KEY_SQL: "false"
-  # The volume is sized for it.
+  # About half the volume's bytes and two thirds of its inodes. Longer needs
+  # a larger volume (README, Retention and size).
   ZO_COMPACT_DATA_RETENTION_DAYS: "30"
   ZO_TELEMETRY: "false"
   ZO_MMDB_DISABLE_DOWNLOAD: "true"
