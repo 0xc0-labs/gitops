@@ -13,3 +13,19 @@ spec:
     - group: ""
       kind: Service
       name: openobserve
+---
+# artistlabco.com's RUM intake (apps/artistlabco-com/prod/httproute.yaml).
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: rum-from-artistlabco-com
+  namespace: openobserve
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: artistlabco-com
+  to:
+    - group: ""
+      kind: Service
+      name: openobserve

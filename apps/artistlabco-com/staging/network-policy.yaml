@@ -1,0 +1,22 @@
+# Its environment's Payload alone: the front is a BFF, never another service.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: egress-payload
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: artistlabco-com
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: payload-staging
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: payload
+      ports:
+        - protocol: TCP
+          port: 3000

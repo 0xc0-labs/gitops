@@ -9,6 +9,8 @@ resources:
   - namespace.yaml
   - ../base
   - httproute.yaml
+  - front.yaml
+  - mautic.yaml
 # The pin (../README.md, Delivery).
 images:
   - name: ghcr.io/0xc0-labs/payload
@@ -30,6 +32,34 @@ configMapGenerator:
     behavior: merge
     literals:
       - EMAIL_FROM_NAME=0xc0
+# The leads' API (mautic.yaml), prod alone.
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: payload
+      spec:
+        template:
+          spec:
+            containers:
+              - name: web
+                env:
+                  - name: MAUTIC_API_URL
+                    valueFrom:
+                      secretKeyRef:
+                        name: payload-mautic-vault
+                        key: url
+                  - name: MAUTIC_API_USER
+                    valueFrom:
+                      secretKeyRef:
+                        name: payload-mautic-vault
+                        key: username
+                  - name: MAUTIC_API_PASSWORD
+                    valueFrom:
+                      secretKeyRef:
+                        name: payload-mautic-vault
+                        key: password
 # Each Vault path starts with the namespace (../base/vault-secrets.yaml).
 replacements:
   - source:
@@ -54,5 +84,10 @@ replacements:
       - select:
           kind: VaultStaticSecret
           name: payload-email
+        fieldPaths: [spec.path]
+        options: {delimiter: /, index: 0}
+      - select:
+          kind: VaultStaticSecret
+          name: payload-preview
         fieldPaths: [spec.path]
         options: {delimiter: /, index: 0}

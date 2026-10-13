@@ -34,6 +34,8 @@ and `apps/payload-staging/`:
 | `media` | `access_key_id`, `secret_access_key` | an R2 token scoped to the environment's bucket (Media, below) |
 | `email` | `api_key` | a Resend API key, one per environment (Email, below) |
 | `email`, staging alone | `redirect_to` | the inbox staging's email goes to (Email, below) |
+| `preview` | `secret` | generated: `openssl rand -base64 32`, the same value as its front's `apps/artistlabco-com(-staging)/preview` (Fronts, below) |
+| `mautic`, prod alone | `url`, `username`, `password` | the one Mautic's API: `http://mautic.mautic.svc`, and a user made for Payload (Fronts, below) |
 
 Where each comes from, and staging's in order, with why `app` takes `kv put`
 then `kv patch`: [`vault`'s README, Application delivery: what the operator
@@ -104,6 +106,19 @@ settings: [payload's README, Email][payload-email].
 
 To check it: "Forgot password?" on each environment's admin. Prod's email
 reaches the user; staging's, the one inbox.
+
+## Fronts
+
+Each environment is called by its own front, a BFF (operator decision,
+2026-10-13; workspace#168): `payload` by `artistlabco-com`, `payload-staging`
+by `artistlabco-com-staging`, over the cluster network at
+`http://payload.<namespace>.svc`. Payload stays private. `front.yaml` admits
+HTTP from that one namespace and no other.
+
+Leads reach Mautic through Payload, never from the front: prod's pod may
+reach the `mautic` Service's pods on 8080 (`mautic.yaml`, and
+`apps/mautic/prod/network-policy.yaml` for the other end). Staging has no
+Mautic secret and no way to it: it never writes to the one Mautic.
 
 ## Delivery
 

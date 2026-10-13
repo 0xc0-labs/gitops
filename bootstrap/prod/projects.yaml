@@ -27,6 +27,10 @@ spec:
     - https://github.com/0xc0-labs/gitops.git
   destinations:
     - server: https://kubernetes.default.svc
+      namespace: artistlabco-com
+    - server: https://kubernetes.default.svc
+      namespace: artistlabco-com-staging
+    - server: https://kubernetes.default.svc
       namespace: mautic
     - server: https://kubernetes.default.svc
       namespace: offby1-cc

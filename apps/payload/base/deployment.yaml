@@ -99,6 +99,11 @@ spec:
                 secretKeyRef:
                   name: payload-email-vault
                   key: api_key
+            - name: PREVIEW_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: payload-preview-vault
+                  key: secret
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: service.version=$(APP_VERSION),deployment.environment=$(APP_ENVIRONMENT)
             - name: OPENOBSERVE_RUM_CLIENT_TOKEN

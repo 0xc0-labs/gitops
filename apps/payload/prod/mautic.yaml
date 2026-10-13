@@ -1,0 +1,42 @@
+# Payload creates the leads in Mautic through its API; staging never writes to
+# the one Mautic (../README.md, Fronts).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: egress-mautic
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: payload
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: mautic
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: mautic
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: payload-mautic
+spec:
+  vaultAuthRef: vault-secrets
+  type: kv-v2
+  mount: apps
+  path: payload/mautic
+  refreshAfter: 1h
+  destination:
+    name: payload-mautic-vault
+    create: true
+    transformation:
+      excludeRaw: true
+  rolloutRestartTargets:
+    - kind: Deployment
+      name: payload
