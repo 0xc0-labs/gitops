@@ -1,5 +1,5 @@
-# Reached over WARP only: the internal listener, never websecure, so no
-# gateway.0xc0.cc/web.
+# Reached over WARP (the internal listener) and, behind Cloudflare Access, on
+# the public listener of artistlabco.com's subdomains (../README.md).
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -7,4 +7,5 @@ metadata:
   labels:
     pod-security.kubernetes.io/enforce: restricted
     gateway.0xc0.cc/internal: "true"
+    gateway.0xc0.cc/web: "true"
     vault.0xc0.cc/apps: "true"

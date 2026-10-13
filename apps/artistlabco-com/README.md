@@ -9,10 +9,17 @@ Fronts). Two environments, each an Argo CD application of its own:
 | | prod | staging |
 |---|---|---|
 | Application and namespace | `artistlabco-com` | `artistlabco-com-staging` |
-| Address | `https://artistlabco.com`, public; `www.artistlabco.com` redirects there | `https://artistlabco-com-staging.int.0xc0.cc`, over WARP |
+| Address | `https://artistlabco.com`, public; `www.artistlabco.com` redirects there | `https://artistlabco-com-staging.int.0xc0.cc`, over WARP, and `https://staging.artistlabco.com`, public behind Cloudflare Access |
 | Payload | `payload` | `payload-staging` |
 | Replicas | 2, with a PodDisruptionBudget | 1 |
 | Vault | `apps/artistlabco-com/*` | `apps/artistlabco-com-staging/*` |
+
+Staging's public name sits behind a Cloudflare Access application, created in
+`infrastructure`: a visitor gets in with an email in a group the operator
+manages in Cloudflare's dashboard (how:
+[`modules/access-app`](https://github.com/0xc0-labs/infrastructure/tree/main/modules/access-app)).
+Its route also sends `X-Robots-Tag: noindex, nofollow`, in case Access is ever
+misconfigured.
 
 `base/` holds what both share; `prod/` and `staging/` add the namespace, the
 routes, the Payload URL and its egress, and the pin. No volumes: it holds no
