@@ -14,7 +14,7 @@ spec:
       kind: Service
       name: openobserve
 ---
-# artistlabco.com's RUM intake (apps/artistlabco-com/prod/httproute.yaml).
+# artistlabco.com's RUM intake, prod and staging (apps/artistlabco-com/*/httproute.yaml).
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: ReferenceGrant
 metadata:
@@ -25,6 +25,9 @@ spec:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
       namespace: artistlabco-com
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: artistlabco-com-staging
   to:
     - group: ""
       kind: Service

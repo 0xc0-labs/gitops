@@ -70,7 +70,7 @@ Permissions-Policy, COOP/CORP). The app sets its Content-Security-Policy.
 Default deny, and then: traces to the collector, DNS, its Payload's pods on
 3000, and HTTPS to Cloudflare's ranges for `media.0xc0.cc`, which `next/image`
 fetches (`base/network-policy.yaml`, `egress-media`: the ranges are
-Cloudflare's, so the platform allows no narrower rule). Prod's route also
-carries the browsers' RUM to OpenObserve; staging has none.
+Cloudflare's, so the platform allows no narrower rule). Each route also
+carries the browsers' RUM to OpenObserve.
 
 [vault-write]: https://github.com/0xc0-labs/vault/blob/main/README.md#writing-or-rotating-a-secret

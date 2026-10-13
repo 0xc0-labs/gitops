@@ -50,16 +50,19 @@ patches:
                       secretKeyRef:
                         name: payload-mautic-vault
                         key: url
+                        optional: true
                   - name: MAUTIC_API_USER
                     valueFrom:
                       secretKeyRef:
                         name: payload-mautic-vault
                         key: username
+                        optional: true
                   - name: MAUTIC_API_PASSWORD
                     valueFrom:
                       secretKeyRef:
                         name: payload-mautic-vault
                         key: password
+                        optional: true
 # Each Vault path starts with the namespace (../base/vault-secrets.yaml).
 replacements:
   - source:

@@ -104,6 +104,7 @@ spec:
                 secretKeyRef:
                   name: payload-preview-vault
                   key: secret
+                  optional: true
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: service.version=$(APP_VERSION),deployment.environment=$(APP_ENVIRONMENT)
             - name: OPENOBSERVE_RUM_CLIENT_TOKEN
