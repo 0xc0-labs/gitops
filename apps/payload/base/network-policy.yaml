@@ -91,7 +91,8 @@ spec:
 # Cloudflare's published IPv4 ranges, https://www.cloudflare.com/ips-v4, read
 # 2026-10-11. The endpoint, <account>.r2.cloudflarestorage.com, then resolved
 # to 172.64.66.1 and 172.64.190.1, in 172.64.0.0/13. A range Cloudflare adds
-# to that list goes here too.
+# to that list goes here too. discord.com sits behind Cloudflare as well, so
+# its API rides this policy.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -161,3 +162,26 @@ spec:
       ports:
         - protocol: TCP
           port: 587
+---
+# api.stripe.com resolves into Stripe's own ranges, 198.137.150.0/24 and
+# 198.202.176.0/24, read 2026-10-13 from https://stripe.com/files/ips/ips_api.txt.
+# A range Stripe adds to that list goes here too.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: egress-stripe
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: payload
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 198.137.150.0/24
+        - ipBlock:
+            cidr: 198.202.176.0/24
+      ports:
+        - protocol: TCP
+          port: 443

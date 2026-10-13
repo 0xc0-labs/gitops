@@ -36,6 +36,8 @@ and `apps/payload-staging/`:
 | `email`, staging alone | `redirect_to` | the inbox staging's email goes to (Email, below) |
 | `preview` | `secret` | generated: `openssl rand -base64 32`, the same value as its front's `apps/artistlabco-com(-staging)/preview` (Fronts, below) |
 | `mautic`, prod alone | `url`, `username`, `password` | the one Mautic's API: `http://mautic.mautic.svc`, and a user made for Payload (Fronts, below) |
+| `resources-storage` | `bucket`, `endpoint`, `access_key_id`, `secret_access_key` | the private resources bucket and a token scoped to it (Resources bucket, below) |
+| `tenants/<slug>/<name>` | the keys that tenant's code reads | a tenant's secrets (Tenants, below) |
 
 Where each comes from, and staging's in order, with why `app` takes `kv put`
 then `kv patch`: [`vault`'s README, Application delivery: what the operator
@@ -106,6 +108,43 @@ settings: [payload's README, Email][payload-email].
 
 To check it: "Forgot password?" on each environment's admin. Prod's email
 reaches the user; staging's, the one inbox.
+
+## Tenants
+
+A tenant's secrets live at `apps/<namespace>/tenants/<slug>/<name>`, and
+Vault Secrets Operator syncs each into a Secret that the pod mounts read-only
+at `/var/run/secrets/tenants/<slug>/<name>/<key>`, one file per key.
+`TENANT_SECRETS_DIR` is `/var/run/secrets/tenants`. Today's tenant is
+`artistlab`:
+
+| Name | Keys | Where |
+|---|---|---|
+| `email` | the tenant's Resend settings | both |
+| `stripe` | the tenant's Stripe keys | both |
+| `discord` | the tenant's Discord credentials | both |
+| `mautic` | `url`, `username`, `password`: the site's own Mautic | prod alone |
+
+Each volume is optional, so a rollout never waits on a value Vault does not
+hold yet: the files appear once the operator writes the secret and Vault
+Secrets Operator syncs it.
+
+Adding a secret to a tenant is one `VaultStaticSecret` in
+`base/vault-secrets.yaml` (prod alone: `prod/mautic.yaml`), labelled
+`app.kubernetes.io/component: tenant-secret`, which is how the environments'
+`replacements` set its path's namespace, and one volume with its mount in
+`base/deployment.yaml`. A new tenant is the same blocks under its own slug.
+
+The way out to Stripe is `egress-stripe` (`base/network-policy.yaml`): HTTPS
+to Stripe's own ranges. Discord's API sits behind Cloudflare, so `egress-r2`
+carries it.
+
+## Resources bucket
+
+The private resources bucket's credentials, `RESOURCES_S3_BUCKET`,
+`RESOURCES_S3_ENDPOINT`, `RESOURCES_S3_ACCESS_KEY_ID` and
+`RESOURCES_S3_SECRET_ACCESS_KEY`, come from `apps/<namespace>/resources-storage`
+and are optional: the pod starts without them. It reaches the bucket over the
+same egress as the media (`egress-r2`).
 
 ## Fronts
 

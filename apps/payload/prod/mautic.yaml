@@ -40,3 +40,26 @@ spec:
   rolloutRestartTargets:
     - kind: Deployment
       name: payload
+---
+# The site's own Mautic (../README.md, Tenants), mounted with the other
+# tenant secrets.
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: payload-tenant-artistlab-mautic
+  labels:
+    app.kubernetes.io/component: tenant-secret
+spec:
+  vaultAuthRef: vault-secrets
+  type: kv-v2
+  mount: apps
+  path: NAMESPACE/tenants/artistlab/mautic
+  refreshAfter: 1h
+  destination:
+    name: payload-tenant-artistlab-mautic-vault
+    create: true
+    transformation:
+      excludeRaw: true
+  rolloutRestartTargets:
+    - kind: Deployment
+      name: payload
