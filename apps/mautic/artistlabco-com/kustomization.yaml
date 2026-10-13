@@ -1,0 +1,41 @@
+# ARTIST LAB's Mautic (operator decision, 2026-10-13). A site is this directory
+# and nothing else of its own: ../README.md, Adding a site.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: mautic-artistlabco-com
+resources:
+  - namespace.yaml
+  - ../base
+configMapGenerator:
+  - name: mautic-env
+    behavior: merge
+    literals:
+      - MAUTIC_DB_DATABASE=mautic_artistlabco_com
+      - MAUTIC_DB_USER=mautic_artistlabco_com
+patches:
+  - target: {kind: HTTPRoute, name: mautic}
+    patch: |-
+      - op: replace
+        path: /spec/hostnames/0
+        value: mautic.artistlabco.com
+      - op: replace
+        path: /spec/parentRefs/0/sectionName
+        value: websecure-artistlabco-com
+      - op: replace
+        path: /spec/rules/0/filters/0/requestRedirect/hostname
+        value: mautic-artistlabco-com.int.0xc0.cc
+  - target: {kind: HTTPRoute, name: mautic-admin}
+    patch: |-
+      - op: replace
+        path: /spec/hostnames/0
+        value: mautic-artistlabco-com.int.0xc0.cc
+# Each Vault path starts with the namespace (../base/vault-secrets.yaml).
+replacements:
+  - source:
+      kind: Namespace
+      fieldPath: metadata.name
+    targets:
+      - select:
+          kind: VaultStaticSecret
+        fieldPaths: [spec.path]
+        options: {delimiter: /, index: 0}

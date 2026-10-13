@@ -1,21 +1,21 @@
 # Idempotent, after every sync: creates what is missing and sets each user's
 # password to Vault's, so a rotation is a write to Vault and a sync.
 #
-# Adding an application: its VaultStaticSecret here, a volume and mount below,
-# and its namespace in network-policy.yaml.
+# Adding an application, or a site of Mautic: its VaultStaticSecret here, a
+# volume and mount below, and its namespace in network-policy.yaml.
 apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultStaticSecret
 metadata:
-  name: mautic-database
+  name: mautic-artistlabco-com-database
   namespace: mariadb
 spec:
   vaultAuthRef: vault-secrets
   type: kv-v2
   mount: apps
-  path: mautic/database
+  path: mautic-artistlabco-com/database
   refreshAfter: 1h
   destination:
-    name: mautic-database-vault
+    name: mautic-artistlabco-com-database-vault
     create: true
     transformation:
       excludeRaw: true
@@ -89,15 +89,15 @@ spec:
             limits:
               memory: 128Mi
           volumeMounts:
-            - name: mautic
-              mountPath: /databases/mautic
+            - name: mautic-artistlabco-com
+              mountPath: /databases/mautic_artistlabco_com
               readOnly: true
             - name: tmp
               mountPath: /tmp
       volumes:
-        - name: mautic
+        - name: mautic-artistlabco-com
           secret:
-            secretName: mautic-database-vault
+            secretName: mautic-artistlabco-com-database-vault
             items:
               - key: password
                 path: password

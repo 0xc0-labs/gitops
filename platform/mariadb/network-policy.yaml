@@ -30,8 +30,11 @@ spec:
             matchLabels:
               app.kubernetes.io/name: mariadb-databases
         - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: mautic
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values:
+                  - mautic-artistlabco-com
           podSelector:
             matchLabels:
               app.kubernetes.io/name: mautic

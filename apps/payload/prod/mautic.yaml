@@ -1,5 +1,5 @@
-# Payload creates the leads in Mautic through its API; staging never writes to
-# the one Mautic (../README.md, Fronts).
+# Payload creates the leads in each site's own Mautic through its API; staging
+# has none (../README.md, Fronts). A site's Mautic is one more namespace here.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -13,33 +13,17 @@ spec:
   egress:
     - to:
         - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: mautic
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values:
+                  - mautic-artistlabco-com
           podSelector:
             matchLabels:
               app.kubernetes.io/name: mautic
       ports:
         - protocol: TCP
           port: 8080
----
-apiVersion: secrets.hashicorp.com/v1beta1
-kind: VaultStaticSecret
-metadata:
-  name: payload-mautic
-spec:
-  vaultAuthRef: vault-secrets
-  type: kv-v2
-  mount: apps
-  path: payload/mautic
-  refreshAfter: 1h
-  destination:
-    name: payload-mautic-vault
-    create: true
-    transformation:
-      excludeRaw: true
-  rolloutRestartTargets:
-    - kind: Deployment
-      name: payload
 ---
 # The site's own Mautic (../README.md, Tenants), mounted with the other
 # tenant secrets.

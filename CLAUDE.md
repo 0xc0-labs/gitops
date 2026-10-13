@@ -23,13 +23,14 @@ What runs in the Kubernetes cluster, as manifests ArgoCD applies.
   directory per environment, each its own `Application`: `prod/` is
   `<application>`, in the namespace of that name; `staging/`, when it has
   one, is `<application>-staging`, in its own. What both share goes in
-  `base/`. Today: Mautic and offby1-cc (the offby1.cc landing page), in prod
-  alone, and Payload CMS and artistlabco-com (the artist's site, a front of
-  Payload), in prod and staging. An application sets
-  `Prune=false` on what holds data alone, its Namespace and its volumes,
-  each in its own manifest, never through `commonAnnotations`: that reaches
-  its generated ConfigMaps too, and every change would leave the old one
-  behind.
+  `base/`. Today: offby1-cc (the offby1.cc landing page), in prod alone, and
+  Payload CMS and artistlabco-com (the artist's site, a front of Payload), in
+  prod and staging. Mautic is deployed once per site: `base/`, then a
+  directory per site, `mautic-<site>` in the namespace of that name. An
+  application sets `Prune=false` on what holds data alone, its Namespace and
+  its volumes, each in its own manifest, never through `commonAnnotations`:
+  that reaches its generated ConfigMaps too, and every change would leave the
+  old one behind.
 - ArgoCD itself is installed and upgraded by RKE2's helm-controller, never
   from here.
 
