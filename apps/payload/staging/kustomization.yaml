@@ -10,6 +10,7 @@ resources:
   - namespace.yaml
   - ../base
   - httproute.yaml
+  - front.yaml
   - seed.yaml
 # The pin (../README.md, Delivery).
 images:
@@ -74,5 +75,10 @@ replacements:
       - select:
           kind: VaultStaticSecret
           name: payload-email
+        fieldPaths: [spec.path]
+        options: {delimiter: /, index: 0}
+      - select:
+          kind: VaultStaticSecret
+          name: payload-preview
         fieldPaths: [spec.path]
         options: {delimiter: /, index: 0}

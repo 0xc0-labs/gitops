@@ -31,3 +31,27 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
+---
+# Payload creates the leads through the API (apps/payload/prod/mautic.yaml).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-from-payload
+  namespace: mautic
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: mautic
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: payload
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: payload
+      ports:
+        - protocol: TCP
+          port: 8080

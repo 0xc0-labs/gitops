@@ -38,6 +38,12 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: payload-staging
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: artistlabco-com
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: artistlabco-com-staging
       ports:
         - protocol: TCP
           port: 4317

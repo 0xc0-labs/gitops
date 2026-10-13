@@ -62,6 +62,27 @@
               "config": {
                 "promql_legend": "offby1.cc"
               }
+            },
+            {
+              "query": "sum(rate(traefik_service_requests_total{exported_service=~\".*-svc-artistlabco-com-.*\"}[5m]))",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "",
+                "stream_type": "metrics",
+                "x": [],
+                "y": [],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "artistlabco.com"
+              }
             }
           ],
           "layout": {
@@ -126,6 +147,27 @@
               },
               "config": {
                 "promql_legend": "offby1.cc"
+              }
+            },
+            {
+              "query": "sum(rate(traefik_service_requests_total{exported_service=~\".*-svc-artistlabco-com-.*\",code=~\"5..\"}[5m])) / sum(rate(traefik_service_requests_total{exported_service=~\".*-svc-artistlabco-com-.*\"}[5m]))",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "",
+                "stream_type": "metrics",
+                "x": [],
+                "y": [],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "artistlabco.com"
               }
             }
           ],
@@ -192,6 +234,27 @@
               "config": {
                 "promql_legend": "offby1.cc"
               }
+            },
+            {
+              "query": "histogram_quantile(0.95, sum(rate(traefik_service_request_duration_seconds_bucket{exported_service=~\".*-svc-artistlabco-com-.*\"}[5m])) by (le))",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "",
+                "stream_type": "metrics",
+                "x": [],
+                "y": [],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "artistlabco.com"
+              }
             }
           ],
           "layout": {
@@ -256,6 +319,27 @@
               },
               "config": {
                 "promql_legend": "offby1.cc"
+              }
+            },
+            {
+              "query": "sum(rate(traefik_service_requests_total{exported_service=~\".*-svc-artistlabco-com-.*\",code=~\"4..\"}[5m]))",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "",
+                "stream_type": "metrics",
+                "x": [],
+                "y": [],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "artistlabco.com"
               }
             }
           ],
@@ -322,6 +406,27 @@
               "config": {
                 "promql_legend": "offby1.cc"
               }
+            },
+            {
+              "query": "sum(k8s_pod_memory_usage{k8s_namespace_name=\"artistlabco-com\"})",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "",
+                "stream_type": "metrics",
+                "x": [],
+                "y": [],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "artistlabco.com"
+              }
             }
           ],
           "layout": {
@@ -387,6 +492,27 @@
               "config": {
                 "promql_legend": "offby1.cc"
               }
+            },
+            {
+              "query": "sum(k8s_pod_cpu_usage{k8s_namespace_name=\"artistlabco-com\"})",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "",
+                "stream_type": "metrics",
+                "x": [],
+                "y": [],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "artistlabco.com"
+              }
             }
           ],
           "layout": {
@@ -412,7 +538,7 @@
           "queryType": "sql",
           "queries": [
             {
-              "query": "SELECT histogram(_timestamp) as \"x_axis_1\", k8s_namespace_name as \"breakdown_1\", count(_timestamp) as \"y_axis_1\" FROM \"default\" WHERE k8s_namespace_name IN ('mautic', 'offby1-cc') AND severity IN ('ERROR', 'FATAL') GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
+              "query": "SELECT histogram(_timestamp) as \"x_axis_1\", k8s_namespace_name as \"breakdown_1\", count(_timestamp) as \"y_axis_1\" FROM \"default\" WHERE k8s_namespace_name IN ('mautic', 'offby1-cc', 'artistlabco-com') AND severity IN ('ERROR', 'FATAL') GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
               "vrlFunctionQuery": "",
               "customQuery": true,
               "fields": {

@@ -1,0 +1,48 @@
+# Backups: none. It holds no data.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: artistlabco-com
+resources:
+  - namespace.yaml
+  - ../base
+  - network-policy.yaml
+  - pdb.yaml
+  - httproute.yaml
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: artistlabco-com
+      spec:
+        replicas: 2
+# The pin (../README.md, Upgrades). A placeholder until the first release.
+images:
+  - name: ghcr.io/0xc0-labs/artistlabco.com
+    newTag: v0.0.0
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+configMapGenerator:
+  - name: release
+    literals:
+      - APP_VERSION=v0.0.0
+      - APP_ENVIRONMENT=prod
+  - name: artistlabco-com
+    behavior: merge
+    literals:
+      - PAYLOAD_URL=http://payload.payload.svc
+# Each Vault path starts with the namespace (../base/vault-secrets.yaml).
+replacements:
+  - source:
+      kind: Namespace
+      fieldPath: metadata.name
+    targets:
+      - select:
+          kind: VaultStaticSecret
+          name: artistlabco-com-payload
+        fieldPaths: [spec.path]
+        options: {delimiter: /, index: 0}
+      - select:
+          kind: VaultStaticSecret
+          name: artistlabco-com-preview
+        fieldPaths: [spec.path]
+        options: {delimiter: /, index: 0}

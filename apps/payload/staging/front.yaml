@@ -1,0 +1,23 @@
+# Each environment admits only its own front: the BFF is the one client
+# (../README.md, Fronts).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: http-from-front
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: payload
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: artistlabco-com-staging
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: artistlabco-com
+      ports:
+        - protocol: TCP
+          port: 3000

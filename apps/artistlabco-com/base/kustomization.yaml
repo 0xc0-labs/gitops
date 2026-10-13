@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - network-policy.yaml
+  - vault-secrets.yaml
+  - deployment.yaml
+# Each environment merges its PAYLOAD_URL in.
+configMapGenerator:
+  - name: artistlabco-com
+    literals:
+      - NEXT_TELEMETRY_DISABLED=1
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
+      - OTEL_SERVICE_NAME=artistlabco-com

@@ -1,0 +1,60 @@
+# Nothing of staging is public (../README.md).
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: security-headers
+spec:
+  headers:
+    frameDeny: true
+    permissionsPolicy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+    customResponseHeaders:
+      Cross-Origin-Opener-Policy: same-origin
+      Cross-Origin-Resource-Policy: same-origin
+---
+# The listener is internal: the client is the connection's address.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: rum-rate-limit
+spec:
+  rateLimit:
+    average: 1
+    period: 1s
+    burst: 20
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: artistlabco-com
+spec:
+  parentRefs:
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: internal
+  hostnames:
+    - artistlabco-com-staging.int.0xc0.cc
+  rules:
+    # The browsers' RUM, to OpenObserve's intake: only this path
+    # (platform/openobserve/reference-grant.yaml).
+    - matches:
+        - path: {type: Exact, value: /rum/v1/default/rum}
+          method: POST
+      filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: rum-rate-limit
+      backendRefs:
+        - name: openobserve
+          namespace: openobserve
+          port: 5080
+    - filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: security-headers
+      backendRefs:
+        - name: artistlabco-com
+          port: 80

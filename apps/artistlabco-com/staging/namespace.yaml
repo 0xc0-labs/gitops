@@ -1,0 +1,10 @@
+# Reached over WARP only: the internal listener, never websecure, so no
+# gateway.0xc0.cc/web.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: artistlabco-com-staging
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    gateway.0xc0.cc/internal: "true"
+    vault.0xc0.cc/apps: "true"

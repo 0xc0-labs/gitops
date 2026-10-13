@@ -24,7 +24,8 @@ What runs in the Kubernetes cluster, as manifests ArgoCD applies.
   `<application>`, in the namespace of that name; `staging/`, when it has
   one, is `<application>-staging`, in its own. What both share goes in
   `base/`. Today: Mautic and offby1-cc (the offby1.cc landing page), in prod
-  alone, and Payload CMS, in prod and staging. An application sets
+  alone, and Payload CMS and artistlabco-com (the artist's site, a front of
+  Payload), in prod and staging. An application sets
   `Prune=false` on what holds data alone, its Namespace and its volumes,
   each in its own manifest, never through `commonAnnotations`: that reaches
   its generated ConfigMaps too, and every change would leave the old one
