@@ -99,6 +99,34 @@ spec:
                 secretKeyRef:
                   name: payload-email-vault
                   key: api_key
+            - name: TENANT_SECRETS_DIR
+              value: /var/run/secrets/tenants
+            # Optional: the bucket's credentials may reach Vault after this
+            # manifest.
+            - name: RESOURCES_S3_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: payload-resources-storage-vault
+                  key: bucket
+                  optional: true
+            - name: RESOURCES_S3_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: payload-resources-storage-vault
+                  key: endpoint
+                  optional: true
+            - name: RESOURCES_S3_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: payload-resources-storage-vault
+                  key: access_key_id
+                  optional: true
+            - name: RESOURCES_S3_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: payload-resources-storage-vault
+                  key: secret_access_key
+                  optional: true
             - name: PREVIEW_SECRET
               valueFrom:
                 secretKeyRef:
@@ -154,6 +182,17 @@ spec:
               mountPath: /app/.next/cache
             - name: tmp
               mountPath: /tmp
+            - name: tenant-artistlab-email
+              mountPath: /var/run/secrets/tenants/artistlab/email
+              readOnly: true
+            - name: tenant-artistlab-stripe
+              mountPath: /var/run/secrets/tenants/artistlab/stripe
+              readOnly: true
+            - name: tenant-artistlab-discord
+              mountPath: /var/run/secrets/tenants/artistlab/discord
+              readOnly: true
+      # A tenant's secrets, one volume per secret, optional so that a rollout
+      # never waits on a value Vault does not hold yet (../README.md, Tenants).
       volumes:
         - name: cache
           emptyDir:
@@ -161,3 +200,15 @@ spec:
         - name: tmp
           emptyDir:
             sizeLimit: 128Mi
+        - name: tenant-artistlab-email
+          secret:
+            secretName: payload-tenant-artistlab-email-vault
+            optional: true
+        - name: tenant-artistlab-stripe
+          secret:
+            secretName: payload-tenant-artistlab-stripe-vault
+            optional: true
+        - name: tenant-artistlab-discord
+          secret:
+            secretName: payload-tenant-artistlab-discord-vault
+            optional: true

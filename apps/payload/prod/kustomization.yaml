@@ -63,6 +63,15 @@ patches:
                         name: payload-mautic-vault
                         key: password
                         optional: true
+                volumeMounts:
+                  - name: tenant-artistlab-mautic
+                    mountPath: /var/run/secrets/tenants/artistlab/mautic
+                    readOnly: true
+            volumes:
+              - name: tenant-artistlab-mautic
+                secret:
+                  secretName: payload-tenant-artistlab-mautic-vault
+                  optional: true
 # Each Vault path starts with the namespace (../base/vault-secrets.yaml).
 replacements:
   - source:
@@ -92,5 +101,15 @@ replacements:
       - select:
           kind: VaultStaticSecret
           name: payload-preview
+        fieldPaths: [spec.path]
+        options: {delimiter: /, index: 0}
+      - select:
+          kind: VaultStaticSecret
+          name: payload-resources-storage
+        fieldPaths: [spec.path]
+        options: {delimiter: /, index: 0}
+      - select:
+          kind: VaultStaticSecret
+          labelSelector: app.kubernetes.io/component=tenant-secret
         fieldPaths: [spec.path]
         options: {delimiter: /, index: 0}

@@ -82,3 +82,13 @@ replacements:
           name: payload-preview
         fieldPaths: [spec.path]
         options: {delimiter: /, index: 0}
+      - select:
+          kind: VaultStaticSecret
+          name: payload-resources-storage
+        fieldPaths: [spec.path]
+        options: {delimiter: /, index: 0}
+      - select:
+          kind: VaultStaticSecret
+          labelSelector: app.kubernetes.io/component=tenant-secret
+        fieldPaths: [spec.path]
+        options: {delimiter: /, index: 0}
