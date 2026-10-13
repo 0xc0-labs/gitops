@@ -19,12 +19,12 @@ patches:
 # The pin (../README.md, Upgrades). A placeholder until the first release.
 images:
   - name: ghcr.io/0xc0-labs/artistlabco.com
-    newTag: v0.0.0
-    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    newTag: v0.1.0
+    digest: sha256:eac88e1c60400f111bf88372c7cde375ef22c86a5f15e8934daa3e7679169b08
 configMapGenerator:
   - name: release
     literals:
-      - APP_VERSION=v0.0.0
+      - APP_VERSION=v0.1.0
       - APP_ENVIRONMENT=prod
   - name: artistlabco-com
     behavior: merge
