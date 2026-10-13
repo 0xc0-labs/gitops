@@ -135,8 +135,16 @@ Adding a secret to a tenant is one `VaultStaticSecret` in
 `base/deployment.yaml`. A new tenant is the same blocks under its own slug.
 
 The way out to Stripe is `egress-stripe` (`base/network-policy.yaml`): HTTPS
-to Stripe's own ranges. Discord's API sits behind Cloudflare, so `egress-r2`
-carries it.
+to every address Stripe publishes for its API. Discord's API sits behind
+Cloudflare, so `egress-r2` carries it.
+
+Stripe can serve the API from any address in
+<https://stripe.com/files/ips/ips_api.txt>, and a NetworkPolicy has no egress
+by domain name, so the policy lists them all: the two /24 ranges
+(`198.137.150.0/24`, `198.202.176.0/24`) that cover the file's addresses in
+them, and one `/32` per remaining address. When Stripe changes the file, read
+it again, keep the two /24 ranges, replace the `/32` entries with one per
+address outside them, and update the date in the comment above the policy.
 
 ## Resources bucket
 
