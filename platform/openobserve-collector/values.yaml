@@ -118,7 +118,7 @@ agent:
       error_mode: ignore
       logs:
         log_record:
-          - resource.attributes["k8s.namespace.name"] == "mautic" and IsString(body) and IsMatch(body, "^\\s*$|^ // |^ \\[OK\\] Consuming messages from transport")
+          - IsMatch(resource.attributes["k8s.namespace.name"], "^mautic-") and IsString(body) and IsMatch(body, "^\\s*$|^ // |^ \\[OK\\] Consuming messages from transport")
   service:
     pipelines:
       logs:

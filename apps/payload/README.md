@@ -35,7 +35,6 @@ and `apps/payload-staging/`:
 | `email` | `api_key` | a Resend API key, one per environment (Email, below) |
 | `email`, staging alone | `redirect_to` | the inbox staging's email goes to (Email, below) |
 | `preview` | `secret` | generated: `openssl rand -base64 32`, the same value as its front's `apps/artistlabco-com(-staging)/preview` (Fronts, below) |
-| `mautic`, prod alone | `url`, `username`, `password` | the one Mautic's API: `http://mautic.mautic.svc`, and a user made for Payload (Fronts, below) |
 | `resources-storage` | `bucket`, `endpoint`, `access_key_id`, `secret_access_key` | the private resources bucket and a token scoped to it (Resources bucket, below) |
 | `tenants/<slug>/<name>` | the keys that tenant's code reads | a tenant's secrets (Tenants, below) |
 
@@ -122,7 +121,7 @@ at `/var/run/secrets/tenants/<slug>/<name>/<key>`, one file per key.
 | `email` | the tenant's Resend settings | both |
 | `stripe` | the tenant's Stripe keys | both |
 | `discord` | the tenant's Discord credentials | both |
-| `mautic` | `url`, `username`, `password`: the site's own Mautic | prod alone |
+| `mautic` | `url` (`http://mautic.mautic-artistlabco-com.svc`), `username`, `password`: the site's own Mautic and the API user made for Payload | prod alone |
 
 Each volume is optional, so a rollout never waits on a value Vault does not
 hold yet: the files appear once the operator writes the secret and Vault
@@ -162,10 +161,10 @@ by `artistlabco-com-staging`, over the cluster network at
 `http://payload.<namespace>.svc`. Payload stays private. `front.yaml` admits
 HTTP from that one namespace and no other.
 
-Leads reach Mautic through Payload, never from the front: prod's pod may
-reach the `mautic` Service's pods on 8080 (`mautic.yaml`, and
-`apps/mautic/prod/network-policy.yaml` for the other end). Staging has no
-Mautic secret and no way to it: it never writes to the one Mautic.
+Leads reach each site's own Mautic through Payload, never from the front:
+prod's pod may reach the pods of `mautic-artistlabco-com`'s `mautic` Service
+on 8080 (`mautic.yaml`, and `apps/mautic/base/network-policy.yaml` for the
+other end). Staging has no Mautic secret and no way to one.
 
 ## Delivery
 

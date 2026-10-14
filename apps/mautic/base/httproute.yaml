@@ -1,14 +1,14 @@
 # The public name serves what contacts reach. Landing pages take any path, so
 # it cannot be an allowlist: the admin's paths are refused there (403) and
-# served only on mautic.int.0xc0.cc. /index.php reaches every route, so it is
+# served only on the internal name. /index.php reaches every route, so it is
 # refused whole. Checked against 7.2.1's routes: recheck on a major upgrade.
+# The hostnames and the listener are the overlay's.
 #
 # Gateway API cannot refuse a request: an allow list only loopback matches.
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: refuse
-  namespace: mautic
 spec:
   ipAllowList:
     sourceRange: [127.0.0.1/32]
@@ -17,16 +17,15 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: mautic
-  namespace: mautic
   annotations:
     gateway.0xc0.cc/public: "true"
 spec:
   parentRefs:
     - name: traefik-gateway
       namespace: traefik
-      sectionName: websecure-0xc0-cc
+      sectionName: websecure-example
   hostnames:
-    - mautic.0xc0.cc
+    - mautic.example.com
   rules:
     - matches:
         - path: {type: PathPrefix, value: /passwordreset}
@@ -40,7 +39,7 @@ spec:
             # With the scheme set, the redirect uses 443, not the listener's
             # 8443.
             scheme: https
-            hostname: mautic.int.0xc0.cc
+            hostname: mautic.int.example.com
             statusCode: 302
     - matches:
         - path: {type: PathPrefix, value: /s}
@@ -73,14 +72,13 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: mautic-admin
-  namespace: mautic
 spec:
   parentRefs:
     - name: traefik-gateway
       namespace: traefik
       sectionName: internal
   hostnames:
-    - mautic.int.0xc0.cc
+    - mautic.int.example.com
   rules:
     - backendRefs:
         - name: mautic

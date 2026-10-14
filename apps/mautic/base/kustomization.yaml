@@ -1,0 +1,35 @@
+# Mautic, once per site that turns on marketing automation (operator decision,
+# 2026-10-13): each site's directory next to this one is its overlay, README.md.
+#
+# Backups, per site:
+# - mautic-data (Longhorn, 5Gi): local.php, logs and uploaded media, covered
+#   by PBS's nightly backup of the RKE2 VMs (03:00).
+# - Its database: platform/mariadb's nightly dump, mariadb-dumps/<database>.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - network-policy.yaml
+  - vault-secrets.yaml
+  - deployment.yaml
+  - httproute.yaml
+configMapGenerator:
+  # The overlay merges in its database and its user.
+  - name: mautic-env
+    literals:
+      - MAUTIC_DB_HOST=mariadb.mariadb.svc.cluster.local
+      - MAUTIC_DB_PORT=3306
+      - MAUTIC_MESSENGER_DSN_EMAIL=doctrine://default
+      - MAUTIC_MESSENGER_DSN_HIT=doctrine://default
+      # Traefik, from the pods' range: trust its X-Forwarded-*.
+      - 'MAUTIC_TRUSTED_PROXIES=["10.42.0.0/16"]'
+      - PHP_INI_VALUE_DATE_TIMEZONE=Europe/Madrid
+      - DOCKER_MAUTIC_WORKERS_CONSUME_EMAIL=1
+      - DOCKER_MAUTIC_WORKERS_CONSUME_HIT=1
+      - DOCKER_MAUTIC_WORKERS_CONSUME_FAILED=1
+  - name: mautic-supervisord
+    files:
+      - supervisord.conf
+  - name: mautic-apache
+    files:
+      - apache/ports.conf
+      - apache/000-default.conf

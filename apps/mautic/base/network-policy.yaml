@@ -3,7 +3,6 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: default-deny-ingress
-  namespace: mautic
 spec:
   podSelector: {}
   policyTypes:
@@ -13,7 +12,6 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: http-from-traefik
-  namespace: mautic
 spec:
   podSelector:
     matchLabels:
@@ -33,11 +31,11 @@ spec:
           port: 8080
 ---
 # Payload creates the leads through the API (apps/payload/prod/mautic.yaml).
+# Prod's alone: staging has no Mautic.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: api-from-payload
-  namespace: mautic
 spec:
   podSelector:
     matchLabels:

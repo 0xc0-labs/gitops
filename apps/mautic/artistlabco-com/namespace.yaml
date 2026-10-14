@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: mautic
+  name: mautic-artistlabco-com
   labels:
     pod-security.kubernetes.io/enforce: restricted
     gateway.0xc0.cc/web: "true"

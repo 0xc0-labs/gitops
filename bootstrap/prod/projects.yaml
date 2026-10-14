@@ -31,7 +31,7 @@ spec:
     - server: https://kubernetes.default.svc
       namespace: artistlabco-com-staging
     - server: https://kubernetes.default.svc
-      namespace: mautic
+      namespace: mautic-artistlabco-com
     - server: https://kubernetes.default.svc
       namespace: offby1-cc
     - server: https://kubernetes.default.svc

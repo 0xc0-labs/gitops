@@ -1,30 +1,10 @@
 # The image's three roles (web, cron, worker) as containers of one pod, so
 # one RWO volume serves them all: no RWX, no NFS share-manager.
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: mautic-env
-  namespace: mautic
-data:
-  MAUTIC_DB_HOST: mariadb.mariadb.svc.cluster.local
-  MAUTIC_DB_PORT: "3306"
-  MAUTIC_DB_DATABASE: mautic
-  MAUTIC_DB_USER: mautic
-  MAUTIC_MESSENGER_DSN_EMAIL: doctrine://default
-  MAUTIC_MESSENGER_DSN_HIT: doctrine://default
-  # Traefik, from the pods' range: trust its X-Forwarded-*.
-  MAUTIC_TRUSTED_PROXIES: '["10.42.0.0/16"]'
-  PHP_INI_VALUE_DATE_TIMEZONE: Europe/Madrid
-  DOCKER_MAUTIC_WORKERS_CONSUME_EMAIL: "1"
-  DOCKER_MAUTIC_WORKERS_CONSUME_HIT: "1"
-  DOCKER_MAUTIC_WORKERS_CONSUME_FAILED: "1"
----
 # Backup: PBS's nightly backup of the RKE2 VMs (kustomization.yaml, Backups).
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: mautic-data
-  namespace: mautic
   # No pruning: it holds data.
   annotations:
     argocd.argoproj.io/sync-options: Prune=false
@@ -39,7 +19,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: mautic
-  namespace: mautic
 spec:
   selector:
     app.kubernetes.io/name: mautic
@@ -52,7 +31,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mautic
-  namespace: mautic
 spec:
   replicas: 1
   # RWO: the old pod releases the volume before the new one starts.
@@ -144,14 +122,24 @@ spec:
                 secretKeyRef:
                   name: mautic-database-vault
                   key: password
-            # Wins over local.php's DSN (README.md, The sending provider).
-            - &mailer
-              name: MAUTIC_MAILER_DSN
+            # Wins over local.php (README.md, The app secret).
+            - &secret
+              name: MAUTIC_SECRET_KEY
               valueFrom:
                 secretKeyRef:
-                  name: mautic-mailer-vault
-                  key: dsn
-                  optional: true
+                  name: mautic-app-vault
+                  key: secret_key
+            - &resend
+              name: RESEND_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mautic-email-vault
+                  key: api_key
+            # Resend's SMTP, user resend and the key as password. Wins over
+            # local.php's DSN (README.md, The sending provider).
+            - &mailer
+              name: MAUTIC_MAILER_DSN
+              value: smtp://resend:$(RESEND_API_KEY)@smtp.resend.com:587
           envFrom: &env
             - configMapRef:
                 name: mautic-env
@@ -242,6 +230,8 @@ spec:
             - name: DOCKER_MAUTIC_ROLE
               value: mautic_cron
             - *password
+            - *secret
+            - *resend
             - *mailer
           envFrom: *env
           securityContext: *security
@@ -286,6 +276,8 @@ spec:
             - name: DOCKER_MAUTIC_ROLE
               value: mautic_worker
             - *password
+            - *secret
+            - *resend
             - *mailer
           envFrom: *env
           securityContext: *security

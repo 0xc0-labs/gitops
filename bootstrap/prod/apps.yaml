@@ -13,13 +13,18 @@ spec:
         directories:
           - path: apps/*/prod
           - path: apps/*/staging
+          # An application deployed once per site: a directory each, beside its
+          # base (apps/mautic/README.md).
+          - path: apps/mautic/*
+          - path: apps/mautic/base
+            exclude: true
   # Deleting the ApplicationSet or an Application never deletes what it
   # deployed.
   syncPolicy:
     preserveResourcesOnDeletion: true
   template:
     metadata:
-      name: '{{ index .path.segments 1 }}{{ if eq .path.basename "staging" }}-staging{{ end }}'
+      name: '{{ index .path.segments 1 }}{{ if ne .path.basename "prod" }}-{{ .path.basename }}{{ end }}'
       # Fields the API server defaults (a listener's tls.mode, a route's
       # weight) are not drift.
       annotations:
@@ -33,7 +38,7 @@ spec:
       destination:
         server: https://kubernetes.default.svc
         # What a chart leaves without a namespace lands here (CLAUDE.md).
-        namespace: '{{ index .path.segments 1 }}{{ if eq .path.basename "staging" }}-staging{{ end }}'
+        namespace: '{{ index .path.segments 1 }}{{ if ne .path.basename "prod" }}-{{ .path.basename }}{{ end }}'
       syncPolicy:
         # What holds data opts out with Prune=false, in its own manifest.
         automated:
