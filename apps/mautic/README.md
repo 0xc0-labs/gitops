@@ -54,16 +54,32 @@ user, and then `mautic-<site>`.
 
 Mautic installs from its web installer, over WARP:
 
-1. Open `https://mautic-<site>.int.0xc0.cc/installer`. The database step comes
-   prefilled from the environment (`MAUTIC_DB_*`): keep it.
+1. Open `https://mautic-<site>.int.0xc0.cc/installer`. The database step
+   comes prefilled with the host, port, name and user (`MAUTIC_DB_*`), but
+   not the **Database Password**: a password field never shows a value, and
+   submitted empty it sends none, so the install fails with `Access denied
+   (using password: NO)`. Type the value of `apps/mautic-<site>/database`,
+   key `password`, copied to the clipboard without printing it
+   (`vault kv get -field=password`, piped to `pbcopy`, after the login in
+   [`vault`'s README][vault-write]).
 2. Create the admin with the login written to `ops/mautic-<site>/admin`.
 3. Skip the email step: the sending provider comes from Vault (below).
 4. In Settings → Configuration → System settings, set the **Site URL** to
    the public name. The installer takes the name it was opened on; the links
    Mautic sends must carry the public one.
-5. Create the API user for Payload and write it to
-   `apps/payload/tenants/<tenant>/mautic` (`url`, `username`, `password`;
-   `url` is `http://mautic.mautic-<site>.svc`).
+5. In Settings → Configuration → API Settings, turn on **API enabled** and
+   **Enable HTTP basic auth**. Payload's Mautic adapter authenticates with
+   HTTP Basic: without them Mautic refuses its calls.
+6. Create the API user for Payload, in this order:
+   1. Write its password to Vault first, as [`vault`'s README][vault-write]
+      says, at `apps/payload/tenants/<tenant>/mautic`: a new path, so `kv
+      put`. `url` is `http://mautic.mautic-<site>.svc`, `username` is
+      `payload`, and `password` is generated (`openssl rand -base64 24`).
+   2. In Settings → Roles, a role `Payload`, not an administrator, with
+      what Payload's calls need: Contacts, view, create and edit other
+      users' contacts; Segments, view and edit other users' segments.
+   3. In Settings → Users, the user `payload`, with that role, an email on
+      the site's domain, and the password from Vault, copied as in step 1.
 
 cron and worker wait until the install is done, then start on their own.
 
