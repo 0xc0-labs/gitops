@@ -15,12 +15,12 @@ resources:
 # The pin (../README.md, Delivery).
 images:
   - name: ghcr.io/0xc0-labs/payload
-    newTag: v0.8.0-rc.2
-    digest: sha256:86a327e82e52585e1eecd47c7c4e06926c1e77546e02a13695217e69174e1d50
+    newTag: v0.8.0-rc.3
+    digest: sha256:573f4efb01b9ffd6272ff50d9509d53c30baac7f46f0b55be8ddea71214ecfe6
 configMapGenerator:
   - name: release
     literals:
-      - APP_VERSION=v0.8.0-rc.2
+      - APP_VERSION=v0.8.0-rc.3
       - APP_ENVIRONMENT=staging
   # No MEDIA_PUBLIC_URL: Payload serves the files itself (../README.md, Media).
   - name: payload
