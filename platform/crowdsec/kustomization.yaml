@@ -2,6 +2,18 @@
 # leaves application attacks to it.
 #
 # Backups: the LAPI's two Longhorn volumes, in PBS's backup of the RKE2 VMs.
+#
+# After a restart (gitops#292): the LAPI keeps its machines on its volume,
+# and a pod that restarts with its name registered that name again: the chart's
+# init container failed with "user already exist" and the pod never became
+# ready, which makes Traefik's bouncer answer 403 to every public request.
+# `cscli lapi register` has no force flag and the chart's init command is not
+# a value, so register-patch.yaml replaces it: it skips registering when the
+# pod's emptyDir already holds its credentials, and otherwise registers under
+# "<pod>-<epoch>", a name the LAPI cannot hold. Machines left behind are
+# deleted by the LAPI after a day without requests (values.yaml,
+# db_config.flush.agents_autodelete). Check, with `cscli machines list` in the
+# LAPI pod: a restarted container leaves the pod ready and no new machine.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: crowdsec
@@ -20,3 +32,5 @@ resources:
   - network-policy.yaml
   - vault-secrets.yaml
   - pdb.yaml
+patches:
+  - path: register-patch.yaml

@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crowdsec-appsec
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: wait-for-lapi-and-register
+          command:
+            - sh
+            - -c
+            - >-
+              until nc "$LAPI_HOST" "$LAPI_PORT" -z; do echo waiting for lapi to start; sleep 5; done;
+              [ -s /tmp_config/local_api_credentials.yaml ] ||
+              { ln -s /staging/etc/crowdsec /etc/crowdsec &&
+              cscli lapi register --machine "$USERNAME-$(date +%s)" -u "$LAPI_URL" --token "$REGISTRATION_TOKEN" &&
+              cp /etc/crowdsec/local_api_credentials.yaml /tmp_config/local_api_credentials.yaml; }
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: crowdsec-agent
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: wait-for-lapi-and-register
+          command:
+            - sh
+            - -c
+            - >-
+              until nc "$LAPI_HOST" "$LAPI_PORT" -z; do echo waiting for lapi to start; sleep 5; done;
+              [ -s /tmp_config/local_api_credentials.yaml ] ||
+              { ln -s /staging/etc/crowdsec /etc/crowdsec &&
+              cscli lapi register --machine "$USERNAME-$(date +%s)" -u "$LAPI_URL" --token "$REGISTRATION_TOKEN" &&
+              cp /etc/crowdsec/local_api_credentials.yaml /tmp_config/local_api_credentials.yaml; }
