@@ -25,6 +25,24 @@ secrets:
     name: crowdsec-lapi-vault
     csLapiSecretKey: lapi_secret
     registrationTokenKey: registration_token
+config:
+  # The chart's own value, with the flush added: a machine registered under a
+  # name the LAPI no longer needs goes after a day without requests.
+  config.yaml.local: |
+    api:
+      server:
+        auto_registration:
+          enabled: true
+          token: "${REGISTRATION_TOKEN}"
+          allowed_ranges:
+            - "127.0.0.1/32"
+            - "192.168.0.0/16"
+            - "10.0.0.0/8"
+            - "172.16.0.0/12"
+    db_config:
+      flush:
+        agents_autodelete:
+          login_password: 1d
 lapi:
   metrics:
     serviceMonitor:
