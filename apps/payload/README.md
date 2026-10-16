@@ -121,6 +121,7 @@ at `/var/run/secrets/tenants/<slug>/<name>/<key>`, one file per key.
 | `email` | the tenant's Resend settings | both |
 | `stripe` | the tenant's Stripe keys | both |
 | `discord` | the tenant's Discord credentials | both |
+| `bunny` | `token_key`: the tenant's Bunny Stream key, which signs player URLs | both |
 | `mautic` | `url` (`http://mautic.mautic-artistlabco-com.svc`), `username`, `password`: the site's own Mautic and the API user made for Payload | prod alone |
 
 Each volume is optional, so a rollout never waits on a value Vault does not
