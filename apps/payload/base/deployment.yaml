@@ -191,6 +191,9 @@ spec:
             - name: tenant-artistlab-discord
               mountPath: /var/run/secrets/tenants/artistlab/discord
               readOnly: true
+            - name: tenant-artistlab-bunny
+              mountPath: /var/run/secrets/tenants/artistlab/bunny
+              readOnly: true
       # A tenant's secrets, one volume per secret, optional so that a rollout
       # never waits on a value Vault does not hold yet (../README.md, Tenants).
       volumes:
@@ -211,4 +214,8 @@ spec:
         - name: tenant-artistlab-discord
           secret:
             secretName: payload-tenant-artistlab-discord-vault
+            optional: true
+        - name: tenant-artistlab-bunny
+          secret:
+            secretName: payload-tenant-artistlab-bunny-vault
             optional: true
