@@ -83,6 +83,33 @@ Mautic installs from its web installer, over WARP:
 
 cron and worker wait until the install is done, then start on their own.
 
+An install can leave the migrations table out of step with the schema
+(0xc0-labs/gitops#293). The installer builds the schema from the entities
+and ends by marking every migration as applied (`finalMigrationStep`, Mautic
+7.2.1); an earlier release did not create the table before that step, and the
+install still reported success ([mautic/mautic#17126][mautic-17126]). On
+`mautic-artistlabco-com`, installed from 7.2.1, 6 of 117 were recorded, and
+web's first start after the install replayed the rest on a schema that
+already held them and crashed. The last step of an install is therefore to
+check it, from the `cron` container, and to record what is missing:
+
+```sh
+kubectl -n mautic-<site> exec deploy/mautic -c cron -- \
+  php bin/console doctrine:migrations:status --no-interaction
+```
+
+`Executed Migrations` must equal `Available Migrations`. When `New
+Migrations` is not 0 on a site that was just installed:
+
+```sh
+kubectl -n mautic-<site> exec deploy/mautic -c cron -- \
+  php bin/console doctrine:migrations:version --add --all --no-interaction
+```
+
+That writes rows to the `migrations` table and changes no other table. Only
+for a schema the installer just built, from the image the site runs: on a
+site that is behind its image, it would skip migrations it needs.
+
 ## Retiring the shared instance
 
 `apps/mautic/prod` (`mautic.0xc0.cc`) is gone from the repo and from Argo CD,
@@ -100,7 +127,10 @@ the record of `mautic.0xc0.cc`.
 ## Upgrades
 
 A new digest in `base/deployment.yaml`, which upgrades every site at once. web runs the migrations at its start,
-before apache listens: the startup probe allows ten minutes. A major version
+before apache listens: the startup probe allows ten minutes. It runs whatever
+the migrations table does not record, so the table must be in step before the
+first upgrade (Install, above): a site whose install left it short replays
+its whole history and fails. A major version
 goes first to its release notes: Mautic only upgrades one major at a time.
 
 ## Rotating the database password
@@ -142,3 +172,5 @@ kubectl -n mautic-<site> exec deploy/mautic -c worker -- \
 
 [vault-write]: https://github.com/0xc0-labs/vault/blob/main/README.md#writing-or-rotating-a-secret
 [design-platform]: https://github.com/0xc0-labs/workspace/blob/main/docs/design/platform.md
+
+[mautic-17126]: https://github.com/mautic/mautic/issues/17126
