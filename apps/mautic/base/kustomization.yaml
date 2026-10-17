@@ -13,7 +13,8 @@ resources:
   - deployment.yaml
   - httproute.yaml
 configMapGenerator:
-  # The overlay merges in its database and its user.
+  # The overlay merges in its database and user, SITE_URL (the public name)
+  # and PAYLOAD_API_EMAIL (on the site's domain).
   - name: mautic-env
     literals:
       - MAUTIC_DB_HOST=mariadb.mariadb.svc.cluster.local
@@ -29,6 +30,9 @@ configMapGenerator:
   - name: mautic-supervisord
     files:
       - supervisord.conf
+  - name: mautic-provision
+    files:
+      - provision.php
   - name: mautic-apache
     files:
       - apache/ports.conf

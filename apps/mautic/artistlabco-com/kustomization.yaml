@@ -12,6 +12,8 @@ configMapGenerator:
     literals:
       - MAUTIC_DB_DATABASE=mautic_artistlabco_com
       - MAUTIC_DB_USER=mautic_artistlabco_com
+      - SITE_URL=https://mautic.artistlabco.com
+      - PAYLOAD_API_EMAIL=payload@artistlabco.com
 patches:
   - target: {kind: HTTPRoute, name: mautic}
     patch: |-
