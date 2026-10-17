@@ -95,7 +95,7 @@ check it, from the `cron` container, and to record what is missing:
 
 ```sh
 kubectl -n mautic-<site> exec deploy/mautic -c cron -- \
-  php bin/console doctrine:migrations:status --no-interaction
+  php /var/www/html/bin/console doctrine:migrations:status --no-interaction
 ```
 
 `Executed Migrations` must equal `Available Migrations`. When `New
@@ -103,7 +103,7 @@ Migrations` is not 0 on a site that was just installed:
 
 ```sh
 kubectl -n mautic-<site> exec deploy/mautic -c cron -- \
-  php bin/console doctrine:migrations:version --add --all --no-interaction
+  php /var/www/html/bin/console doctrine:migrations:version --add --all --no-interaction
 ```
 
 That writes rows to the `migrations` table and changes no other table. Only
