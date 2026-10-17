@@ -72,8 +72,8 @@ migrations and the seed all get them, since all three load the same config.
 - **Staging**'s bucket has no hostname: Payload serves its files at
   `/api/media/file/`, over WARP.
 
-The way out is HTTPS to Cloudflare's published IPv4 ranges
-(`base/network-policy.yaml`, `egress-r2`, with the date they were read).
+The way out is `egress-https` (`base/network-policy.yaml`), as Tenants,
+below, says.
 Changing where files go moves none: what was uploaded to the volume before
 stays there.
 
@@ -134,17 +134,39 @@ Adding a secret to a tenant is one `VaultStaticSecret` in
 `replacements` set its path's namespace, and one volume with its mount in
 `base/deployment.yaml`. A new tenant is the same blocks under its own slug.
 
-The way out to Stripe is `egress-stripe` (`base/network-policy.yaml`): HTTPS
-to every address Stripe publishes for its API. Discord's API sits behind
-Cloudflare, so `egress-r2` carries it.
+The way out to a tenant's services is `egress-https`
+(`base/network-policy.yaml`): TCP 443 to any public address, since Stripe,
+Discord and a tenant's S3 provider have no range to name. The private,
+reserved and cluster ranges are excluded. It is an accepted risk, in the
+workspace's [`docs/accepted-risks.md`][accepted-risks].
 
-Stripe can serve the API from any address in
-<https://stripe.com/files/ips/ips_api.txt>, and a NetworkPolicy has no egress
-by domain name, so the policy lists them all: the two /24 ranges
-(`198.137.150.0/24`, `198.202.176.0/24`) that cover the file's addresses in
-them, and one `/32` per remaining address. When Stripe changes the file, read
-it again, keep the two /24 ranges, replace the `/32` entries with one per
-address outside them, and update the date in the comment above the policy.
+`TRUSTED_INTERNAL_HOSTS` (the `payload` ConfigMap) lists the in-cluster hosts
+a tenant may point an integration at, comma-separated: prod's is
+`mautic.mautic-artistlabco-com.svc`, the Mautic that `egress-mautic` admits;
+staging's is empty.
+
+## Vault identity
+
+The server's pods have a ServiceAccount of their own, `payload`, and log in
+to Vault with it, so that Payload reads and writes its tenants' keys itself
+(workspace#187). The login role is `payload-tenants`, defined in `vault`
+with its policy: it admits the `payload` ServiceAccount in namespaces
+labelled `vault.0xc0.cc/payload-tenants: "true"`, and grants
+`apps/<namespace>/tenants/*` alone, never `apps/<namespace>/app` or the other
+paths ([`vault`'s README][vault-write]).
+
+- The token is projected, audience `vault`, valid 3600 s, and mounted at
+  `/var/run/secrets/vault/token`. The ServiceAccount's default token stays
+  off: its audience is the Kubernetes API.
+- The `web` container reads `VAULT_ADDR`, `VAULT_AUTH_ROLE`,
+  `VAULT_TOKEN_FILE`, `VAULT_KV_MOUNT` and `VAULT_TENANTS_PATH` (each
+  overlay's `<namespace>/tenants`): the contract with the image, changed
+  only together with it.
+- The way out is `egress-vault`, TCP 8200 to Vault's server pods;
+  `platform/vault/network-policy.yaml` admits both namespaces.
+
+The tenant secrets mounted above stay until the image reads all of them from
+Vault.
 
 ## Resources bucket
 
@@ -152,7 +174,7 @@ The private resources bucket's credentials, `RESOURCES_S3_BUCKET`,
 `RESOURCES_S3_ENDPOINT`, `RESOURCES_S3_ACCESS_KEY_ID` and
 `RESOURCES_S3_SECRET_ACCESS_KEY`, come from `apps/<namespace>/resources-storage`
 and are optional: the pod starts without them. It reaches the bucket over the
-same egress as the media (`egress-r2`).
+same egress as the media (`egress-https`).
 
 ## Fronts
 

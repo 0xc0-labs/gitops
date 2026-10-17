@@ -8,6 +8,7 @@ metadata:
     pod-security.kubernetes.io/enforce: restricted
     gateway.0xc0.cc/internal: "true"
     vault.0xc0.cc/apps: "true"
+    vault.0xc0.cc/payload-tenants: "true"
   # No pruning: deleting it deletes everything in it.
   annotations:
     argocd.argoproj.io/sync-options: Prune=false

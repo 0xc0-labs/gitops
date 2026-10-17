@@ -51,7 +51,8 @@ patches:
                       secretKeyRef:
                         name: payload-email-vault
                         key: redirect_to
-# Each Vault path starts with the namespace (../base/vault-secrets.yaml).
+# Each Vault path starts with the namespace (../base/vault-secrets.yaml), the
+# tenants' own too (../base/deployment.yaml).
 replacements:
   - source:
       kind: Namespace
@@ -91,4 +92,10 @@ replacements:
           kind: VaultStaticSecret
           labelSelector: app.kubernetes.io/component=tenant-secret
         fieldPaths: [spec.path]
+        options: {delimiter: /, index: 0}
+      - select:
+          kind: Deployment
+          name: payload
+        fieldPaths:
+          - spec.template.spec.containers.[name=web].env.[name=VAULT_TENANTS_PATH].value
         options: {delimiter: /, index: 0}

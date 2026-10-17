@@ -5,13 +5,15 @@ resources:
   - vault-secrets.yaml
   - migrate.yaml
   - deployment.yaml
-# Each environment merges its URL and its R2 bucket in.
+# Each environment merges its URL, its R2 bucket and its trusted internal
+# hosts in.
 configMapGenerator:
   - name: payload
     literals:
       - NEXT_TELEMETRY_DISABLED=1
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
       - OTEL_SERVICE_NAME=payload
+      - TRUSTED_INTERNAL_HOSTS=
   # The server's alone (../README.md, Email). Each environment merges its
   # EMAIL_FROM_NAME in.
   - name: payload-email

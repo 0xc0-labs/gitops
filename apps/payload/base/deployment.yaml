@@ -1,6 +1,14 @@
 # The image is each environment's pin, never a tag here (../README.md,
 # Delivery).
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: payload
+# Vault takes the projected token below, not the API's (../README.md, Vault
+# identity).
+automountServiceAccountToken: false
+---
+apiVersion: v1
 kind: Service
 metadata:
   name: payload
@@ -35,6 +43,7 @@ spec:
         app.kubernetes.io/name: payload
         app.kubernetes.io/part-of: payload
     spec:
+      serviceAccountName: payload
       automountServiceAccountToken: false
       enableServiceLinks: false
       imagePullSecrets:
@@ -101,6 +110,17 @@ spec:
                   key: api_key
             - name: TENANT_SECRETS_DIR
               value: /var/run/secrets/tenants
+            - name: VAULT_ADDR
+              value: http://vault-active.vault.svc.cluster.local:8200
+            - name: VAULT_AUTH_ROLE
+              value: payload-tenants
+            - name: VAULT_TOKEN_FILE
+              value: /var/run/secrets/vault/token
+            - name: VAULT_KV_MOUNT
+              value: apps
+            # Each environment's namespace replaces the first segment.
+            - name: VAULT_TENANTS_PATH
+              value: NAMESPACE/tenants
             # Optional: the bucket's credentials may reach Vault after this
             # manifest.
             - name: RESOURCES_S3_BUCKET
@@ -182,6 +202,9 @@ spec:
               mountPath: /app/.next/cache
             - name: tmp
               mountPath: /tmp
+            - name: vault-token
+              mountPath: /var/run/secrets/vault
+              readOnly: true
             - name: tenant-artistlab-email
               mountPath: /var/run/secrets/tenants/artistlab/email
               readOnly: true
@@ -203,6 +226,13 @@ spec:
         - name: tmp
           emptyDir:
             sizeLimit: 128Mi
+        - name: vault-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: vault
+                  expirationSeconds: 3600
+                  path: token
         - name: tenant-artistlab-email
           secret:
             secretName: payload-tenant-artistlab-email-vault

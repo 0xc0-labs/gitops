@@ -68,8 +68,8 @@ spec:
 ---
 # The server fetches media.0xc0.cc for next/image. It is behind Cloudflare,
 # so the way out is HTTPS to Cloudflare's published IPv4 ranges,
-# https://www.cloudflare.com/ips-v4, read 2026-10-13, the same list as
-# payload's egress-r2. A range Cloudflare adds goes here too.
+# https://www.cloudflare.com/ips-v4, read 2026-10-13. A range Cloudflare adds
+# goes here too.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
