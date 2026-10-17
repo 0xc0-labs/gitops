@@ -28,6 +28,8 @@ configMapGenerator:
       - S3_ENDPOINT=https://ca1599ae7852d5b4718cba351adad927.r2.cloudflarestorage.com
       - S3_BUCKET=payload-media
       - MEDIA_PUBLIC_URL=https://media.0xc0.cc
+      # The Mautic that egress-mautic admits (mautic.yaml).
+      - TRUSTED_INTERNAL_HOSTS=mautic.mautic-artistlabco-com.svc
   - name: payload-email
     behavior: merge
     literals:
@@ -53,7 +55,8 @@ patches:
                 secret:
                   secretName: payload-tenant-artistlab-mautic-vault
                   optional: true
-# Each Vault path starts with the namespace (../base/vault-secrets.yaml).
+# Each Vault path starts with the namespace (../base/vault-secrets.yaml), the
+# tenants' own too (../base/deployment.yaml).
 replacements:
   - source:
       kind: Namespace
@@ -93,4 +96,10 @@ replacements:
           kind: VaultStaticSecret
           labelSelector: app.kubernetes.io/component=tenant-secret
         fieldPaths: [spec.path]
+        options: {delimiter: /, index: 0}
+      - select:
+          kind: Deployment
+          name: payload
+        fieldPaths:
+          - spec.template.spec.containers.[name=web].env.[name=VAULT_TENANTS_PATH].value
         options: {delimiter: /, index: 0}
