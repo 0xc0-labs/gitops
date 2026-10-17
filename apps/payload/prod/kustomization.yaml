@@ -14,12 +14,12 @@ resources:
 # The pin (../README.md, Delivery).
 images:
   - name: ghcr.io/0xc0-labs/payload
-    newTag: v0.10.0
-    digest: sha256:9d4edcc77fea856348d38e3d1d08977d6dea5a439ed6d5a588360561feb96b79
+    newTag: v0.11.0
+    digest: sha256:a42761eae366a46ba2c8a56a1498344266ceb24854d304e438b9e473e843b986
 configMapGenerator:
   - name: release
     literals:
-      - APP_VERSION=v0.10.0
+      - APP_VERSION=v0.11.0
       - APP_ENVIRONMENT=prod
   - name: payload
     behavior: merge
