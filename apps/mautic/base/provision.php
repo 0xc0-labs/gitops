@@ -25,7 +25,11 @@ function call(string $method, string $path, ?array $body = null): array
 
 function find(string $collection, string $field, string $value): ?array
 {
-    [, $found] = call('GET', "/$collection?limit=100&search=" . urlencode($value));
+    [$status, $found] = call('GET', "/$collection?limit=100&search=" . urlencode($value));
+    if ($status !== 200) {
+        fwrite(STDERR, "looking up $collection failed: HTTP $status\n");
+        exit(1);
+    }
     foreach ($found[$collection] ?? [] as $item) {
         if (($item[$field] ?? null) === $value) {
             return $item;

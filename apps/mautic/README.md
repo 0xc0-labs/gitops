@@ -22,10 +22,9 @@ path (`base/httproute.yaml`).
 1. Copy `artistlabco-com/` to `<site>/` and replace its name in the
    namespace, the database and user (`MAUTIC_DB_*`), `SITE_URL` (the public
    name), `PAYLOAD_API_EMAIL` (an address on the site's domain) and the
-   hostnames. The
-   public one is `mautic.<domain>`, on that domain's HTTPS listener of the
-   Gateway (`platform/traefik`) and in external-dns's `domainFilters`. The
-   admin's is `mautic-<site>.int.0xc0.cc`.
+   hostnames. The public one is `mautic.<domain>`, on that domain's HTTPS
+   listener of the Gateway (`platform/traefik`) and in external-dns's
+   `domainFilters`. The admin's is `mautic-<site>.int.0xc0.cc`.
 2. In `platform/mariadb`: the site's `VaultStaticSecret`, volume and mount in
    `databases.yaml`, and its namespace in `network-policy.yaml`.
 3. In `bootstrap/prod/projects.yaml`, the namespace as a destination of the
@@ -67,7 +66,11 @@ Then, on every start:
   view, create and edit other users' contacts; Segments: view and edit other
   users' segments) and the user `payload`, with `PAYLOAD_API_EMAIL` and the
   password of `payload`. A role or user that exists is left as it is: its
-  password is not reset. It then idles.
+  password is not reset. It then idles. A failure (the admin's login
+  refused, a lookup or a create answered with an error) is one line in the
+  `provision` container's log, in OpenObserve, and the container idles
+  instead of exiting, so the site stays up; fix the cause and restart the
+  pod to run it again.
 
 The sending provider is not asked for: it comes from Vault (below). cron and
 worker wait until the install is done, then start on their own.

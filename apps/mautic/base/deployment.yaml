@@ -349,11 +349,12 @@ spec:
               subPath: supervisord.conf
               readOnly: true
         # Payload's API user and its role, through Mautic's own API once web
-        # answers; what exists is left as it is. It then idles: a container
-        # that exits is restarted.
+        # answers; what exists is left as it is. It idles after a failure
+        # too, logged in one line: a container that exits is restarted, and a
+        # crash loop takes the pod out of the Service.
         - name: provision
           image: docker.io/mautic/mautic:7.2.1-apache@sha256:ff584fd13c8db06b4a7dd640e837dbbde69bd8c40da62140ff6c3c2dd0402abc
-          command: [bash, -euo, pipefail, -c, 'php /scripts/provision.php && exec sleep infinity']
+          command: [bash, -euo, pipefail, -c, 'php /scripts/provision.php || true; exec sleep infinity']
           env:
             - *adminEmail
             - *adminPassword
