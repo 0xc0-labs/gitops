@@ -39,6 +39,11 @@ persistence:
 # each mount: hundreds of thousands, minutes of downtime per restart (#335).
 podSecurityContext:
   fsGroupChangePolicy: OnRootMismatch
+  # A random level per pod makes containerd relabel every file of the volume
+  # on each start (#338). This is the level the files already carry: changing
+  # it relabels them all again.
+  seLinuxOptions:
+    level: "s0:c76,c150"
 
 securityContext:
   allowPrivilegeEscalation: false
