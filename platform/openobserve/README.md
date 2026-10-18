@@ -123,6 +123,26 @@ kubectl get --raw "/api/v1/nodes/$(kubectl -n openobserve get pod openobserve-0 
         | {usedBytes, capacityBytes, inodesUsed, inodes}'
 ```
 
+## A frozen stream
+
+When a log stream passes `ZO_SCHEMA_MAX_FIELDS_TO_ENABLE_UDS` fields (1000
+here; the chart's own default is 150) and has no user-defined schema yet,
+OpenObserve saves one with the stream's fields at that moment. From then on,
+every field outside it is stored in the hidden `_all` column, not as a column
+of its own (#333).
+
+A frozen stream looks like this: a field the events send has no column, a
+filter on it shows "No Data Found", and the value is in `_all`:
+
+```sql
+SELECT _all FROM "<stream>" ORDER BY _timestamp DESC LIMIT 1
+```
+
+The fix is the operator's, in the UI: Streams, the stream, Schema Settings,
+then the user-defined schema: remove it, or add the missing fields. Events
+stored before the fix keep the field in `_all`. A stream freezes again once it
+passes 1000 fields.
+
 ## Alerts
 
 There are none (operator decision, 2026-10-02). If any are added, mail can go
