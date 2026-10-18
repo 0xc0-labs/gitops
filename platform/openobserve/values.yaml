@@ -43,7 +43,7 @@ podSecurityContext:
   # on each start (#338). This is the level the files already carry: changing
   # it relabels them all again.
   seLinuxOptions:
-    level: "s0:c13,c863"
+    level: "s0:c76,c150"
 
 securityContext:
   allowPrivilegeEscalation: false
