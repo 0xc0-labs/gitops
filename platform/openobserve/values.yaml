@@ -26,6 +26,9 @@ config:
   ZO_MEM_TABLE_MAX_SIZE: "512"
   ZO_MAX_FILE_SIZE_IN_MEMORY: "64"
   ZO_MAX_FILE_RETENTION_TIME: "120"
+  # The chart's 150 froze _rumdata and moved its new fields into _all; 1000 is
+  # OpenObserve's own default (#333, README, A frozen stream).
+  ZO_SCHEMA_MAX_FIELDS_TO_ENABLE_UDS: "1000"
 
 persistence:
   enabled: true
