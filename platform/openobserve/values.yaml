@@ -35,6 +35,11 @@ persistence:
   size: 50Gi
   storageClass: longhorn
 
+# The default, Always, makes the kubelet chown every file of the volume on
+# each mount: hundreds of thousands, minutes of downtime per restart (#335).
+podSecurityContext:
+  fsGroupChangePolicy: OnRootMismatch
+
 securityContext:
   allowPrivilegeEscalation: false
   capabilities:
