@@ -20,17 +20,18 @@ path (`base/httproute.yaml`).
 ## Adding a site
 
 1. Copy `artistlabco-com/` to `<site>/` and replace its name in the
-   namespace, the database and user (`MAUTIC_DB_*`), and the hostnames. The
-   public one is `mautic.<domain>`, on that domain's HTTPS listener of the
-   Gateway (`platform/traefik`) and in external-dns's `domainFilters`. The
-   admin's is `mautic-<site>.int.0xc0.cc`.
+   namespace, the database and user (`MAUTIC_DB_*`), `SITE_URL` (the public
+   name), `PAYLOAD_API_EMAIL` (an address on the site's domain) and the
+   hostnames. The public one is `mautic.<domain>`, on that domain's HTTPS
+   listener of the Gateway (`platform/traefik`) and in external-dns's
+   `domainFilters`. The admin's is `mautic-<site>.int.0xc0.cc`.
 2. In `platform/mariadb`: the site's `VaultStaticSecret`, volume and mount in
    `databases.yaml`, and its namespace in `network-policy.yaml`.
 3. In `bootstrap/prod/projects.yaml`, the namespace as a destination of the
    `apps` project.
 4. If Payload feeds it, its namespace in `apps/payload/prod/mautic.yaml`.
 5. The secrets, below, and the `vault` repo's policy: `mariadb` reads each
-   site's `database` by name.
+   site's `database` by name. The install needs nothing else.
 
 ## Before the first sync: the secrets
 
@@ -42,46 +43,52 @@ secret][vault-write] says, at `apps/mautic-<site>/`:
 | `database` | `password` | generated: `openssl rand -base64 24`. Read by Mautic, and by platform/mariadb to create the user (`databases.yaml` there) |
 | `app` | `secret_key` | generated: `openssl rand -hex 32`. Mautic's `secret_key`, read as `MAUTIC_SECRET_KEY` (it wins over `local.php`) |
 | `email` | `api_key` | a Resend API key limited to the site's domain (The sending provider, below) |
-
-And, for the first admin, `ops/mautic-<site>/admin` with `email` and
-`password`: a person's login, read by no machine, and kept in the password
-manager too. The email is not a secret.
+| `admin` | `email`, `password` | the first admin's login, a person's: kept in the password manager too. The email is not a secret. Read by the install, and by the provision container to log in to the API |
+| `payload` | `password` | generated: `openssl rand -base64 24`. The password of the API user Payload logs in as |
 
 Then sync `mariadb` in Argo CD, so its databases Job creates the database and
 user, and then `mautic-<site>`.
 
 ## Install, once per site
 
-Mautic installs from its web installer, over WARP:
+Nothing is clicked. On its first start, web finds no `site_url` in
+`config/local.php` and runs `bin/console mautic:install` with the database
+(`MAUTIC_DB_*`, the password from `database`), `SITE_URL` as the Site URL
+and the first admin from `admin`. On an installed Mautic it changes nothing.
+Then, on every start:
 
-1. Open `https://mautic-<site>.int.0xc0.cc/installer`. The database step
-   comes prefilled with the host, port, name and user (`MAUTIC_DB_*`), but
-   not the **Database Password**: a password field never shows a value, and
-   submitted empty it sends none, so the install fails with `Access denied
-   (using password: NO)`. Type the value of `apps/mautic-<site>/database`,
-   key `password`, copied to the clipboard without printing it
-   (`vault kv get -field=password`, piped to `pbcopy`, after the login in
-   [`vault`'s README][vault-write]).
-2. Create the admin with the login written to `ops/mautic-<site>/admin`.
-3. Skip the email step: the sending provider comes from Vault (below).
-4. In Settings → Configuration → System settings, set the **Site URL** to
-   the public name. The installer takes the name it was opened on; the links
-   Mautic sends must carry the public one.
-5. In Settings → Configuration → API Settings, turn on **API enabled** and
-   **Enable HTTP basic auth**. Payload's Mautic adapter authenticates with
-   HTTP Basic: without them Mautic refuses its calls.
-6. Create the API user for Payload, in this order:
-   1. Write its password to Vault first, as [`vault`'s README][vault-write]
-      says, at `apps/payload/tenants/<tenant>/mautic`: a new path, so `kv
-      put`. `url` is `http://mautic.mautic-<site>.svc`, `username` is
-      `payload`, and `password` is generated (`openssl rand -base64 24`).
-   2. In Settings → Roles, a role `Payload`, not an administrator, with
-      what Payload's calls need: Contacts, view, create and edit other
-      users' contacts; Segments, view and edit other users' segments.
-   3. In Settings → Users, the user `payload`, with that role, an email on
-      the site's domain, and the password from Vault, copied as in step 1.
+- **API enabled** and **Enable HTTP basic auth** are set in `local.php`,
+  which is where Mautic 7.2.1 reads them (they are not environment
+  variables). Payload's Mautic adapter authenticates with HTTP Basic.
+- The migrations are checked (below).
+- The `provision` container, once web answers on `localhost`, logs in to the
+  API as the admin and creates, if absent, the role `Payload` (Contacts:
+  view, create and edit other users' contacts; Segments: view and edit other
+  users' segments) and the user `payload`, with `PAYLOAD_API_EMAIL` and the
+  password of `payload`. A role or user that exists is left as it is: its
+  password is not reset. It then idles. A failure (the admin's login
+  refused, a lookup or a create answered with an error) is one line in the
+  `provision` container's log, in OpenObserve, and the container idles
+  instead of exiting, so the site stays up; fix the cause and restart the
+  pod to run it again.
 
-cron and worker wait until the install is done, then start on their own.
+The sending provider is not asked for: it comes from Vault (below). cron and
+worker wait until the install is done, then start on their own.
+
+What the operator still does, after the sync: in Payload's admin, the tenant's
+Mautic integration gets `payload` as the username, the value of
+`apps/mautic-<site>/payload` as the password and
+`http://mautic.mautic-<site>.svc` as the URL ([payload's README,
+Integrations][payload-integrations]).
+
+Rotating the API user's password is a write to Vault, the same value in
+Payload, and the new password on the user in Mautic's admin: the container
+never resets one that exists.
+
+A failed install is read from web's log, which never holds a secret. The
+installer drops what it finds in an empty database, so the install runs with
+`--db_backup_tables true`: a retry after a partial install leaves `bak_`
+tables to drop by hand.
 
 An install can leave the migrations table out of step with the schema
 (0xc0-labs/gitops#293). The installer builds the schema from the entities
@@ -90,25 +97,20 @@ and ends by marking every migration as applied (`finalMigrationStep`, Mautic
 install still reported success ([mautic/mautic#17126][mautic-17126]). On
 `mautic-artistlabco-com`, installed from 7.2.1, 6 of 117 were recorded, and
 web's first start after the install replayed the rest on a schema that
-already held them and crashed. The last step of an install is therefore to
-check it, from the `cron` container, and to record what is missing:
+already held them and crashed. So the install ends with a check, and only on
+a site it has just installed: `doctrine:migrations:up-to-date`, and when it
+fails, `doctrine:migrations:version --add --all`. That writes rows to the
+`migrations` table and changes no other table. It is for a schema the
+installer just built, from the image the site runs: on a site that is behind
+its image it would skip migrations it needs, which is why an installed site is
+never touched. To read the state:
 
 ```sh
 kubectl -n mautic-<site> exec deploy/mautic -c cron -- \
   php /var/www/html/bin/console doctrine:migrations:status --no-interaction
 ```
 
-`Executed Migrations` must equal `Available Migrations`. When `New
-Migrations` is not 0 on a site that was just installed:
-
-```sh
-kubectl -n mautic-<site> exec deploy/mautic -c cron -- \
-  php /var/www/html/bin/console doctrine:migrations:version --add --all --no-interaction
-```
-
-That writes rows to the `migrations` table and changes no other table. Only
-for a schema the installer just built, from the image the site runs: on a
-site that is behind its image, it would skip migrations it needs.
+`Executed Migrations` equals `Available Migrations`.
 
 ## Retiring the shared instance
 
@@ -174,3 +176,4 @@ kubectl -n mautic-<site> exec deploy/mautic -c worker -- \
 [design-platform]: https://github.com/0xc0-labs/workspace/blob/main/docs/design/platform.md
 
 [mautic-17126]: https://github.com/mautic/mautic/issues/17126
+[payload-integrations]: https://github.com/0xc0-labs/payload/blob/main/README.md#integrations

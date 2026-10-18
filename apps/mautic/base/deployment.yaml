@@ -100,17 +100,41 @@ spec:
         - name: web
           image: docker.io/mautic/mautic:7.2.1-apache@sha256:ff584fd13c8db06b4a7dd640e837dbbde69bd8c40da62140ff6c3c2dd0402abc
           # The image's entrypoint chowns volumes and runs the migrations
-          # through su, both root's: the same steps, without it.
+          # through su, both root's: the same steps, without it. It installs
+          # too, which the entrypoint does only for its own environment.
           command:
             - bash
             - -euo
             - pipefail
             - -c
             - |
+              console=/var/www/html/bin/console
               config=/var/www/html/config
+              installed() {
+                php -r "include('$config/local.php'); exit(!empty(\$parameters['db_driver']) && !empty(\$parameters['site_url']) ? 0 : 1);"
+              }
               [ -f "$config/local.php" ] || cp /templates/local.php "$config/local.php"
-              if php -r "include('$config/local.php'); exit(!empty(\$parameters['db_driver']) && !empty(\$parameters['site_url']) ? 0 : 1);"; then
-                php /var/www/html/bin/console doctrine:migrations:migrate -n
+              if ! installed; then
+                # Without --db_backup_tables the installer drops what it finds.
+                php "$console" mautic:install "$SITE_URL" --force \
+                  --db_driver pdo_mysql --db_host "$MAUTIC_DB_HOST" --db_port "$MAUTIC_DB_PORT" \
+                  --db_name "$MAUTIC_DB_DATABASE" --db_user "$MAUTIC_DB_USER" \
+                  --db_password "$MAUTIC_DB_PASSWORD" --db_backup_tables true \
+                  --admin_email "$ADMIN_EMAIL" --admin_password "$ADMIN_PASSWORD"
+                # README.md, Install, once per site (gitops#293).
+                php "$console" doctrine:migrations:up-to-date -n ||
+                  php "$console" doctrine:migrations:version --add --all -n
+              fi
+              # Not environment variables in Mautic 7.2.1: they live in local.php.
+              php -r "
+                \$file = '$config/local.php';
+                include \$file;
+                \$want = ['api_enabled' => true, 'api_enable_basic_auth' => true];
+                if (array_intersect_assoc(\$want, \$parameters) == \$want) exit;
+                file_put_contents(\$file, '<?php' . PHP_EOL . '\$parameters = ' . var_export(array_merge(\$parameters, \$want), true) . ';' . PHP_EOL);
+              "
+              if installed; then
+                php "$console" doctrine:migrations:migrate -n
               fi
               exec apache2-foreground
           env:
@@ -140,6 +164,20 @@ spec:
             - &mailer
               name: MAUTIC_MAILER_DSN
               value: smtp://resend:$(RESEND_API_KEY)@smtp.resend.com:587
+            # The first admin installs, and logs in to the API for the
+            # provision container.
+            - &adminEmail
+              name: ADMIN_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: mautic-admin-vault
+                  key: email
+            - &adminPassword
+              name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mautic-admin-vault
+                  key: password
           envFrom: &env
             - configMapRef:
                 name: mautic-env
@@ -310,6 +348,33 @@ spec:
               mountPath: /etc/supervisor/conf.d/supervisord.conf
               subPath: supervisord.conf
               readOnly: true
+        # Payload's API user and its role, through Mautic's own API once web
+        # answers; what exists is left as it is. It idles after a failure
+        # too, logged in one line: a container that exits is restarted, and a
+        # crash loop takes the pod out of the Service.
+        - name: provision
+          image: docker.io/mautic/mautic:7.2.1-apache@sha256:ff584fd13c8db06b4a7dd640e837dbbde69bd8c40da62140ff6c3c2dd0402abc
+          command: [bash, -euo, pipefail, -c, 'php /scripts/provision.php || true; exec sleep infinity']
+          env:
+            - *adminEmail
+            - *adminPassword
+            - name: PAYLOAD_API_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mautic-payload-vault
+                  key: password
+          envFrom: *env
+          securityContext: *security
+          resources:
+            requests:
+              cpu: 5m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          volumeMounts:
+            - name: provision
+              mountPath: /scripts
+              readOnly: true
         # Mautic's own log goes to dated files under var/logs, which the
         # collector never sees: copy them to stdout. Files found at start are
         # followed from their end, so a restart repeats nothing.
@@ -354,6 +419,9 @@ spec:
         - name: supervisord
           configMap:
             name: mautic-supervisord
+        - name: provision
+          configMap:
+            name: mautic-provision
         # Symfony's cache, outside the image: the image's own is stale and
         # cache:clear cannot rename it on overlayfs. One per container, so no
         # two warm it at once.
