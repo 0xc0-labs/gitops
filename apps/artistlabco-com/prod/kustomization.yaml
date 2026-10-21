@@ -25,7 +25,7 @@ images:
     digest: sha256:194485fe66c08aa17ab5ebde0c827156cff18504f4f3a466f81b9f6ea5c78194
   - name: ghcr.io/0xc0-labs/artistlabco.com-cms
     newTag: v0.2.0
-    digest: sha256:8cc7b2b6b25b60acb3ca951bf97631ba543a489e4cf9c11d87ca43d6c7da3b3c
+    digest: sha256:c68d789db7e785cd56267c684b447247567180e78c6bd56f4fa12cd86df8a17d
 configMapGenerator:
   - name: release
     literals:
