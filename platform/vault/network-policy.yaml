@@ -56,6 +56,18 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/name: payload
+        # The sites' CMS writes its integrations' keys with its own identity
+        # (apps/artistlabco-com/README.md, The CMS).
+        - namespaceSelector:
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values:
+                  - artistlabco-com
+                  - artistlabco-com-staging
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: artistlabco-com-cms
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: vault

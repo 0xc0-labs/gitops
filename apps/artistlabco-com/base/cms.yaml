@@ -1,0 +1,172 @@
+# Strapi, the site's CMS (../README.md, The CMS). The image is each
+# environment's pin, never a tag here (../README.md, Upgrades). Its own
+# app.kubernetes.io/name keeps it out of the front's Service, PDB and policies.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cms
+# Vault takes the projected token below, not the API's.
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: artistlabco-com-cms
+spec:
+  selector:
+    app.kubernetes.io/name: artistlabco-com-cms
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: artistlabco-com-cms
+spec:
+  # One replica, replaced by Recreate: Strapi syncs its content-type schema to
+  # the database at start, and two pods doing it at once race on the same
+  # tables (../README.md, The CMS).
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: artistlabco-com-cms
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: artistlabco-com-cms
+    spec:
+      serviceAccountName: cms
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      imagePullSecrets:
+        - name: ghcr-pull-vault
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: cms
+          image: ghcr.io/0xc0-labs/artistlabco.com-cms
+          envFrom:
+            - configMapRef:
+                name: artistlabco-com-cms
+            - configMapRef:
+                name: release
+            # Strapi's secrets and the first super admin, each key named as
+            # the variable.
+            - secretRef:
+                name: artistlabco-com-cms-vault
+          env:
+            # The role and the database are named after the namespace
+            # (platform/postgres).
+            - name: DATABASE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: DATABASE_USERNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: artistlabco-com-database-vault
+                  key: password
+            - name: FRONT_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: artistlabco-com-cms-client-vault
+                  key: api_token
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: service.version=$(APP_VERSION),deployment.environment=$(APP_ENVIRONMENT)
+            - name: VAULT_ADDR
+              value: http://vault-active.vault.svc.cluster.local:8200
+            - name: VAULT_AUTH_ROLE
+              value: cms
+            - name: VAULT_TOKEN_FILE
+              value: /var/run/secrets/vault/token
+            - name: VAULT_KV_MOUNT
+              value: apps
+            # Each environment's namespace replaces the first segment.
+            - name: VAULT_INTEGRATIONS_PATH
+              value: NAMESPACE/integrations
+            - name: OPENOBSERVE_RUM_CLIENT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: artistlabco-com-rum-vault
+                  key: client_token
+                  optional: true
+          ports:
+            - name: http
+              containerPort: 1337
+          # The schema sync at start can take a minute: liveness waits for it.
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 20
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: strapi-tmp
+              mountPath: /app/.tmp
+            - name: strapi-cache
+              mountPath: /app/.strapi
+            - name: uploads
+              mountPath: /app/public/uploads
+            - name: vault-token
+              mountPath: /var/run/secrets/vault
+              readOnly: true
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 128Mi
+        - name: strapi-tmp
+          emptyDir:
+            sizeLimit: 128Mi
+        - name: strapi-cache
+          emptyDir:
+            sizeLimit: 256Mi
+        # Media goes to R2; Strapi only needs the directory to exist.
+        - name: uploads
+          emptyDir:
+            sizeLimit: 64Mi
+        - name: vault-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: vault
+                  expirationSeconds: 3600
+                  path: token

@@ -6,3 +6,4 @@ metadata:
     pod-security.kubernetes.io/enforce: restricted
     gateway.0xc0.cc/web: "true"
     vault.0xc0.cc/apps: "true"
+    vault.0xc0.cc/cms: "true"

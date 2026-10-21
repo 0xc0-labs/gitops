@@ -68,6 +68,11 @@ spec:
                 secretKeyRef:
                   name: artistlabco-com-payload-vault
                   key: api_key
+            - name: CMS_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: artistlabco-com-cms-client-vault
+                  key: api_token
             - name: PREVIEW_SECRET
               valueFrom:
                 secretKeyRef:
