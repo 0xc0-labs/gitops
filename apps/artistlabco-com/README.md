@@ -77,9 +77,17 @@ secret][vault-write] says, each environment at its own path:
 |---|---|---|
 | `apps/<namespace>/payload` | `api_key` | Payload's API key for this front, made in its admin: read as `PAYLOAD_API_KEY` |
 | `apps/<namespace>/preview` | `secret` | generated: `openssl rand -base64 32`, the same value as Payload's `apps/payload(-staging)/preview`: read as `PREVIEW_SECRET` |
-| `apps/<namespace>/database` | `password` | the CMS's PostgreSQL role, `DATABASE_PASSWORD`; `platform/postgres` reads it too, to create the role and the database |
-| `apps/<namespace>/cms` | `APP_KEYS`, `ADMIN_JWT_SECRET`, `API_TOKEN_SALT`, `TRANSFER_TOKEN_SALT`, `JWT_SECRET`, `ENCRYPTION_KEY`, `SUPERADMIN_EMAIL`, `SUPERADMIN_PASSWORD` | Strapi's secrets, each key named as its variable, and the first super admin |
-| `apps/<namespace>/cms-client` | `api_token` | the front's read-only Strapi API token: `CMS_API_TOKEN` for the front, `FRONT_API_TOKEN` for Strapi. Without it neither starts |
+| `apps/<namespace>/database` | `password` | generated: `openssl rand -hex 24`, hex as `apps/payload(-staging)/database`: no character a connection string or the role's SQL would need to escape. The CMS's PostgreSQL role, `DATABASE_PASSWORD`; `platform/postgres` reads it too, to create the role and the database |
+| `apps/<namespace>/cms` | `APP_KEYS` | generated: four base64 keys joined by commas, no space: `{ openssl rand -base64 16 \| tr -d '\n'; for _ in 1 2 3; do printf ,; openssl rand -base64 16 \| tr -d '\n'; done; }`. Strapi splits the list on commas, and the first key signs |
+| `apps/<namespace>/cms` | `ADMIN_JWT_SECRET`, `API_TOKEN_SALT`, `TRANSFER_TOKEN_SALT`, `JWT_SECRET` | generated, one each: `openssl rand -base64 16 \| tr -d '\n'`. Strapi's own, each named as its variable |
+| `apps/<namespace>/cms` | `ENCRYPTION_KEY` | generated: `openssl rand -base64 32 \| tr -d '\n'`. It encrypts the API tokens' stored copy of their key (`API_TOKEN_SALT` hashes it) |
+| `apps/<namespace>/cms` | `SUPERADMIN_EMAIL` | typed by the operator: the first super admin's login, stored in lowercase |
+| `apps/<namespace>/cms` | `SUPERADMIN_PASSWORD` | generated, and always valid: `{ openssl rand -base64 24 \| tr -d '\n/+='; printf 'Aa1'; }`. The CMS refuses to start unless it has 8 characters or more, at most 72 bytes, a lowercase letter, an uppercase letter and a digit (`@0xc0-labs/strapi-plugin-admin-setup`): a bare `openssl rand -hex` has no uppercase letter. It only creates the first admin: once one exists, changing it here changes nothing |
+| `apps/<namespace>/cms-client` | `api_token` | generated: `openssl rand -base64 32 \| tr -d '\n'`. The front's read-only Strapi API token: `CMS_API_TOKEN` for the front, `FRONT_API_TOKEN` for Strapi, which makes its token take this key at every start. Without it neither starts |
+
+Each generator is piped into the `vault kv patch … <key>=-` of that README,
+and a path with several keys is written with its `key=@<(…)` form. The
+value never reaches a screen or a command line.
 
 OpenObserve's RUM token is `apps/shared/openobserve-rum`, and the image's pull
 token `apps/shared/ghcr-pull`, since the package is private: both already
