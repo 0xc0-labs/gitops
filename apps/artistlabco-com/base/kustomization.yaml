@@ -13,7 +13,8 @@ configMapGenerator:
       - NEXT_TELEMETRY_DISABLED=1
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
       - OTEL_SERVICE_NAME=artistlabco-com
-  # The CMS's. Each environment merges its PUBLIC_URL and FRONT_URL in.
+  # The CMS's. Each environment merges its PUBLIC_URL and FRONT_URL in, and
+  # prod its MEDIA_BASE_URL: staging's Strapi serves its own files.
   - name: artistlabco-com-cms
     literals:
       - DATABASE_HOST=postgres.postgres.svc.cluster.local

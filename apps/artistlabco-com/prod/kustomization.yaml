@@ -42,6 +42,7 @@ configMapGenerator:
     literals:
       - PUBLIC_URL=https://cms.artistlabco.com
       - FRONT_URL=https://artistlabco.com
+      - MEDIA_BASE_URL=https://media.artistlabco.com
 # Each Vault path starts with the namespace (../base/vault-secrets.yaml).
 replacements:
   - source:
