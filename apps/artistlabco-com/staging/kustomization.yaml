@@ -13,15 +13,15 @@ resources:
 # candidate.
 images:
   - name: ghcr.io/0xc0-labs/artistlabco.com
-    newTag: v0.3.0-rc.10
-    digest: sha256:e43dceaf2b367727a023223da20b5827b8fedec364983e385b09fd5f4bae043f
+    newTag: v0.3.0-rc.11
+    digest: sha256:c584a43b48ea286f2ff3c0fda1f606ccde51d9cc4587a6b62b6879866ef2a1cb
   - name: ghcr.io/0xc0-labs/artistlabco.com-cms
-    newTag: v0.3.0-rc.10
-    digest: sha256:8a7c5e51675c1e006b3e94b9ca389ec1d17a4bd9c048593072c23d04937a72a1
+    newTag: v0.3.0-rc.11
+    digest: sha256:33c9fcd2b1c4abc578939907b243948b5d351f352c5241715a8371302239fa99
 configMapGenerator:
   - name: release
     literals:
-      - APP_VERSION=v0.3.0-rc.10
+      - APP_VERSION=v0.3.0-rc.11
       - APP_ENVIRONMENT=staging
   - name: artistlabco-com
     behavior: merge
