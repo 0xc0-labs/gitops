@@ -1,0 +1,23 @@
+# The site's CMS creates the leads through the API, beside Payload's rule
+# (../base/network-policy.yaml, api-from-payload).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-from-cms
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: mautic
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: artistlabco-com
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: artistlabco-com-cms
+      ports:
+        - protocol: TCP
+          port: 8080

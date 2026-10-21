@@ -20,3 +20,27 @@ spec:
       ports:
         - protocol: TCP
           port: 3000
+---
+# The CMS creates the leads in the site's own Mautic through its API. Staging
+# has none.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cms-egress-mautic
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: artistlabco-com-cms
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: mautic-artistlabco-com
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: mautic
+      ports:
+        - protocol: TCP
+          port: 8080

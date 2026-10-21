@@ -41,6 +41,18 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/part-of: payload
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: artistlabco-com
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: artistlabco-com-cms
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: artistlabco-com-staging
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: artistlabco-com-cms
       ports:
         - protocol: TCP
           port: 5432

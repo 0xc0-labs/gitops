@@ -1,4 +1,6 @@
-# Backups: none. It holds no data.
+# Backups: the front holds no data. The CMS's database is in the shared
+# PostgreSQL, dumped nightly by platform/postgres (postgres-dumps/<namespace>);
+# its media is in R2, with no copy (README.md, The CMS).
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: artistlabco-com-staging
@@ -13,6 +15,9 @@ images:
   - name: ghcr.io/0xc0-labs/artistlabco.com
     newTag: v0.3.0-rc.3
     digest: sha256:fafeafaae4669e8da9e96d3769a40d31a29af0060a08f8289d8ab3b8d0daf71b
+  - name: ghcr.io/0xc0-labs/artistlabco.com-cms
+    newTag: v0.3.0-rc.3
+    digest: sha256:8cc7b2b6b25b60acb3ca951bf97631ba543a489e4cf9c11d87ca43d6c7da3b3c
 configMapGenerator:
   - name: release
     literals:
@@ -22,6 +27,11 @@ configMapGenerator:
     behavior: merge
     literals:
       - PAYLOAD_URL=http://payload.payload-staging.svc
+      - CMS_URL=http://artistlabco-com-cms.artistlabco-com-staging.svc
+  - name: artistlabco-com-cms
+    behavior: merge
+    literals:
+      - PUBLIC_URL=https://cms-staging.artistlabco.com
 # Each Vault path starts with the namespace (../base/vault-secrets.yaml).
 replacements:
   - source:
@@ -37,4 +47,25 @@ replacements:
           kind: VaultStaticSecret
           name: artistlabco-com-preview
         fieldPaths: [spec.path]
+        options: {delimiter: /, index: 0}
+      - select:
+          kind: VaultStaticSecret
+          name: artistlabco-com-database
+        fieldPaths: [spec.path]
+        options: {delimiter: /, index: 0}
+      - select:
+          kind: VaultStaticSecret
+          name: artistlabco-com-cms
+        fieldPaths: [spec.path]
+        options: {delimiter: /, index: 0}
+      - select:
+          kind: VaultStaticSecret
+          name: artistlabco-com-cms-client
+        fieldPaths: [spec.path]
+        options: {delimiter: /, index: 0}
+      - select:
+          kind: Deployment
+          name: artistlabco-com-cms
+        fieldPaths:
+          - spec.template.spec.containers.[name=cms].env.[name=VAULT_INTEGRATIONS_PATH].value
         options: {delimiter: /, index: 0}

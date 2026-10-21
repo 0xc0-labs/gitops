@@ -7,3 +7,15 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/name: artistlabco-com
+---
+# One replica by design (base/cms.yaml): minAvailable would block every node
+# drain, so a drain is allowed and Recreate brings the pod back.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: artistlabco-com-cms
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: artistlabco-com-cms

@@ -6,6 +6,7 @@ namespace: mautic-artistlabco-com
 resources:
   - namespace.yaml
   - ../base
+  - network-policy.yaml
 configMapGenerator:
   - name: mautic-env
     behavior: merge

@@ -85,3 +85,43 @@ spec:
             scheme: https
             hostname: artistlabco.com
             statusCode: 301
+---
+# The CMS's admin: public behind Cloudflare Access (created in infrastructure),
+# which is the gate (README.md, The CMS). The front reads the API over the
+# Service, never through this route.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: cms-security-headers
+spec:
+  headers:
+    frameDeny: true
+    permissionsPolicy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+    customResponseHeaders:
+      Cross-Origin-Opener-Policy: same-origin
+      Cross-Origin-Resource-Policy: same-origin
+      X-Robots-Tag: noindex, nofollow
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: artistlabco-com-cms
+  annotations:
+    gateway.0xc0.cc/public: "true"
+spec:
+  parentRefs:
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure-artistlabco-com
+  hostnames:
+    - cms.artistlabco.com
+  rules:
+    - filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: cms-security-headers
+      backendRefs:
+        - name: artistlabco-com-cms
+          port: 80

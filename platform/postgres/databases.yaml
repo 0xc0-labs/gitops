@@ -37,6 +37,40 @@ spec:
     transformation:
       excludeRaw: true
 ---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: artistlabco-com-database
+  namespace: postgres
+spec:
+  vaultAuthRef: vault-secrets
+  type: kv-v2
+  mount: apps
+  path: artistlabco-com/database
+  refreshAfter: 1h
+  destination:
+    name: artistlabco-com-database-vault
+    create: true
+    transformation:
+      excludeRaw: true
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: artistlabco-com-staging-database
+  namespace: postgres
+spec:
+  vaultAuthRef: vault-secrets
+  type: kv-v2
+  mount: apps
+  path: artistlabco-com-staging/database
+  refreshAfter: 1h
+  destination:
+    name: artistlabco-com-staging-database-vault
+    create: true
+    transformation:
+      excludeRaw: true
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -113,6 +147,12 @@ spec:
             - name: payload-staging
               mountPath: /databases/payload-staging
               readOnly: true
+            - name: artistlabco-com
+              mountPath: /databases/artistlabco-com
+              readOnly: true
+            - name: artistlabco-com-staging
+              mountPath: /databases/artistlabco-com-staging
+              readOnly: true
             - name: tmp
               mountPath: /tmp
       volumes:
@@ -125,6 +165,18 @@ spec:
         - name: payload-staging
           secret:
             secretName: payload-staging-database-vault
+            items:
+              - key: password
+                path: password
+        - name: artistlabco-com
+          secret:
+            secretName: artistlabco-com-database-vault
+            items:
+              - key: password
+                path: password
+        - name: artistlabco-com-staging
+          secret:
+            secretName: artistlabco-com-staging-database-vault
             items:
               - key: password
                 path: password

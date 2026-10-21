@@ -1,0 +1,163 @@
+# The CMS's rules, beside the front's (network-policy.yaml). Prod adds its
+# egress to Mautic (../prod/network-policy.yaml).
+#
+# In: the admin from the gateway, the API from this namespace's front.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cms-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: artistlabco-com-cms
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: artistlabco-com
+      ports:
+        - protocol: TCP
+          port: 1337
+---
+# The front's way to the CMS's API.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: egress-cms
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: artistlabco-com
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: artistlabco-com-cms
+      ports:
+        - protocol: TCP
+          port: 1337
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cms-egress-postgres
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: artistlabco-com-cms
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: postgres
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+# Vault's API: the CMS writes its integrations' keys with its own identity.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cms-egress-vault
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: artistlabco-com-cms
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: vault
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: vault
+              component: server
+      ports:
+        - protocol: TCP
+          port: 8200
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cms-otlp-to-collector
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: artistlabco-com-cms
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openobserve-collector
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/component: opentelemetry-collector
+              app.kubernetes.io/instance: openobserve-collector.openobserve-collector-gateway
+      ports:
+        - protocol: TCP
+          port: 4318
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+# Stripe, Bunny, Discord, Resend and R2 have no range to name: any public
+# address on 443. The cluster's pod (10.42.0.0/16) and service (10.43.0.0/16)
+# ranges fall in 10.0.0.0/8. An accepted risk, as Payload's:
+# https://github.com/0xc0-labs/workspace/blob/main/docs/accepted-risks.md
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cms-egress-https
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: artistlabco-com-cms
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
+              - 127.0.0.0/8
+              - 0.0.0.0/8
+              - 192.0.0.0/24
+              - 198.18.0.0/15
+              - 224.0.0.0/4
+              - 240.0.0.0/4
+      ports:
+        - protocol: TCP
+          port: 443

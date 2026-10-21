@@ -4,10 +4,23 @@ resources:
   - network-policy.yaml
   - vault-secrets.yaml
   - deployment.yaml
-# Each environment merges its PAYLOAD_URL in.
+  - cms-network-policy.yaml
+  - cms.yaml
+# Each environment merges its PAYLOAD_URL and CMS_URL in.
 configMapGenerator:
   - name: artistlabco-com
     literals:
       - NEXT_TELEMETRY_DISABLED=1
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
       - OTEL_SERVICE_NAME=artistlabco-com
+  # The CMS's. Each environment merges its PUBLIC_URL in.
+  - name: artistlabco-com-cms
+    literals:
+      - DATABASE_HOST=postgres.postgres.svc.cluster.local
+      - DATABASE_PORT=5432
+      # The shared PostgreSQL serves no TLS (README.md, The CMS).
+      - DATABASE_SSL=false
+      # Cloudflare and Traefik.
+      - PROXY_HOPS=2
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
+      - OTEL_SERVICE_NAME=artistlabco-com-cms
