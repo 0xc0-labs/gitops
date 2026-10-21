@@ -6,14 +6,14 @@ resources:
   - deployment.yaml
   - cms-network-policy.yaml
   - cms.yaml
-# Each environment merges its PAYLOAD_URL and CMS_URL in.
+# Each environment merges its PAYLOAD_URL, CMS_URL and CMS_ADMIN_URL in.
 configMapGenerator:
   - name: artistlabco-com
     literals:
       - NEXT_TELEMETRY_DISABLED=1
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
       - OTEL_SERVICE_NAME=artistlabco-com
-  # The CMS's. Each environment merges its PUBLIC_URL in.
+  # The CMS's. Each environment merges its PUBLIC_URL and FRONT_URL in.
   - name: artistlabco-com-cms
     literals:
       - DATABASE_HOST=postgres.postgres.svc.cluster.local

@@ -5,7 +5,6 @@ metadata:
   name: security-headers
 spec:
   headers:
-    frameDeny: true
     permissionsPolicy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
     customResponseHeaders:
       Cross-Origin-Opener-Policy: same-origin
@@ -67,7 +66,6 @@ metadata:
   name: security-headers-public
 spec:
   headers:
-    frameDeny: true
     permissionsPolicy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
     customResponseHeaders:
       Cross-Origin-Opener-Policy: same-origin
