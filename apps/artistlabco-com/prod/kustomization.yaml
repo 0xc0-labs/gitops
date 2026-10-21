@@ -36,10 +36,12 @@ configMapGenerator:
     literals:
       - PAYLOAD_URL=http://payload.payload.svc
       - CMS_URL=http://artistlabco-com-cms.artistlabco-com.svc
+      - CMS_ADMIN_URL=https://cms.artistlabco.com
   - name: artistlabco-com-cms
     behavior: merge
     literals:
       - PUBLIC_URL=https://cms.artistlabco.com
+      - FRONT_URL=https://artistlabco.com
 # Each Vault path starts with the namespace (../base/vault-secrets.yaml).
 replacements:
   - source:

@@ -85,6 +85,11 @@ spec:
                 secretKeyRef:
                   name: artistlabco-com-cms-client-vault
                   key: api_token
+            - name: PREVIEW_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: artistlabco-com-preview-vault
+                  key: secret
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: service.version=$(APP_VERSION),deployment.environment=$(APP_ENVIRONMENT)
             - name: VAULT_ADDR

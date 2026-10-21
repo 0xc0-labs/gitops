@@ -119,8 +119,18 @@ previous pin comes back with its digest.
 
 Traefik sets the baseline on every entrypoint
 (`platform/traefik/security-headers.yaml`) and each overlay's route adds the
-app's own (`security-headers` in `httproute.yaml`: no framing,
-Permissions-Policy, COOP/CORP). The app sets its Content-Security-Policy.
+app's own (`security-headers` in `httproute.yaml`: Permissions-Policy,
+COOP/CORP). The app sets its Content-Security-Policy, and its `frame-ancestors`
+alone decides who may frame the front: `X-Frame-Options` cannot name an origin,
+so the front's routes do not send it, and Strapi's Preview, in a frame of the
+admin, needs the front framed. The CMS's own route (`cms-security-headers`)
+keeps `frameDeny`.
+
+Preview's variables: `CMS_ADMIN_URL` on the front (the admin's origin, which
+its `frame-ancestors` then allows; unset, it stays `'none'`), and `FRONT_URL`
+and `PREVIEW_SECRET` on the CMS (the front's public URL, and the secret at
+`apps/<namespace>/preview` that the front reads too). Both URLs are each
+overlay's literals.
 
 ## The way out
 

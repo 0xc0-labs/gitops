@@ -28,10 +28,12 @@ configMapGenerator:
     literals:
       - PAYLOAD_URL=http://payload.payload-staging.svc
       - CMS_URL=http://artistlabco-com-cms.artistlabco-com-staging.svc
+      - CMS_ADMIN_URL=https://cms-staging.artistlabco.com
   - name: artistlabco-com-cms
     behavior: merge
     literals:
       - PUBLIC_URL=https://cms-staging.artistlabco.com
+      - FRONT_URL=https://staging.artistlabco.com
 # Each Vault path starts with the namespace (../base/vault-secrets.yaml).
 replacements:
   - source:
