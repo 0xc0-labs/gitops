@@ -152,6 +152,21 @@ spec:
   hostnames:
     - cms-staging.artistlabco.com
   rules:
+    # The admin's own RUM, same-origin, to OpenObserve's intake: only this path
+    # and method (platform/openobserve/reference-grant.yaml).
+    - matches:
+        - path: {type: Exact, value: /rum/v1/default/rum}
+          method: POST
+      filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: rum-rate-limit-public
+      backendRefs:
+        - name: openobserve
+          namespace: openobserve
+          port: 5080
     - filters:
         - type: ExtensionRef
           extensionRef:
