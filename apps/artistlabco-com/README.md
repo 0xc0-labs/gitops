@@ -58,6 +58,10 @@ it (`base/cms.yaml`).
   and behind Cloudflare Access (`infrastructure`). Without Access applied the
   admin would be open: do not sync the route before it. The front
   reads the API over the Service at `CMS_URL`, with `CMS_API_TOKEN`.
+- **Admin RUM.** The admin's browsers post to `/rum/v1/default/rum` on their
+  own host, and its route sends that path, `POST` only, to OpenObserve's
+  intake, rate limited per `Cf-Connecting-Ip` like the front's. The request
+  is same-origin, so it carries the Access cookie.
 - **Vault identity.** The namespaces carry `vault.0xc0.cc/cms`, which admits
   the service account `cms` to the Kubernetes auth role `cms`
   ([`vault`](https://github.com/0xc0-labs/vault)): its projected token at
