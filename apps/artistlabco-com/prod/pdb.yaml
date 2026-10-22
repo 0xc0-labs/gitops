@@ -9,7 +9,7 @@ spec:
       app.kubernetes.io/name: artistlabco-com
 ---
 # One replica by design (base/cms.yaml): minAvailable would block every node
-# drain, so a drain is allowed and Recreate brings the pod back.
+# drain, so a drain evicts the one pod and the Deployment schedules another.
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
