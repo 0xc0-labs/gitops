@@ -25,12 +25,15 @@ kind: Deployment
 metadata:
   name: artistlabco-com-cms
 spec:
-  # One replica, replaced by Recreate: Strapi syncs its content-type schema to
-  # the database at start, and two pods doing it at once race on the same
-  # tables (../README.md, The CMS).
+  # One replica, rolled out with a surge of one: only the new pod starts, so
+  # only it syncs the content-type schema, and the old one serves until the
+  # new one's /readyz passes (../README.md, The CMS).
   replicas: 1
   strategy:
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: artistlabco-com-cms

@@ -37,9 +37,13 @@ Strapi 5, from `cms/` of 0xc0-labs/artistlabco.com: one Deployment and Service
 `app.kubernetes.io/name` so the front's Service, PDB and policies never select
 it (`base/cms.yaml`).
 
-- **One replica, `Recreate`.** Strapi syncs its content-type schema to the
-  database at start, and two pods doing it at once race on the same tables, as
-  a `RollingUpdate`'s surge would. The cost is a short gap on each rollout.
+- **One replica, `RollingUpdate` with `maxSurge: 1` and `maxUnavailable: 0`.**
+  Strapi syncs its content-type schema to the database at start. With one
+  replica and a surge of one only the new pod starts, so only it syncs, and
+  the old one keeps serving until the new one's `/readyz` passes: a rollout
+  leaves no gap. The cost: a release that removes or renames a field changes
+  the table while the old pod still serves, and that pod can fail those
+  requests for the seconds left until it stops.
   Prod's PDB is `maxUnavailable: 1`, since a `minAvailable` of 1 on one pod
   would block every node drain.
 - **Probes.** `/healthz` for startup and liveness, which never touches the
