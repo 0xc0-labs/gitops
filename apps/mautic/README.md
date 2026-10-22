@@ -45,6 +45,7 @@ secret][vault-write] says, at `apps/mautic-<site>/`:
 | `email` | `api_key` | a Resend API key limited to the site's domain (The sending provider, below) |
 | `admin` | `email`, `password` | the first admin's login, a person's: kept in the password manager too. The email is not a secret. Read by the install, and by the provision container to log in to the API |
 | `payload` | `password` | generated: `openssl rand -base64 24`. The password of the API user Payload logs in as |
+| `cms` | `password` | generated: `openssl rand -base64 24`. The password of the API user the site's Strapi logs in as. Optional at the first sync: written later, the user is created without a restart |
 
 Then sync `mariadb` in Argo CD, so its databases Job creates the database and
 user, and then `mautic-<site>`.
@@ -65,8 +66,10 @@ Then, on every start:
   API as the admin and creates, if absent, the role `Payload` (Contacts:
   view, create and edit other users' contacts; Segments: view and edit other
   users' segments) and the user `payload`, with `PAYLOAD_API_EMAIL` and the
-  password of `payload`. A role or user that exists is left as it is: its
-  password is not reset. It then idles. A failure (the admin's login
+  password of `payload`. It does the same for the role `CMS` (the same
+  permissions: what the forms plugin's calls need) and the user `cms`, with
+  `CMS_API_EMAIL` and the password of `cms`. A role or user that exists is
+  left as it is: its password is not reset. It then idles. A failure (the admin's login
   refused, a lookup or a create answered with an error) is one line in the
   `provision` container's log, in OpenObserve, and the container idles
   instead of exiting, so the site stays up; fix the cause and restart the
@@ -75,14 +78,24 @@ Then, on every start:
 The sending provider is not asked for: it comes from Vault (below). cron and
 worker wait until the install is done, then start on their own.
 
-What the operator still does, after the sync: in Payload's admin, the tenant's
-Mautic integration gets `payload` as the username, the value of
-`apps/mautic-<site>/payload` as the password and
-`http://mautic.mautic-<site>.svc` as the URL ([payload's README,
-Integrations][payload-integrations]).
+The `cms` password reaches the container as a file of an optional Secret
+volume (`mautic-cms-vault`), not an environment variable. With the secret
+not written, provision logs one line and waits, polling every 30 seconds.
+Once the operator writes it, Vault Secrets Operator creates the Secret, the
+kubelet fills the volume (within a minute or two) and provision creates
+`cms`, with no restart of the pod and no other step. Mautic stays up
+meanwhile.
 
-Rotating the API user's password is a write to Vault, the same value in
-Payload, and the new password on the user in Mautic's admin: the container
+What the operator still does, after the sync: in the site's Strapi admin,
+Integraciones, Marketing ([artistlabco.com's `cms/README.md`][cms-readme]),
+the URL `http://mautic.mautic-<site>.svc`, the user `cms` and the value of
+`apps/mautic-<site>/cms` as the password. Staging has no Mautic, so its
+Marketing card stays empty.
+
+Payload's user `payload` stays until 0xc0-labs/workspace#204 removes it.
+
+Rotating the `cms` password is a write to Vault, the same value in Strapi's
+card, and the new password on the user in Mautic's admin: the container
 never resets one that exists.
 
 A failed install is read from web's log, which never holds a secret. The
@@ -176,4 +189,4 @@ kubectl -n mautic-<site> exec deploy/mautic -c worker -- \
 [design-platform]: https://github.com/0xc0-labs/workspace/blob/main/docs/design/platform.md
 
 [mautic-17126]: https://github.com/mautic/mautic/issues/17126
-[payload-integrations]: https://github.com/0xc0-labs/payload/blob/main/README.md#integrations
+[cms-readme]: https://github.com/0xc0-labs/artistlabco.com/blob/main/cms/README.md

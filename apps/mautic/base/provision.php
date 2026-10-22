@@ -64,24 +64,58 @@ while (true) {
     sleep(5);
 }
 
-$role = find('roles', 'name', 'Payload') ?? create('roles', 'role Payload', [
-    'name' => 'Payload',
-    'description' => 'Payload CMS: its contacts and the segments they join',
-    'isAdmin' => false,
-    'rawPermissions' => [
-        'lead:leads' => ['viewother', 'create', 'editother'],
-        'lead:lists' => ['viewother', 'editother'],
-    ],
-]);
+function ensureUser(string $username, string $firstName, string $lastName, string $email, string $password, string $roleName, string $description, array $permissions): void
+{
+    $role = find('roles', 'name', $roleName) ?? create('roles', "role $roleName", [
+        'name' => $roleName,
+        'description' => $description,
+        'isAdmin' => false,
+        'rawPermissions' => $permissions,
+    ]);
 
-find('users', 'username', 'payload') ?? create('users', 'user payload', [
-    'username' => 'payload',
-    'firstName' => 'Payload',
-    'lastName' => 'CMS',
-    'email' => getenv('PAYLOAD_API_EMAIL'),
-    'role' => $role['id'],
-    'plainPassword' => [
-        'password' => getenv('PAYLOAD_API_PASSWORD'),
-        'confirm' => getenv('PAYLOAD_API_PASSWORD'),
-    ],
-]);
+    find('users', 'username', $username) ?? create('users', "user $username", [
+        'username' => $username,
+        'firstName' => $firstName,
+        'lastName' => $lastName,
+        'email' => $email,
+        'role' => $role['id'],
+        'plainPassword' => ['password' => $password, 'confirm' => $password],
+    ]);
+}
+
+$contactsAndSegments = [
+    'lead:leads' => ['viewother', 'create', 'editother'],
+    'lead:lists' => ['viewother', 'editother'],
+];
+
+ensureUser(
+    'payload',
+    'Payload',
+    'CMS',
+    getenv('PAYLOAD_API_EMAIL'),
+    getenv('PAYLOAD_API_PASSWORD'),
+    'Payload',
+    'Payload CMS: its contacts and the segments they join',
+    $contactsAndSegments,
+);
+
+// A file, not an environment variable: the kubelet fills an optional secret
+// volume once the operator writes the secret, with no restart of the pod.
+$cmsPasswordFile = '/secrets/cms/password';
+if (!is_file($cmsPasswordFile)) {
+    echo "the cms password is not written yet, waiting for it\n";
+    while (!is_file($cmsPasswordFile)) {
+        sleep(30);
+    }
+}
+
+ensureUser(
+    'cms',
+    'Strapi',
+    'CMS',
+    getenv('CMS_API_EMAIL'),
+    trim((string) file_get_contents($cmsPasswordFile)),
+    'CMS',
+    "The site's Strapi: its contacts and the segments they join",
+    $contactsAndSegments,
+);
