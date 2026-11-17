@@ -1,19 +1,14 @@
 # artistlabco-com
 
-The artist's site, the Node server of 0xc0-labs/artistlabco.com, a front of
-Payload (operator decision, 2026-10-13; workspace#168), and the site's
-Strapi beside it (The CMS, below), which replaces Payload (workspace#202). It
-is a BFF: the browser reaches it alone, and it calls its environment's Payload
-at `http://payload.<namespace>.svc` ([`../payload/README.md`](../payload/README.md),
-Fronts) and its Strapi at `CMS_URL`, until the front stops reading Payload
-(0xc0-labs/artistlabco.com#82). Two environments, each an Argo CD application
-of its own:
+The artist's site, the Node server of 0xc0-labs/artistlabco.com, and the
+site's Strapi beside it (The CMS, below). It is a BFF: the browser reaches it
+alone, and it calls its environment's Strapi at `CMS_URL`. Two environments,
+each an Argo CD application of its own:
 
 | | prod | staging |
 |---|---|---|
 | Application and namespace | `artistlabco-com` | `artistlabco-com-staging` |
 | Address | `https://artistlabco.com`, public; `www.artistlabco.com` redirects there | `https://artistlabco-com-staging.int.0xc0.cc`, over WARP, and `https://staging.artistlabco.com`, public behind Cloudflare Access |
-| Payload | `payload` | `payload-staging` |
 | CMS admin | `https://cms.artistlabco.com`, public behind Cloudflare Access | `https://cms-staging.artistlabco.com`, public behind Cloudflare Access |
 | Replicas | front 2, with a PodDisruptionBudget; CMS 1 | front 1; CMS 1 |
 | Vault | `apps/artistlabco-com/*` | `apps/artistlabco-com-staging/*` |
@@ -26,7 +21,7 @@ Its route also sends `X-Robots-Tag: noindex, nofollow`, in case Access is ever
 misconfigured.
 
 `base/` holds what both share; `prod/` and `staging/` add the namespace, the
-routes, the Payload and CMS URLs and their egress, and the pins. No volumes:
+routes, the CMS URLs and their egress, and the pins. No volumes:
 the front holds no data, and the CMS keeps its in the shared PostgreSQL
 (nightly dump by `platform/postgres`, `postgres-dumps/<namespace>`) and R2.
 
@@ -50,11 +45,11 @@ it (`base/cms.yaml`).
   database; `/readyz` for readiness, which does.
 - **Filesystem.** Read-only root, with `.tmp`, `.strapi` and `public/uploads`
   under `/app` as `emptyDir`. Media goes to R2, so nothing persists.
-- **Resources.** Requests and limits are an estimate from Payload's, not yet
+- **Resources.** Requests and limits are an estimate, not yet
   measured on staging.
-- **Database.** `DATABASE_SSL=false`: the shared PostgreSQL serves no TLS, and
-  Payload connects the same way; the traffic stays inside the cluster, under a
-  NetworkPolicy that admits the CMS's pods alone. The role and the database are
+- **Database.** `DATABASE_SSL=false`: the shared PostgreSQL serves no TLS; the
+  traffic stays inside the cluster, under a NetworkPolicy that admits the
+  CMS's pods alone. The role and the database are
   named after the namespace (`DATABASE_NAME`, `DATABASE_USERNAME`).
 - **Proxies.** `PROXY_HOPS=2`: Cloudflare and Traefik, in front of the admin's
   public route.
@@ -73,7 +68,8 @@ it (`base/cms.yaml`).
   `apps/<namespace>/integrations/<name>`. It never reads one back to the admin.
 - **The way out.** Default deny, and then: PostgreSQL, Vault, the collector,
   DNS, HTTPS to any public address (Stripe, Bunny, Discord, Resend and R2 have
-  no range to name: the same accepted risk as Payload's), and, in prod,
+  no range to name: an accepted risk, in the workspace's
+  [`accepted-risks.md`](https://github.com/0xc0-labs/workspace/blob/main/docs/accepted-risks.md)), and, in prod,
   `mautic-artistlabco-com`. The way in: the gateway, and the front's pods.
 
 ## Before the first sync: the secrets
@@ -83,9 +79,8 @@ secret][vault-write] says, each environment at its own path:
 
 | Path | Key | Value |
 |---|---|---|
-| `apps/<namespace>/payload` | `api_key` | Payload's API key for this front, made in its admin: read as `PAYLOAD_API_KEY` |
-| `apps/<namespace>/preview` | `secret` | generated: `openssl rand -base64 32`, the same value as Payload's `apps/payload(-staging)/preview`: read as `PREVIEW_SECRET` |
-| `apps/<namespace>/database` | `password` | generated: `openssl rand -hex 24`, hex as `apps/payload(-staging)/database`: no character a connection string or the role's SQL would need to escape. The CMS's PostgreSQL role, `DATABASE_PASSWORD`; `platform/postgres` reads it too, to create the role and the database |
+| `apps/<namespace>/preview` | `secret` | generated: `openssl rand -base64 32`: read as `PREVIEW_SECRET` |
+| `apps/<namespace>/database` | `password` | generated: `openssl rand -hex 24`, hex: no character a connection string or the role's SQL would need to escape. The CMS's PostgreSQL role, `DATABASE_PASSWORD`; `platform/postgres` reads it too, to create the role and the database |
 | `apps/<namespace>/cms` | `APP_KEYS` | generated: four base64 keys joined by commas, no space: `{ openssl rand -base64 16 \| tr -d '\n'; for _ in 1 2 3; do printf ,; openssl rand -base64 16 \| tr -d '\n'; done; }`. Strapi splits the list on commas, and the first key signs |
 | `apps/<namespace>/cms` | `ADMIN_JWT_SECRET`, `API_TOKEN_SALT`, `TRANSFER_TOKEN_SALT`, `JWT_SECRET` | generated, one each: `openssl rand -base64 16 \| tr -d '\n'`. Strapi's own, each named as its variable |
 | `apps/<namespace>/cms` | `ENCRYPTION_KEY` | generated: `openssl rand -base64 32 \| tr -d '\n'`. It encrypts the API tokens' stored copy of their key (`API_TOKEN_SALT` hashes it) |
@@ -150,10 +145,10 @@ overlay's literals.
 
 ## The way out
 
-Default deny, and then: traces to the collector, DNS, its Payload's pods on
-3000, the CMS's pods on 1337, and HTTPS to Cloudflare's ranges for `media.0xc0.cc`, which `next/image`
-fetches (`base/network-policy.yaml`, `egress-media`: the ranges are
-Cloudflare's, so the platform allows no narrower rule). Each route also
+Default deny, and then: traces to the collector, DNS, the CMS's pods on
+1337, and HTTPS to Cloudflare's ranges for `media.artistlabco.com`, which
+prod's `next/image` fetches (`base/network-policy.yaml`, `egress-media`: the
+ranges are Cloudflare's, so the platform allows no narrower rule). Each route also
 carries the browsers' RUM to OpenObserve.
 
 [vault-write]: https://github.com/0xc0-labs/vault/blob/main/README.md#writing-or-rotating-a-secret

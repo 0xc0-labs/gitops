@@ -1,4 +1,3 @@
-# Each environment adds its egress to Payload (its network-policy.yaml).
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -66,7 +65,7 @@ spec:
         - protocol: TCP
           port: 53
 ---
-# The server fetches media.0xc0.cc for next/image. It is behind Cloudflare,
+# Prod's server fetches media.artistlabco.com for next/image. It is behind Cloudflare,
 # so the way out is HTTPS to Cloudflare's published IPv4 ranges,
 # https://www.cloudflare.com/ips-v4, read 2026-10-13. A range Cloudflare adds
 # goes here too.

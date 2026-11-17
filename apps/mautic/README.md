@@ -21,7 +21,7 @@ path (`base/httproute.yaml`).
 
 1. Copy `artistlabco-com/` to `<site>/` and replace its name in the
    namespace, the database and user (`MAUTIC_DB_*`), `SITE_URL` (the public
-   name), `PAYLOAD_API_EMAIL` (an address on the site's domain) and the
+   name), `CMS_API_EMAIL` (an address on the site's domain) and the
    hostnames. The public one is `mautic.<domain>`, on that domain's HTTPS
    listener of the Gateway (`platform/traefik`) and in external-dns's
    `domainFilters`. The admin's is `mautic-<site>.int.0xc0.cc`.
@@ -29,8 +29,7 @@ path (`base/httproute.yaml`).
    `databases.yaml`, and its namespace in `network-policy.yaml`.
 3. In `bootstrap/prod/projects.yaml`, the namespace as a destination of the
    `apps` project.
-4. If Payload feeds it, its namespace in `apps/payload/prod/mautic.yaml`.
-5. The secrets, below, and the `vault` repo's policy: `mariadb` reads each
+4. The secrets, below, and the `vault` repo's policy: `mariadb` reads each
    site's `database` by name. The install needs nothing else.
 
 ## Before the first sync: the secrets
@@ -44,7 +43,6 @@ secret][vault-write] says, at `apps/mautic-<site>/`:
 | `app` | `secret_key` | generated: `openssl rand -hex 32`. Mautic's `secret_key`, read as `MAUTIC_SECRET_KEY` (it wins over `local.php`) |
 | `email` | `api_key` | a Resend API key limited to the site's domain (The sending provider, below) |
 | `admin` | `email`, `password` | the first admin's login, a person's: kept in the password manager too. The email is not a secret. Read by the install, and by the provision container to log in to the API |
-| `payload` | `password` | generated: `openssl rand -base64 24`. The password of the API user Payload logs in as |
 | `cms` | `password` | generated: `openssl rand -base64 24`. The password of the API user the site's Strapi logs in as. Optional at the first sync: written later, the user is created without a restart |
 
 Then sync `mariadb` in Argo CD, so its databases Job creates the database and
@@ -60,14 +58,12 @@ Then, on every start:
 
 - **API enabled** and **Enable HTTP basic auth** are set in `local.php`,
   which is where Mautic 7.2.1 reads them (they are not environment
-  variables). Payload's Mautic adapter authenticates with HTTP Basic.
+  variables). `provision` and the site's Strapi authenticate with HTTP Basic.
 - The migrations are checked (below).
 - The `provision` container, once web answers on `localhost`, logs in to the
-  API as the admin and creates, if absent, the role `Payload` (Contacts:
-  view, create and edit other users' contacts; Segments: view and edit other
-  users' segments) and the user `payload`, with `PAYLOAD_API_EMAIL` and the
-  password of `payload`. It does the same for the role `CMS` (the same
-  permissions: what the forms plugin's calls need) and the user `cms`, with
+  API as the admin and creates, if absent, the role `CMS` (Contacts: view,
+  create and edit other users' contacts; Segments: view and edit other users'
+  segments: what the forms plugin's calls need) and the user `cms`, with
   `CMS_API_EMAIL` and the password of `cms`. A role or user that exists is
   left as it is: its password is not reset. It then idles. A failure (the admin's login
   refused, a lookup or a create answered with an error) is one line in the
@@ -91,8 +87,6 @@ Integraciones, Marketing ([artistlabco.com's `cms/README.md`][cms-readme]),
 the URL `http://mautic.mautic-<site>.svc`, the user `cms` and the value of
 `apps/mautic-<site>/cms` as the password. Staging has no Mautic, so its
 Marketing card stays empty.
-
-Payload's user `payload` stays until 0xc0-labs/workspace#204 removes it.
 
 Rotating the `cms` password is a write to Vault, the same value in Strapi's
 card, and the new password on the user in Mautic's admin: the container

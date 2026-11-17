@@ -13,8 +13,8 @@ resources:
   - deployment.yaml
   - httproute.yaml
 configMapGenerator:
-  # The overlay merges in its database and user, SITE_URL (the public name)
-  # and PAYLOAD_API_EMAIL (on the site's domain).
+  # The overlay merges in its database and user, and SITE_URL (the public
+  # name).
   - name: mautic-env
     literals:
       - MAUTIC_DB_HOST=mariadb.mariadb.svc.cluster.local

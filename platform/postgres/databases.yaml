@@ -6,40 +6,6 @@
 apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultStaticSecret
 metadata:
-  name: payload-database
-  namespace: postgres
-spec:
-  vaultAuthRef: vault-secrets
-  type: kv-v2
-  mount: apps
-  path: payload/database
-  refreshAfter: 1h
-  destination:
-    name: payload-database-vault
-    create: true
-    transformation:
-      excludeRaw: true
----
-apiVersion: secrets.hashicorp.com/v1beta1
-kind: VaultStaticSecret
-metadata:
-  name: payload-staging-database
-  namespace: postgres
-spec:
-  vaultAuthRef: vault-secrets
-  type: kv-v2
-  mount: apps
-  path: payload-staging/database
-  refreshAfter: 1h
-  destination:
-    name: payload-staging-database-vault
-    create: true
-    transformation:
-      excludeRaw: true
----
-apiVersion: secrets.hashicorp.com/v1beta1
-kind: VaultStaticSecret
-metadata:
   name: artistlabco-com-database
   namespace: postgres
 spec:
@@ -141,12 +107,6 @@ spec:
             limits:
               memory: 128Mi
           volumeMounts:
-            - name: payload
-              mountPath: /databases/payload
-              readOnly: true
-            - name: payload-staging
-              mountPath: /databases/payload-staging
-              readOnly: true
             - name: artistlabco-com
               mountPath: /databases/artistlabco-com
               readOnly: true
@@ -156,18 +116,6 @@ spec:
             - name: tmp
               mountPath: /tmp
       volumes:
-        - name: payload
-          secret:
-            secretName: payload-database-vault
-            items:
-              - key: password
-                path: password
-        - name: payload-staging
-          secret:
-            secretName: payload-staging-database-vault
-            items:
-              - key: password
-                path: password
         - name: artistlabco-com
           secret:
             secretName: artistlabco-com-database-vault

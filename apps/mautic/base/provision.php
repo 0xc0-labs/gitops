@@ -88,17 +88,6 @@ $contactsAndSegments = [
     'lead:lists' => ['viewother', 'editother'],
 ];
 
-ensureUser(
-    'payload',
-    'Payload',
-    'CMS',
-    getenv('PAYLOAD_API_EMAIL'),
-    getenv('PAYLOAD_API_PASSWORD'),
-    'Payload',
-    'Payload CMS: its contacts and the segments they join',
-    $contactsAndSegments,
-);
-
 // A file, not an environment variable: the kubelet fills an optional secret
 // volume once the operator writes the secret, with no restart of the pod.
 $cmsPasswordFile = '/secrets/cms/password';

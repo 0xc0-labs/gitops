@@ -1,5 +1,4 @@
-# The site's CMS creates the leads through the API, beside Payload's rule
-# (../base/network-policy.yaml, api-from-payload).
+# The site's CMS creates the leads through the API.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:

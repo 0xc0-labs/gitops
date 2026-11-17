@@ -7,7 +7,6 @@ namespace: artistlabco-com-staging
 resources:
   - namespace.yaml
   - ../base
-  - network-policy.yaml
   - httproute.yaml
 # The pin (../README.md, Upgrades). A placeholder until the first release
 # candidate.
@@ -26,7 +25,6 @@ configMapGenerator:
   - name: artistlabco-com
     behavior: merge
     literals:
-      - PAYLOAD_URL=http://payload.payload-staging.svc
       - CMS_URL=http://artistlabco-com-cms.artistlabco-com-staging.svc
       - CMS_ADMIN_URL=https://cms-staging.artistlabco.com
   - name: artistlabco-com-cms
@@ -40,11 +38,6 @@ replacements:
       kind: Namespace
       fieldPath: metadata.name
     targets:
-      - select:
-          kind: VaultStaticSecret
-          name: artistlabco-com-payload
-        fieldPaths: [spec.path]
-        options: {delimiter: /, index: 0}
       - select:
           kind: VaultStaticSecret
           name: artistlabco-com-preview
