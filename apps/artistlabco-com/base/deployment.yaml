@@ -63,11 +63,6 @@ spec:
               value: 0.0.0.0
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: service.version=$(APP_VERSION),deployment.environment=$(APP_ENVIRONMENT)
-            - name: PAYLOAD_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: artistlabco-com-payload-vault
-                  key: api_key
             - name: CMS_API_TOKEN
               valueFrom:
                 secretKeyRef:

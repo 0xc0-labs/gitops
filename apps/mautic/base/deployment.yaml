@@ -348,7 +348,7 @@ spec:
               mountPath: /etc/supervisor/conf.d/supervisord.conf
               subPath: supervisord.conf
               readOnly: true
-        # The API users of Payload and of the site's Strapi, with their role,
+        # The API user of the site's Strapi, with its role,
         # through Mautic's own API once web answers; what exists is left as it
         # is. It idles after a failure too, logged in one line: a container
         # that exits is restarted, and a crash loop takes the pod out of the
@@ -359,11 +359,6 @@ spec:
           env:
             - *adminEmail
             - *adminPassword
-            - name: PAYLOAD_API_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: mautic-payload-vault
-                  key: password
           envFrom: *env
           securityContext: *security
           resources:

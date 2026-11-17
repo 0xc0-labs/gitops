@@ -24,8 +24,7 @@ What runs in the Kubernetes cluster, as manifests ArgoCD applies.
   `<application>`, in the namespace of that name; `staging/`, when it has
   one, is `<application>-staging`, in its own. What both share goes in
   `base/`. Today: offby1-cc (the offby1.cc landing page), in prod alone, and
-  Payload CMS and artistlabco-com (the artist's site, a front of Payload), in
-  prod and staging. Mautic is deployed once per site: `base/`, then a
+  artistlabco-com (the artist's site), in prod and staging. Mautic is deployed once per site: `base/`, then a
   directory per site, `mautic-<site>` in the namespace of that name. An
   application sets `Prune=false` on what holds data alone, its Namespace and
   its volumes, each in its own manifest, never through `commonAnnotations`:
@@ -111,7 +110,7 @@ repo's own.
 
 How an application is promoted, and why: the workspace's
 [`docs/design/delivery.md`][design-delivery], Application delivery. Here, an
-application with delivery (`payload` and `offby1-cc` today, their READMEs)
+application with delivery (`offby1-cc` and `artistlabco-com` today, their READMEs)
 is pinned in each environment's `kustomization.yaml`: its `images:` entry,
 tag and digest, and `APP_VERSION` in the `release` ConfigMap. `pin / check` fails when
 `APP_VERSION` is not the tag, and when a bot's PR changes any line but a pin.

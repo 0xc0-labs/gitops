@@ -6,7 +6,7 @@ resources:
   - deployment.yaml
   - cms-network-policy.yaml
   - cms.yaml
-# Each environment merges its PAYLOAD_URL, CMS_URL and CMS_ADMIN_URL in.
+# Each environment merges its CMS_URL and CMS_ADMIN_URL in.
 configMapGenerator:
   - name: artistlabco-com
     literals:

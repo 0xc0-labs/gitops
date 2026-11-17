@@ -34,12 +34,6 @@ spec:
               kubernetes.io/metadata.name: offby1-cc
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: payload
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: payload-staging
-        - namespaceSelector:
-            matchLabels:
               kubernetes.io/metadata.name: artistlabco-com
         - namespaceSelector:
             matchLabels:

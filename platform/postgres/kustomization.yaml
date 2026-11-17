@@ -1,6 +1,6 @@
 # One server the applications share, never one each (operator decision,
-# 2026-10-09; workspace#64): Payload does not support MariaDB. No operator: it
-# costs memory the cluster cannot spare.
+# 2026-10-09; workspace#64). No operator: it costs memory the cluster cannot
+# spare.
 #
 # Backups:
 # - data-postgres-0 (Longhorn, 10Gi): the server's datadir, covered by PBS's

@@ -34,7 +34,6 @@ configMapGenerator:
   - name: artistlabco-com
     behavior: merge
     literals:
-      - PAYLOAD_URL=http://payload.payload.svc
       - CMS_URL=http://artistlabco-com-cms.artistlabco-com.svc
       - CMS_ADMIN_URL=https://cms.artistlabco.com
   - name: artistlabco-com-cms
@@ -49,11 +48,6 @@ replacements:
       kind: Namespace
       fieldPath: metadata.name
     targets:
-      - select:
-          kind: VaultStaticSecret
-          name: artistlabco-com-payload
-        fieldPaths: [spec.path]
-        options: {delimiter: /, index: 0}
       - select:
           kind: VaultStaticSecret
           name: artistlabco-com-preview

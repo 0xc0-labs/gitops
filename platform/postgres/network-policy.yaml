@@ -31,18 +31,6 @@ spec:
               app.kubernetes.io/name: postgres-databases
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: payload
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/part-of: payload
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: payload-staging
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/part-of: payload
-        - namespaceSelector:
-            matchLabels:
               kubernetes.io/metadata.name: artistlabco-com
           podSelector:
             matchLabels:

@@ -34,10 +34,6 @@ spec:
       namespace: mautic-artistlabco-com
     - server: https://kubernetes.default.svc
       namespace: offby1-cc
-    - server: https://kubernetes.default.svc
-      namespace: payload
-    - server: https://kubernetes.default.svc
-      namespace: payload-staging
   clusterResourceWhitelist:
     - group: ""
       kind: Namespace

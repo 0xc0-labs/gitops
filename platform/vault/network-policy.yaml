@@ -44,18 +44,6 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/component: opentelemetry-collector
-        # Payload's pods log in with their own identity and read their
-        # tenants' keys (apps/payload/README.md, Vault identity).
-        - namespaceSelector:
-            matchExpressions:
-              - key: kubernetes.io/metadata.name
-                operator: In
-                values:
-                  - payload
-                  - payload-staging
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/name: payload
         # The sites' CMS writes its integrations' keys with its own identity
         # (apps/artistlabco-com/README.md, The CMS).
         - namespaceSelector:
