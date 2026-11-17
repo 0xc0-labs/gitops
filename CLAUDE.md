@@ -142,7 +142,10 @@ kustomize build --enable-helm platform/<component> \
 ```
 
 An application renders the same way, one environment at a time:
-`apps/<application>/prod`, `apps/<application>/staging`.
+`apps/<application>/prod`, `apps/<application>/staging`, and Mautic's
+per-site directories, `apps/mautic/<site>`. CI renders exactly the set
+ArgoCD deploys: `platform/*`, `apps/*/prod`, `apps/*/staging` and
+`apps/mautic/*` (`.github/workflows/validate.yml`).
 
 `kustomize` downloads the charts into `platform/<component>/charts/`, which
 git ignores: nothing is vendored.
