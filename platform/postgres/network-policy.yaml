@@ -41,6 +41,19 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/name: artistlabco-com-cms
+        # Only the pods that connect (apps/plane/prod/network-policy.yaml).
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: plane
+          podSelector:
+            matchExpressions:
+              - key: app.name
+                operator: In
+                values:
+                  - plane-plane-api
+                  - plane-plane-api-migrate
+                  - plane-plane-worker
+                  - plane-plane-beat-worker
       ports:
         - protocol: TCP
           port: 5432

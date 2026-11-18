@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: plane
+  labels:
+    # Plane's images declare no user and run as root, and its chart sets no
+    # security context on any workload: under restricted none starts
+    # (../README.md, Hardening).
+    pod-security.kubernetes.io/enforce: baseline
+    gateway.0xc0.cc/internal: "true"
+    vault.0xc0.cc/apps: "true"
+  # No pruning: deleting it deletes everything in it.
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false

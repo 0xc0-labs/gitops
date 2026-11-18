@@ -1,2 +1,3 @@
 # What kustomize --enable-helm downloads: nothing is vendored (CLAUDE.md).
 platform/*/charts/
+apps/*/*/charts/

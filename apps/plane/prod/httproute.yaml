@@ -1,0 +1,47 @@
+# Every path is on the one hostname (the chart's README). /uploads/ must reach
+# the object store: Plane signs an upload for the host the browser used, so the
+# browser posts the file to this name. Internal only: no public annotation.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: plane
+  namespace: plane
+spec:
+  parentRefs:
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: internal
+  hostnames:
+    - plane.int.0xc0.cc
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /spaces/}
+      backendRefs:
+        - name: plane-space
+          port: 3000
+    - matches:
+        - path: {type: PathPrefix, value: /god-mode/}
+      backendRefs:
+        - name: plane-admin
+          port: 3000
+    - matches:
+        - path: {type: PathPrefix, value: /live/}
+      backendRefs:
+        - name: plane-live
+          port: 3000
+    - matches:
+        - path: {type: PathPrefix, value: /api/}
+        - path: {type: PathPrefix, value: /auth/}
+      backendRefs:
+        - name: plane-api
+          port: 8000
+    - matches:
+        - path: {type: PathPrefix, value: /uploads/}
+      backendRefs:
+        - name: plane-minio
+          port: 9000
+    - matches:
+        - path: {type: PathPrefix, value: /}
+      backendRefs:
+        - name: plane-web
+          port: 3000
