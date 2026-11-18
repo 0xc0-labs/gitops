@@ -2,7 +2,17 @@ container_runtime: containerd
 image:
   repository: crowdsecurity/crowdsec
   tag: "v1.8.1@sha256:0f2523fa61ef507f15d953045cface490cc880670c62f2755ced17524107f71a"
+# The chart's default requests equal its limits (500m CPU each): seven pods
+# reserved 3.5 vCPU and used 7m (measured 2026-11-18). Limits stay, CPU
+# requests drop (#414).
 agent:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 250Mi
+    limits:
+      cpu: 500m
+      memory: 250Mi
   # SELinux keeps container_t out of the container logs; this domain reads
   # them and nothing more, narrower than spc_t.
   podSecurityContext:
@@ -44,6 +54,13 @@ config:
         agents_autodelete:
           login_password: 1d
 lapi:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 500Mi
+    limits:
+      cpu: 500m
+      memory: 500Mi
   metrics:
     serviceMonitor:
       enabled: true
@@ -64,6 +81,13 @@ lapi:
 # Virtual patching and generic rules, no CRS to tune.
 appsec:
   enabled: true
+  resources:
+    requests:
+      cpu: 100m
+      memory: 250Mi
+    limits:
+      cpu: 500m
+      memory: 250Mi
   metrics:
     serviceMonitor:
       enabled: true
