@@ -1,0 +1,58 @@
+planeVersion: v1.5.0
+
+# Traefik carries the route (httproute.yaml), and ends TLS in front of Plane.
+ingress:
+  enabled: false
+  appHost: plane.int.0xc0.cc
+ssl:
+  externalTermination: true
+
+# The shared PostgreSQL (platform/postgres), not the chart's own.
+postgres:
+  local_setup: false
+
+redis:
+  storageClass: longhorn
+  volumeSize: 1Gi
+rabbitmq:
+  storageClass: longhorn
+  volumeSize: 1Gi
+minio:
+  assign_cluster_ip: true
+  storageClass: longhorn
+  volumeSize: 5Gi
+
+# The Services Traefik reaches have a cluster IP, not the chart's headless ones.
+# The images are pinned by digest in kustomization.yaml: a pull is never needed
+# for a tag that moved.
+web:
+  pullPolicy: IfNotPresent
+  assign_cluster_ip: true
+space:
+  pullPolicy: IfNotPresent
+  assign_cluster_ip: true
+admin:
+  pullPolicy: IfNotPresent
+  assign_cluster_ip: true
+live:
+  pullPolicy: IfNotPresent
+  assign_cluster_ip: true
+api:
+  pullPolicy: IfNotPresent
+  assign_cluster_ip: true
+worker:
+  pullPolicy: IfNotPresent
+beatworker:
+  pullPolicy: IfNotPresent
+
+# Each is a Secret of vault-secrets.yaml.
+external_secrets:
+  app_env_existingSecret: plane-database-vault
+  app_keys_existingSecret: plane-app-keys-vault
+  live_env_existingSecret: plane-live-vault
+  rabbitmq_existingSecret: plane-rabbitmq-vault
+  doc_store_existingSecret: plane-storage-vault
+
+env:
+  requireExplicitSecrets: true
+  docstore_bucket: uploads

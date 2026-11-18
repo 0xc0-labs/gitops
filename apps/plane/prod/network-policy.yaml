@@ -1,0 +1,120 @@
+# Nothing reaches the internet: no email, no integration, no telemetry (../README.md).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: plane
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+# Plane's pods among themselves: the services, the queue, the cache and the
+# object store. The chart sets no label that tells them apart but app.name.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: within-namespace
+  namespace: plane
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector: {}
+  egress:
+    - to:
+        - podSelector: {}
+---
+# The six Services the route reaches, and the port each listens on.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: http-from-traefik
+  namespace: plane
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.name
+        operator: In
+        values:
+          - plane-plane-web
+          - plane-plane-space
+          - plane-plane-admin
+          - plane-plane-live
+          - plane-plane-api
+          - plane-plane-minio
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - protocol: TCP
+          port: 3000
+        - protocol: TCP
+          port: 8000
+        - protocol: TCP
+          port: 9000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dns
+  namespace: plane
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+# Only the pods that connect to the database. platform/postgres admits the
+# same four on its side.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres
+  namespace: plane
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.name
+        operator: In
+        values:
+          - plane-plane-api
+          - plane-plane-api-migrate
+          - plane-plane-worker
+          - plane-plane-beat-worker
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: postgres
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: postgres
+      ports:
+        - protocol: TCP
+          port: 5432

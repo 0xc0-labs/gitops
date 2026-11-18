@@ -34,6 +34,8 @@ spec:
       namespace: mautic-artistlabco-com
     - server: https://kubernetes.default.svc
       namespace: offby1-cc
+    - server: https://kubernetes.default.svc
+      namespace: plane
   clusterResourceWhitelist:
     - group: ""
       kind: Namespace

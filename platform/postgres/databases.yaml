@@ -37,6 +37,23 @@ spec:
     transformation:
       excludeRaw: true
 ---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: plane-database
+  namespace: postgres
+spec:
+  vaultAuthRef: vault-secrets
+  type: kv-v2
+  mount: apps
+  path: plane/database
+  refreshAfter: 1h
+  destination:
+    name: plane-database-vault
+    create: true
+    transformation:
+      excludeRaw: true
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -113,6 +130,9 @@ spec:
             - name: artistlabco-com-staging
               mountPath: /databases/artistlabco-com-staging
               readOnly: true
+            - name: plane
+              mountPath: /databases/plane
+              readOnly: true
             - name: tmp
               mountPath: /tmp
       volumes:
@@ -125,6 +145,12 @@ spec:
         - name: artistlabco-com-staging
           secret:
             secretName: artistlabco-com-staging-database-vault
+            items:
+              - key: password
+                path: password
+        - name: plane
+          secret:
+            secretName: plane-database-vault
             items:
               - key: password
                 path: password
