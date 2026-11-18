@@ -19,6 +19,12 @@ rabbitmq:
   volumeSize: 1Gi
 minio:
   assign_cluster_ip: true
+  env:
+    # Plane builds the upload address from the request: at "0" its scheme is the
+    # request's, https only while it trusts Traefik's X-Forwarded-Proto. At "1"
+    # it is https whatever arrives, so a browser never gets an http address to
+    # post to from the https page, which it would block.
+    minio_endpoint_ssl: true
   storageClass: longhorn
   volumeSize: 5Gi
 
