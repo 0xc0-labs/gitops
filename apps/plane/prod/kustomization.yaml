@@ -23,6 +23,13 @@ resources:
   - network-policy.yaml
   - vault-secrets.yaml
   - httproute.yaml
+configMapGenerator:
+  - name: plane-web-caddy
+    files:
+      - Caddyfile=caddy/web.Caddyfile
+  - name: plane-admin-caddy
+    files:
+      - Caddyfile=caddy/admin.Caddyfile
 images:
   - name: artifacts.plane.so/makeplane/plane-frontend
     newTag: v1.5.0
@@ -92,6 +99,37 @@ patches:
                 key: RABBITMQ_DEFAULT_PASS
           - name: AMQP_URL
             value: amqp://plane:$(RABBITMQ_DEFAULT_PASS)@plane-rabbitmq.plane.svc.cluster.local/
+  # The frontends' Caddyfile, without the rate limit (README, Hardening).
+  - target: {kind: Deployment, name: plane-web-wl}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/volumes
+        value:
+          - name: caddyfile
+            configMap:
+              name: plane-web-caddy
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts
+        value:
+          - name: caddyfile
+            mountPath: /etc/caddy/Caddyfile
+            subPath: Caddyfile
+            readOnly: true
+  - target: {kind: Deployment, name: plane-admin-wl}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/volumes
+        value:
+          - name: caddyfile
+            configMap:
+              name: plane-admin-caddy
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts
+        value:
+          - name: caddyfile
+            mountPath: /etc/caddy/Caddyfile
+            subPath: Caddyfile
+            readOnly: true
   # The chart allows http:// too.
   - target: {kind: ConfigMap, name: plane-app-vars}
     patch: |-

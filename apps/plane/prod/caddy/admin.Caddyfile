@@ -1,0 +1,30 @@
+# Replaces the Caddyfile baked into the plane-admin image: the rate_limit block is
+# removed (every client reaches Caddy as the load balancer's address; 0xc0-labs/gitops#419).
+# Compared with upstream's apps/admin/caddy/Caddyfile again on every bump of Plane's version.
+
+{
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+:3000 {
+	root * /usr/share/caddy/html
+
+	# Security headers (HSTS is set at the TLS terminator)
+	header {
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		X-XSS-Protection "1; mode=block"
+	}
+
+	# SPA fallback: the admin build is served from /god-mode
+	try_files {path} /god-mode/index.html
+	file_server
+
+	# Access logs to stdout (default in Caddy)
+	log {
+		output stdout
+		format console
+	}
+}

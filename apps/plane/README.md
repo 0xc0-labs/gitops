@@ -62,6 +62,20 @@ Tightening it is a later change, with an issue of its own. Its NetworkPolicies
 deny by default and open only Traefik to the six routed Services, Plane's pods
 to each other, DNS and PostgreSQL.
 
+## The frontends' rate limit
+
+The `web` and `admin` images serve their files with a Caddy that limits each
+client address to 300 requests a minute, and a first load with an empty cache
+asks for more than that: Plane answered 429 (0xc0-labs/gitops#419). Here every
+request reaches Caddy with the load balancer's address, so all users share one
+key and no figure is right; limiting requests is the ingress's work. The limit
+is removed by mounting another Caddyfile over the image's:
+`prod/caddy/web.Caddyfile` and `prod/caddy/admin.Caddyfile`, which are
+upstream's minus the `rate_limit` block and the option that orders it.
+
+Every bump of Plane's version compares both files with upstream's
+`apps/web/caddy/Caddyfile` and `apps/admin/caddy/Caddyfile` at the new tag.
+
 ## Not set up
 
 - Email, the GitHub integration, and any way out to the internet: no
