@@ -62,6 +62,38 @@ spec:
     accessLog:
       otlp:
         url: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4317
+      attributes:
+        add:
+          - name: matchmark.tenant
+            expression: jwt.tenant
+          - name: matchmark.app
+            expression: jwt.app
+          - name: matchmark.project
+            expression: jwt.project
+          - name: matchmark.agent
+            expression: jwt.agent
+          - name: matchmark.work_item
+            expression: jwt.work_item
+          - name: matchmark.task
+            expression: jwt.task
+          - name: matchmark.attempt
+            expression: jwt.attempt
     tracing:
       url: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4317
       randomSampling: "true"
+      attributes:
+        add:
+          - name: matchmark.tenant
+            expression: jwt.tenant
+          - name: matchmark.app
+            expression: jwt.app
+          - name: matchmark.project
+            expression: jwt.project
+          - name: matchmark.agent
+            expression: jwt.agent
+          - name: matchmark.work_item
+            expression: jwt.work_item
+          - name: matchmark.task
+            expression: jwt.task
+          - name: matchmark.attempt
+            expression: jwt.attempt

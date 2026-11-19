@@ -6,10 +6,9 @@ both `v1.7.0` from `oci://cr.agentgateway.dev/charts`) and one `Gateway`
 named `gateway`, class `agentgateway`, with one HTTP listener on 8080 that
 admits routes of its own namespace only. The proxy is one Deployment the
 controller creates for that Gateway; its Service is `ClusterIP`. There is no
-route, no `AgentgatewayBackend` and no provider yet: agents will call it from
-inside the cluster, and the gateway is not reachable from outside. Only the
-API is, over WARP; the gateway's routes, its JWT policy and the provider
-come in their own changes.
+route to a real provider: the only one goes to a stand-in (The route to the
+provider). Agents call the gateway from inside the cluster, and it is not
+reachable from outside. Only the API is, over WARP.
 
 ## Why this application has a project of its own
 
@@ -132,6 +131,68 @@ secret); nothing here holds a value:
 | `matchmark/api` | `service_token` (32 characters or more) | `matchmark-api`, into `MATCHMARK_SERVICE_TOKEN` |
 | `matchmark/storage` | `access_key`, `secret_key` | `rustfs-root` |
 | `shared/ghcr-pull` | `username`, `password` | `ghcr-pull`, the image pull |
+
+## The route to the provider
+
+`gateway-route.yaml`, `stand-in-provider.yaml`, `network-policy-provider.yaml`
+and `proof.yaml`. A model call made with an agent token crosses the gateway to
+the stand-in provider; one without a valid token, or for another model than
+its token's, is refused.
+
+- **The stand-in** (`stand-in-provider.yaml`): the private image
+  `ghcr.io/0xc0-labs/matchmark-stand-in-provider`, pinned with the API's, at
+  the same tag (`pin / check` fails when `APP_VERSION` is not that tag). It
+  answers `POST /v1/messages` in the shape of Anthropic's Messages API with a
+  `usage` derived from the request alone, checks no credential and holds no
+  data. It stands in for a real provider until there is one (no provider key
+  exists anywhere yet): the cost the gateway reads is the catalog's price for
+  the model asked for, over the stand-in's token counts.
+- **The route**: `HTTPRoute` `messages` on `gateway` sends `POST /v1/messages`,
+  and nothing else, to the `AgentgatewayBackend` `anthropic`, whose host and
+  port are the stand-in's Service, in plain HTTP. The backend has no
+  credential, and the proxy adds none.
+- **The policy** `agent-token`, on that route: JWT authentication in `Strict`
+  mode (issuer `https://api.matchmark.int.0xc0.cc`, audience
+  `matchmark-gateway`, the JWKS fetched from the Service `api`), and one
+  authorization of action `Require` whose expressions must all hold:
+  `jwt.tenant == "default"` and `llm.requestModel == jwt.model`. They are
+  `Require`s and not `Allow`s because rules of different levels accumulate
+  and a single `Allow` at another level would widen what an `Allow` here
+  grants; a `Require` always has to hold. Authentication and authorization
+  share one policy: one that reads `jwt` without `jwtAuthentication` beside it
+  denies everything while reporting Accepted. The validated token is removed
+  before the request goes upstream.
+- **Who made the call**: the `telemetry` policy adds the token's claims to
+  the access log and the traces as `matchmark.tenant`, `.app`, `.project`,
+  `.agent`, `.work_item`, `.task` and `.attempt`, beside the usage and cost
+  fields the gateway writes. An expression that fails (no `work_item` in the
+  token) leaves its attribute out. `task` and `attempt` stay out of every
+  metric's labels.
+- **Network**: the proxy reaches the stand-in's 8000 and the stand-in the
+  collector's 4318; the proof's pod reaches the API and the proxy's 8080,
+  which no other pod does yet.
+
+### The proof
+
+`proof.yaml`: a `Job` `gateway-proof`, an Argo CD `PostSync` hook replaced on
+each sync, running `proof.py` (a ConfigMap) with the API's image. It fails
+unless: (1) the API issues a token (tenant `default`, app `smoke`, project
+`matchmark`, agent `proof`, task `phase-0`, attempt 1, model
+`claude-sonnet-4-5`); (2) a call with that token and model answers 200 with
+the `usage` the stand-in's rule gives (3 input and 16 output tokens for
+`Say only: ok`); (3) the same call for another model answers 403; (4) the
+same call without a token answers 401. It prints each step's result and never
+the token. A failed attempt is retried up to six times, which covers the
+proxy still loading the policy.
+
+```sh
+kubectl -n matchmark get job gateway-proof                # Complete
+kubectl -n matchmark logs job/gateway-proof               # four lines, each "ok"
+kubectl -n matchmark logs deploy/gateway | grep matchmark.tenant   # the access log, with the claims
+```
+
+When a step fails, the cause of a refusal is in the proxy's access log, field
+`error`: the client's answer is generic.
 
 ## Checking
 

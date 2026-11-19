@@ -1,0 +1,70 @@
+# The route from Matchmark's gateway to the provider, and the policy that opens
+# it only to a valid agent token (README.md, The route to the provider).
+#
+# The provider is the stand-in, in plain HTTP, with no credential of its own:
+# the proxy adds none, so without the policy below it would forward whatever
+# key its caller sends.
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: anthropic
+  namespace: matchmark
+spec:
+  ai:
+    provider:
+      anthropic: {}
+      host: stand-in-provider.matchmark.svc.cluster.local
+      port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: messages
+  namespace: matchmark
+spec:
+  parentRefs:
+    - name: gateway
+  rules:
+    - matches:
+        - path:
+            type: Exact
+            value: /v1/messages
+          method: POST
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: anthropic
+---
+# Authentication and authorization are one policy: a policy that reads `jwt`
+# without `jwtAuthentication` in the same policy denies every call while
+# reporting Accepted. The authorization is a Require, never an Allow, which a
+# rule at another level could widen.
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: agent-token
+  namespace: matchmark
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: messages
+  traffic:
+    jwtAuthentication:
+      mode: Strict
+      providers:
+        - issuer: https://api.matchmark.int.0xc0.cc
+          audiences:
+            - matchmark-gateway
+          jwks:
+            remote:
+              backendRef:
+                name: api
+                port: 80
+              jwksPath: .well-known/jwks.json
+    authorization:
+      action: Require
+      policy:
+        matchExpressions:
+          - has(jwt.tenant) && jwt.tenant == "default"
+          - has(jwt.model) && llm.requestModel == jwt.model
