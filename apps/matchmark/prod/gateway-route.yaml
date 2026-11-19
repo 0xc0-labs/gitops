@@ -15,9 +15,8 @@ spec:
       anthropic: {}
       host: stand-in-provider.matchmark.svc.cluster.local
       port: 80
-      # With `host` overridden and no `path`, the proxy forwards the client's
-      # path as it came: /v1/chat/completions reached the stand-in untranslated
-      # in path and got its 404 (#444). The stand-in serves /v1/messages alone.
+      # Overrides the client's path: the stand-in serves /v1/messages alone
+      # (README.md, The route to the provider).
       path: /v1/messages
   policies:
     ai:

@@ -55,6 +55,44 @@ patches:
               target_label: __address__
             - source_labels: [__meta_kubernetes_pod_node_name]
               target_label: node
+  # The usage record: the log records of a model call, from the OTLP receiver,
+  # to Matchmark's API (apps/matchmark/README.md, The usage record). No other
+  # pipeline takes logs from that receiver, so a slow or failing API holds back
+  # nothing that goes to OpenObserve: its exporter has a queue and retries of
+  # its own, bounded, and a full queue drops these records alone.
+  - target:
+      kind: OpenTelemetryCollector
+      name: openobserve-collector-gateway
+    patch: |-
+      - op: add
+        path: /spec/config/exporters/otlphttp~1matchmark_api
+        value:
+          endpoint: http://api.matchmark.svc.cluster.local/otlp
+          encoding: proto
+          compression: gzip
+          timeout: 10s
+          retry_on_failure:
+            enabled: true
+            initial_interval: 5s
+            max_interval: 30s
+            max_elapsed_time: 120s
+          sending_queue:
+            enabled: true
+            queue_size: 1000
+            block_on_overflow: false
+      - op: add
+        path: /spec/config/processors/filter~1matchmark_usage
+        value:
+          error_mode: ignore
+          logs:
+            log_record:
+              - attributes["gen_ai.usage.input_tokens"] == nil and attributes["gen_ai.usage.output_tokens"] == nil
+      - op: add
+        path: /spec/config/service/pipelines/logs~1matchmark_usage
+        value:
+          receivers: [otlp]
+          processors: [memory_limiter, filter/matchmark_usage, batch]
+          exporters: [otlphttp/matchmark_api]
   # Once a minute: the chart's jobs and the allocator's default are 30 s.
   - target:
       kind: OpenTelemetryCollector

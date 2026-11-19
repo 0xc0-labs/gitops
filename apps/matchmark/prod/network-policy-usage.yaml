@@ -1,0 +1,60 @@
+# The usage record's network (README.md, The usage record).
+#
+# The shared PostgreSQL: the API's pods and the migration's pod, nothing else
+# here. `platform/postgres/network-policy.yaml` admits the same two. Wave -2:
+# the migration hook (wave -1) needs it.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-to-postgres
+  namespace: matchmark
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values:
+          - matchmark-api
+          - matchmark-api-migrate
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: postgres
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+# `POST /otlp/v1/logs` asks for no credential: the collector's gateway pods are
+# the only ones outside this namespace that reach the API's port besides
+# Traefik, whose route does not carry that path.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-otlp-from-collector
+  namespace: matchmark
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: matchmark-api
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openobserve-collector
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/component: opentelemetry-collector
+              app.kubernetes.io/instance: openobserve-collector.openobserve-collector-gateway
+      ports:
+        - protocol: TCP
+          port: 8000

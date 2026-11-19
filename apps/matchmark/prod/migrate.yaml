@@ -1,0 +1,65 @@
+# The usage record's migrations (README.md, The usage record): a sync hook in
+# wave -1, so it runs after the secrets and policies it needs (wave -2) and
+# before the API's new pods (wave 0). A failing migration fails the sync there,
+# and the old pods keep serving. The hook is deleted before each creation, so
+# every sync runs it again; the migrations are idempotent and safe to run twice
+# at once.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: api-migrate
+  namespace: matchmark
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 180
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: matchmark-api-migrate
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      imagePullSecrets:
+        - name: ghcr-pull-vault
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          image: ghcr.io/0xc0-labs/matchmark-api
+          command: [python, -m, matchmark_api, migrate]
+          env:
+            - name: PGHOST
+              value: postgres.postgres.svc.cluster.local
+            - name: PGDATABASE
+              value: matchmark
+            - name: PGUSER
+              value: matchmark
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: matchmark-database-vault
+                  key: password
+            - name: PGSSLMODE
+              value: disable
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 256Mi

@@ -54,6 +54,17 @@ spec:
                   - plane-plane-api-migrate
                   - plane-plane-worker
                   - plane-plane-beat-worker
+        # Only the pods that connect (apps/matchmark/prod/network-policy-usage.yaml).
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: matchmark
+          podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - matchmark-api
+                  - matchmark-api-migrate
       ports:
         - protocol: TCP
           port: 5432

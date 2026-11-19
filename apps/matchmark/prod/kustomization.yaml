@@ -25,6 +25,8 @@ resources:
   - vault-secrets.yaml
   - rustfs.yaml
   - api.yaml
+  - migrate.yaml
+  - network-policy-usage.yaml
   - stand-in-provider.yaml
   - gateway-route.yaml
   - network-policy-provider.yaml
