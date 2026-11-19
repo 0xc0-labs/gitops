@@ -29,10 +29,10 @@ Acceptance criteria: the issue.
 
 ## Tasks
 
-- [ ] Render and list the cluster-scoped kinds and the `ClusterRole` rules.
-- [ ] Project, ApplicationSet, collector policy.
-- [ ] Application folder, README.
-- [ ] Local render and validation; PR; checks.
+- [x] Render and list the cluster-scoped kinds and the `ClusterRole` rules.
+- [x] Project, ApplicationSet, collector policy.
+- [x] Application folder, README.
+- [x] Local render and validation; PR; checks.
 
 ## Decisions to verify against the charts
 
