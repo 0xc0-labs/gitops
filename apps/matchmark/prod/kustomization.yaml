@@ -36,15 +36,15 @@ images:
   # The API's and the stand-in's pins, one tag: the application's release job
   # moves both (README.md, The API).
   - name: ghcr.io/0xc0-labs/matchmark-api
-    newTag: sha-c046ced
-    digest: sha256:d54a97012ef8ab458a5edec5298294a68b7294184ad03c532d364cf55b0335d9
+    newTag: v0.1.0
+    digest: sha256:d88ed7c67ff18b43a921a9f859219db7e0991189b6225db80730075bb50e36a0
   - name: ghcr.io/0xc0-labs/matchmark-stand-in-provider
-    newTag: sha-c046ced
-    digest: sha256:f4e03d2a1bab7bc5b5da2583e819bc7fdff8647a1c4a6e31fc52a5dcc6da6b90
+    newTag: v0.1.0
+    digest: sha256:0e50729434b02d1e0242b24a49b4145014e5bfdfffea70c8b99b7c45d88cfd58
 configMapGenerator:
   - name: release
     literals:
-      - APP_VERSION=sha-c046ced
+      - APP_VERSION=v0.1.0
 patches:
   # Deleting a CRD deletes every object of its kind.
   - target:
