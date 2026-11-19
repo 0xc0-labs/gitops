@@ -45,6 +45,20 @@ configMapGenerator:
   - name: release
     literals:
       - APP_VERSION=v0.1.0
+replacements:
+  - source:
+      kind: ConfigMap
+      name: release
+      fieldPath: data.APP_VERSION
+    targets:
+      - select:
+          kind: Job
+          name: gateway-proof-version
+        fieldPaths:
+          - metadata.name
+        options:
+          delimiter: "-"
+          index: 2
 patches:
   # Deleting a CRD deletes every object of its kind.
   - target:
