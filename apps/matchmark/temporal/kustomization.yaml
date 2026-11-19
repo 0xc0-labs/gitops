@@ -1,0 +1,44 @@
+# Matchmark's Temporal, in the namespace `matchmark` and an Application of its
+# own (../README.md, Temporal). The namespace, `default-deny`, `vault-secrets`
+# and the VaultAuth belong to the `matchmark` Application.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: matchmark
+helmCharts:
+  - name: temporal
+    repo: https://go.temporal.io/helm-charts
+    version: 1.8.0
+    releaseName: temporal
+    namespace: matchmark
+    kubeVersion: "1.36.4"
+    valuesFile: values.yaml
+    # The test Pod is a hook; `skipHooks` would drop the two Jobs too.
+    skipTests: true
+resources:
+  - vault-secrets.yaml
+  - ui-route.yaml
+  - network-policy.yaml
+images:
+  - name: temporalio/server
+    newTag: 1.32.2
+    digest: sha256:7bf69188a6232fea14869b9cef3d94aa82a1601d99517f7e86c71f22da4e0670
+  - name: temporalio/admin-tools
+    newTag: 1.32.2
+    digest: sha256:4a95866efba29d7e17ab012df5232795e8b0ad0f7d5f9d1ec4df321f7792a754
+  - name: temporalio/ui
+    newTag: 2.56.4
+    digest: sha256:6cd528352cbb5cc298c8f308010f6e34dcd6fe3512c7ccab1d165133c9fc3de9
+patches:
+  # The chart has no value for it, and nothing here calls the API server.
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/automountServiceAccountToken
+        value: false
+  - target:
+      kind: Job
+    patch: |-
+      - op: add
+        path: /spec/template/spec/automountServiceAccountToken
+        value: false

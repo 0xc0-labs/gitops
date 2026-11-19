@@ -1,0 +1,33 @@
+# Matchmark's Temporal (apps/matchmark/README.md, Temporal). Declared here, not
+# generated: the `apps` ApplicationSet takes only `prod` and `staging`
+# folders and names the namespace after the folder. An Application of its own,
+# so a failed sync of one never holds the other's back; both deploy into the
+# namespace `matchmark`, which the `matchmark` Application owns.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: matchmark-temporal
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/compare-options: ServerSideDiff=true
+spec:
+  project: matchmark
+  source:
+    repoURL: https://github.com/0xc0-labs/gitops.git
+    targetRevision: main
+    path: apps/matchmark/temporal
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: matchmark
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m
