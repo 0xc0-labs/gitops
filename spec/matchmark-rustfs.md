@@ -43,9 +43,9 @@ namespace; the RustFS on the node.
 
 ## Tasks
 
-- [ ] rustfs.yaml
-- [ ] vault-secrets.yaml
-- [ ] network-policy.yaml
-- [ ] kustomization.yaml
-- [ ] README
-- [ ] render and validate
+- [x] rustfs.yaml
+- [x] vault-secrets.yaml
+- [x] network-policy.yaml
+- [x] kustomization.yaml
+- [x] README
+- [x] render and validate
