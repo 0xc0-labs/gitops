@@ -54,6 +54,23 @@ spec:
     transformation:
       excludeRaw: true
 ---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: matchmark-database
+  namespace: postgres
+spec:
+  vaultAuthRef: vault-secrets
+  type: kv-v2
+  mount: apps
+  path: matchmark/database
+  refreshAfter: 1h
+  destination:
+    name: matchmark-database-vault
+    create: true
+    transformation:
+      excludeRaw: true
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -133,6 +150,9 @@ spec:
             - name: plane
               mountPath: /databases/plane
               readOnly: true
+            - name: matchmark
+              mountPath: /databases/matchmark
+              readOnly: true
             - name: tmp
               mountPath: /tmp
       volumes:
@@ -151,6 +171,12 @@ spec:
         - name: plane
           secret:
             secretName: plane-database-vault
+            items:
+              - key: password
+                path: password
+        - name: matchmark
+          secret:
+            secretName: matchmark-database-vault
             items:
               - key: password
                 path: password
