@@ -1,0 +1,132 @@
+# Matchmark's API (README.md, The API). The image is the kustomization's pin,
+# never a tag here.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: api
+  namespace: matchmark
+# Vault takes the projected token below, not the API's.
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: matchmark
+spec:
+  selector:
+    app.kubernetes.io/name: matchmark-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: matchmark
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: matchmark-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: matchmark-api
+    spec:
+      serviceAccountName: api
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      imagePullSecrets:
+        - name: ghcr-pull-vault
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: api
+          image: ghcr.io/0xc0-labs/matchmark-api
+          envFrom:
+            - configMapRef:
+                name: release
+          env:
+            - name: MATCHMARK_SERVICE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: matchmark-api-vault
+                  key: service_token
+            - name: MATCHMARK_ISSUER
+              value: https://api.matchmark.int.0xc0.cc
+            - name: MATCHMARK_VAULT_SA_TOKEN_FILE
+              value: /var/run/secrets/vault/token
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
+            - name: OTEL_SERVICE_NAME
+              value: matchmark-api
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: service.version=$(APP_VERSION),deployment.environment=prod
+          ports:
+            - name: http
+              containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 20
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: vault-token
+              mountPath: /var/run/secrets/vault
+              readOnly: true
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+        - name: vault-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: vault
+                  expirationSeconds: 3600
+                  path: token
+---
+# Internal only: WARP, on the listener of *.matchmark.int.0xc0.cc, with no
+# public annotation.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: api
+  namespace: matchmark
+spec:
+  parentRefs:
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: internal-matchmark
+  hostnames:
+    - api.matchmark.int.0xc0.cc
+  rules:
+    - backendRefs:
+        - name: api
+          port: 80
