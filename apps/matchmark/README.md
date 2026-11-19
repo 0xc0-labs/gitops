@@ -327,11 +327,12 @@ gateway included), so an agent can run from a person's machine (`mm run`)
 against the same gateway and rules as the cluster's own agents.
 
 - **The route**: `HTTPRoute` `gateway-warp`, on the same `internal-matchmark`
-  listener and host as `api`, sends `/v1/chat/completions`, `/v1/messages` and
-  `/v1/messages/count_tokens` (exact) and everything under `/claude/` to the
-  Service `gateway`, port 8080. Every other path stays with the API. Gateway
-  API's precedence decides it, across routes too: an exact match beats a
-  prefix, so the API's `/v1/` prefix never takes those three. Internal only,
+  listener and host as `api`, sends `/v1/chat/completions` and `/v1/messages`
+  (exact) and everything under `/claude/` to the Service `gateway`, port 8080.
+  Every other path stays with the API. Gateway API's precedence decides it,
+  across routes too: an exact match beats a prefix, so the API's `/v1/` prefix
+  never takes those two. Token counting reaches the gateway under
+  `/claude/v1/messages/count_tokens`, which the prefix covers. Internal only,
   with no `public` annotation.
 - **Who may call** does not change: `agent-token` still asks for the agent's
   token in `Authorization` on the model routes, and `claude-agent-token` in
