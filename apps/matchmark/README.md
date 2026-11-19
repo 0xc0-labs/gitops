@@ -1,14 +1,15 @@
 # matchmark
 
-Matchmark's own agentgateway and object store (RustFS, below), in its namespace `matchmark`, from
+Matchmark's own agentgateway, object store (RustFS) and API (both below), in its namespace `matchmark`, from
 `prod/`: the controller, its CRDs (`agentgateway-crds`, `agentgateway`,
 both `v1.7.0` from `oci://cr.agentgateway.dev/charts`) and one `Gateway`
 named `gateway`, class `agentgateway`, with one HTTP listener on 8080 that
 admits routes of its own namespace only. The proxy is one Deployment the
 controller creates for that Gateway; its Service is `ClusterIP`. There is no
 route, no `AgentgatewayBackend` and no provider yet: agents will call it from
-inside the cluster, and nothing here is reachable from outside. Matchmark's
-API, its agent tokens and the provider's route come in their own changes.
+inside the cluster, and the gateway is not reachable from outside. Only the
+API is, over WARP; the gateway's routes, its JWT policy and the provider
+come in their own changes.
 
 ## Why this application has a project of its own
 
