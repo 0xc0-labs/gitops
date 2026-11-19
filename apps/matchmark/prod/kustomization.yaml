@@ -1,5 +1,6 @@
-# Matchmark's agentgateway: controller, CRDs and one Gateway, in-cluster only
-# (../README.md). It holds no data and no volume, so no backup.
+# Matchmark's agentgateway (controller, CRDs and one Gateway, in-cluster only)
+# and its object store, RustFS (../README.md). The agentgateway holds no data;
+# RustFS's volume declares its backup in rustfs.yaml.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: matchmark
@@ -21,6 +22,8 @@ resources:
   - namespace.yaml
   - gateway.yaml
   - network-policy.yaml
+  - vault-secrets.yaml
+  - rustfs.yaml
 images:
   - name: cr.agentgateway.dev/controller
     newTag: v1.7.0
