@@ -6,8 +6,9 @@ both `v1.7.0` from `oci://cr.agentgateway.dev/charts`) and one `Gateway`
 named `gateway`, class `agentgateway`, with one HTTP listener on 8080 that
 admits routes of its own namespace only. The proxy is one Deployment the
 controller creates for that Gateway; its Service is `ClusterIP`. There is no
-route to a real provider: the only one goes to a stand-in (The route to the
-provider). Agents call the gateway from inside the cluster, and it is not
+route to a provider's API for the product's agents: the only one goes to a
+stand-in (The route to the provider). `/claude` reaches Anthropic's for the
+subscription probe alone (The subscription probe). Agents call the gateway from inside the cluster, and it is not
 reachable from outside. Only the API is, over WARP.
 
 ## Why this application has a project of its own
@@ -131,6 +132,7 @@ secret); nothing here holds a value:
 | `matchmark/api` | `service_token` (32 characters or more) | `matchmark-api`, into `MATCHMARK_SERVICE_TOKEN` |
 | `matchmark/storage` | `access_key`, `secret_key` | `rustfs-root` |
 | `shared/ghcr-pull` | `username`, `password` | `ghcr-pull`, the image pull |
+| `matchmark/claude-subscription` | `oauth_token` | `claude-subscription`, the subscription probe |
 
 ## The route to the provider
 
@@ -208,6 +210,55 @@ kubectl -n matchmark logs deploy/gateway | grep matchmark.tenant   # the access 
 
 When a step fails, the cause of a refusal is in the proxy's access log, field
 `error`: the client's answer is generic.
+
+## The subscription probe
+
+`claude-subscription.yaml`, `subscription-probe.yaml` and
+`network-policy-subscription.yaml`. Matchmark's agents may run on Claude Code
+with the operator's subscription (operator decision, 2026-11-19); this answers,
+before anything is built on it, whether Claude Code's token for runs without a
+browser works through the gateway.
+
+- **The route**: `HTTPRoute` `claude` sends every path under `/claude` to the
+  `AgentgatewayBackend` `claude-subscription`, rewriting the prefix away, so
+  `/claude/v1/messages` reaches Anthropic as `/v1/messages`. The backend is
+  `api.anthropic.com` on 443, over TLS, with **no credential of its own**: the
+  `Authorization` the caller sends goes upstream as it is. Its
+  `policies.ai.routes` types `/v1/messages` as `Messages`,
+  `/v1/messages/count_tokens` as `AnthropicTokenCount` and the rest as
+  `Passthrough`.
+- **The policy** `claude-agent-token`: the same chain as `agent-token`, but the
+  agent token is read from the header `Matchmark-Agent-Token`, because
+  `Authorization` carries the subscription's token. Same issuer, audience and
+  JWKS; `Require`s of tenant `default` and of the model asked for being the
+  token's.
+- **The secret**: Vault `apps/matchmark/claude-subscription`, key
+  `oauth_token` (what `claude setup-token` prints), read by the
+  `VaultStaticSecret` `claude-subscription` into `claude-subscription-vault`.
+  Only the probe's pod reads it, as `CLAUDE_CODE_OAUTH_TOKEN`.
+- **The probe**: `Job` `subscription-probe`, a plain Job and not a sync hook,
+  at most two attempts in five minutes. It installs Claude Code `2.1.311` with
+  npm (`CLAUDE_CODE_VERSION`) on a Node image pinned by digest, asks the API
+  for an agent token (tenant `default`, app `smoke`, project `matchmark`,
+  agent `subscription-probe`, task `harness`, attempt 1, model
+  `claude-haiku-5-5`), and runs `claude -p` once with the base URL on the
+  gateway's `/claude`, the agent token in `ANTHROPIC_CUSTOM_HEADERS` and the
+  small model set to the same model. It prints Claude Code's JSON answer, with
+  the usage it reports, and never a token.
+- **It spends the operator's plan each time it runs.** The Job is not
+  recreated by a release: to run it again, delete it and let Argo CD recreate
+  it.
+- **Network**: this is the namespace's first way out to the internet. The
+  proxy reaches TCP 443 anywhere outside the private ranges
+  (`proxy-to-internet`), and so does the probe's pod, to fetch Claude Code. A
+  NetworkPolicy cannot name a host: what decides where a call goes is the
+  gateway's routes, and the only one that leaves the cluster is `claude`.
+
+```sh
+kubectl -n matchmark logs job/subscription-probe                       # Claude Code's answer and usage
+kubectl -n matchmark logs deploy/gateway | grep subscription-probe     # the access log: paths, models, usage, cost, claims
+kubectl -n matchmark delete job subscription-probe                     # run it again
+```
 
 ## Checking
 

@@ -1,0 +1,112 @@
+# What the subscription route and its probe open, on top of the default deny
+# (network-policy.yaml). The first way out to the internet in this namespace: a
+# policy cannot name a host, so these rules are by port, with the private ranges
+# left out, and the gateway's routes decide where a call goes (README.md, The
+# subscription probe).
+#
+# The proxy forwards the route's calls to Anthropic's API.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: proxy-to-internet
+  namespace: matchmark
+spec:
+  podSelector:
+    matchLabels:
+      gateway.networking.k8s.io/gateway-name: gateway
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443
+---
+# The probe's pod calls the API for a token, the proxy with it, and the
+# internet to fetch Claude Code.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: subscription-probe-egress
+  namespace: matchmark
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: matchmark-subscription-probe
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: matchmark-api
+      ports:
+        - protocol: TCP
+          port: 8000
+    - to:
+        - podSelector:
+            matchLabels:
+              gateway.networking.k8s.io/gateway-name: gateway
+      ports:
+        - protocol: TCP
+          port: 8080
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: subscription-probe-to-api
+  namespace: matchmark
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: matchmark-api
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: matchmark-subscription-probe
+      ports:
+        - protocol: TCP
+          port: 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: subscription-probe-to-proxy
+  namespace: matchmark
+spec:
+  podSelector:
+    matchLabels:
+      gateway.networking.k8s.io/gateway-name: gateway
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: matchmark-subscription-probe
+      ports:
+        - protocol: TCP
+          port: 8080
