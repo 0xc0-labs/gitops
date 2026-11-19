@@ -1,0 +1,67 @@
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayParameters
+metadata:
+  name: gateway
+  namespace: matchmark
+spec:
+  image:
+    digest: sha256:60216aafb03d37f94e952ff3d51d2f630a65b10ecaebdc0a864882f92610c45b
+  # In-cluster only: the chart's default is a LoadBalancer.
+  service:
+    spec:
+      type: ClusterIP
+  # The proxy's pod runs under Pod Security restricted (../README.md).
+  deployment:
+    spec:
+      template:
+        spec:
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: gateway
+  namespace: matchmark
+spec:
+  gatewayClassName: agentgateway
+  infrastructure:
+    parametersRef:
+      group: agentgateway.dev
+      kind: AgentgatewayParameters
+      name: gateway
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 8080
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+# The access log and the traces go to the collector's OTLP gRPC port; the
+# metrics are scraped (kustomization.yaml, monitoring).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: telemetry
+  namespace: matchmark
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: gateway
+  frontend:
+    accessLog:
+      otlp:
+        url: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4317
+    tracing:
+      url: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4317
+      randomSampling: "true"

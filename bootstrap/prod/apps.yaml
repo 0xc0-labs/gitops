@@ -30,7 +30,9 @@ spec:
       annotations:
         argocd.argoproj.io/compare-options: ServerSideDiff=true
     spec:
-      project: apps
+      # Matchmark's gateway brings cluster-scoped kinds: its Application alone
+      # has a project that admits them (bootstrap/prod/projects.yaml).
+      project: '{{ if eq (index .path.segments 1) "matchmark" }}matchmark{{ else }}apps{{ end }}'
       source:
         repoURL: https://github.com/0xc0-labs/gitops.git
         targetRevision: main

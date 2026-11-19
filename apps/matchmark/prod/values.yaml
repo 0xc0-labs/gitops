@@ -1,0 +1,28 @@
+# Pod Security restricted asks for it; the chart sets none.
+podSecurityContext:
+  seccompProfile:
+    type: RuntimeDefault
+controller:
+  replicaCount: 1
+  logLevel: info
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    memory: 256Mi
+# The only gateway of the cluster is Matchmark's, and it serves its namespace.
+discoveryNamespaceSelectors:
+  - matchLabels:
+      kubernetes.io/metadata.name: matchmark
+rbac:
+  gatewayNamespaces:
+    - matchmark
+istio:
+  enabled: false
+agentgatewayModels:
+  enabled: false
+monitoring:
+  enabled: true
+  grafanaDashboard:
+    enabled: false
