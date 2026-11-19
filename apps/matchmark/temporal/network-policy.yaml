@@ -1,0 +1,213 @@
+# Temporal's policies; the namespace denies by default and allows DNS
+# (../prod/network-policy.yaml). The server pods are those four components,
+# the Jobs are `database`. No client of Temporal other than its own UI and
+# Job is admitted yet.
+#
+# The four server pods find each other by pod IP through a table in the
+# database, not through Services: each opens its gRPC and membership ports to
+# the others (frontend 7233 and 6933, history 7234 and 6934, matching 7235 and
+# 6935, worker 7239 and 6939).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: temporal-server-internode
+  namespace: matchmark
+spec:
+  podSelector:
+    matchExpressions: &server
+      - key: app.kubernetes.io/name
+        operator: In
+        values: [temporal]
+      - key: app.kubernetes.io/component
+        operator: In
+        values: [frontend, history, matching, worker]
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions: *server
+      ports: &internode
+        - {protocol: TCP, port: 7233}
+        - {protocol: TCP, port: 6933}
+        - {protocol: TCP, port: 7234}
+        - {protocol: TCP, port: 6934}
+        - {protocol: TCP, port: 7235}
+        - {protocol: TCP, port: 6935}
+        - {protocol: TCP, port: 7239}
+        - {protocol: TCP, port: 6939}
+  egress:
+    - to:
+        - podSelector:
+            matchExpressions: *server
+      ports: *internode
+---
+# The frontend's gRPC port: the UI, and the Job that creates the Temporal
+# namespace. The UI's Service port 8080 and the frontend's 7233 are the pods'.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: temporal-frontend-from-clients
+  namespace: matchmark
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: temporal
+      app.kubernetes.io/component: frontend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: temporal
+              app.kubernetes.io/component: web
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: temporal
+              app.kubernetes.io/component: database
+      ports:
+        - protocol: TCP
+          port: 7233
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: temporal-to-frontend
+  namespace: matchmark
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: [temporal]
+      - key: app.kubernetes.io/component
+        operator: In
+        values: [web, database]
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: temporal
+              app.kubernetes.io/component: frontend
+      ports:
+        - protocol: TCP
+          port: 7233
+---
+# PostgreSQL: the four server pods, and the schema Job (the namespace Job
+# shares its labels and opens no connection to it). The server's side is in
+# platform/postgres/network-policy.yaml.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: temporal-to-postgres
+  namespace: matchmark
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: [temporal]
+      - key: app.kubernetes.io/component
+        operator: In
+        values: [frontend, history, matching, worker, database]
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: postgres
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+# The UI's port: Traefik's pods, for WARP.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: temporal-web-ingress
+  namespace: matchmark
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: temporal
+      app.kubernetes.io/component: web
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+# The collector's scrape of the server pods' metrics.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: temporal-metrics-from-collector
+  namespace: matchmark
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: [temporal]
+      - key: app.kubernetes.io/component
+        operator: In
+        values: [frontend, history, matching, worker]
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openobserve-collector
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/component: opentelemetry-collector
+      ports:
+        - protocol: TCP
+          port: 9090
+---
+# The server pods' traces, over OTLP gRPC.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: temporal-otlp-to-collector
+  namespace: matchmark
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: [temporal]
+      - key: app.kubernetes.io/component
+        operator: In
+        values: [frontend, history, matching, worker]
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openobserve-collector
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/component: opentelemetry-collector
+              app.kubernetes.io/instance: openobserve-collector.openobserve-collector-gateway
+      ports:
+        - protocol: TCP
+          port: 4317

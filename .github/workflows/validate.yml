@@ -15,7 +15,7 @@ jobs:
   validate:
     uses: 0xc0-labs/.github/.github/workflows/kustomize-validate.yml@main
     with:
-      components: platform/* apps/*/prod apps/*/staging apps/mautic/*
+      components: platform/* apps/*/prod apps/*/staging apps/mautic/* apps/matchmark/temporal
 
   pin:
     uses: 0xc0-labs/.github/.github/workflows/pin-check.yml@main

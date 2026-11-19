@@ -1,0 +1,19 @@
+# Internal only: WARP, on the listener of *.matchmark.int.0xc0.cc, with no
+# public annotation. The UI has no authentication of its own (../README.md,
+# Temporal).
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: temporal-web
+  namespace: matchmark
+spec:
+  parentRefs:
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: internal-matchmark
+  hostnames:
+    - temporal.matchmark.int.0xc0.cc
+  rules:
+    - backendRefs:
+        - name: temporal-web
+          port: 8080

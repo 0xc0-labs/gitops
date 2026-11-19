@@ -1,0 +1,138 @@
+# Chart 1.8.0 (appVersion 1.32.2). The images are the kustomization's pins.
+# The Jobs are plain Jobs, never sync hooks (../README.md, Temporal).
+serviceAccount:
+  create: false
+admintools:
+  enabled: false
+schema:
+  useHelmHooks: false
+  backoffLimit: 10
+  securityContext: &podSecurity
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext: &containerSecurity
+    runAsNonRoot: true
+    runAsUser: 1000
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: [ALL]
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
+server:
+  securityContext: *podSecurity
+  metrics:
+    annotations:
+      enabled: true
+  additionalEnv:
+    # No authorizer: the frontend allows every request. Network policies and
+    # WARP stand in its place (../README.md, Temporal).
+    - name: TEMPORAL_ALLOW_NO_AUTH
+      value: "true"
+    - name: OTEL_TRACES_EXPORTER
+      value: otlp
+    - name: OTEL_EXPORTER_OTLP_PROTOCOL
+      value: grpc
+    - name: OTEL_EXPORTER_OTLP_ENDPOINT
+      value: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4317
+    - name: OTEL_SERVICE_NAME
+      value: temporal
+    - name: OTEL_RESOURCE_ATTRIBUTES
+      value: service.version=1.32.2,deployment.environment=prod
+  config:
+    logLevel: info
+    persistence:
+      defaultStore: default
+      visibilityStore: visibility
+      # Fixed at the first start for the life of the databases (../README.md).
+      numHistoryShards: 128
+      datastores:
+        default:
+          sql:
+            pluginName: postgres12
+            databaseName: matchmark-temporal
+            connectAddr: postgres.postgres.svc.cluster.local:5432
+            connectProtocol: tcp
+            user: matchmark-temporal
+            existingSecret: temporal-database-vault
+            secretKey: password
+            createDatabase: false
+            manageSchema: true
+            maxConns: 8
+            maxIdleConns: 8
+            maxConnLifetime: 1h
+        visibility:
+          sql:
+            pluginName: postgres12
+            databaseName: matchmark-temporal-visibility
+            connectAddr: postgres.postgres.svc.cluster.local:5432
+            connectProtocol: tcp
+            user: matchmark-temporal-visibility
+            existingSecret: temporal-visibility-database-vault
+            secretKey: password
+            createDatabase: false
+            manageSchema: true
+            maxConns: 4
+            maxIdleConns: 4
+            maxConnLifetime: 1h
+    namespaces:
+      create: true
+      useHelmHooks: false
+      namespace:
+        - name: factory
+          retention: 7d
+  frontend:
+    containerSecurityContext: *containerSecurity
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        memory: 512Mi
+  history:
+    containerSecurityContext: *containerSecurity
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+      limits:
+        memory: 1Gi
+  matching:
+    containerSecurityContext: *containerSecurity
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        memory: 512Mi
+  worker:
+    containerSecurityContext: *containerSecurity
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        memory: 256Mi
+web:
+  image:
+    tag: 2.56.4
+  securityContext: *podSecurity
+  containerSecurityContext: *containerSecurity
+  additionalEnv:
+    - name: TEMPORAL_DEFAULT_NAMESPACE
+      value: factory
+    - name: TEMPORAL_CORS_ORIGINS
+      value: https://temporal.matchmark.int.0xc0.cc
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      memory: 128Mi

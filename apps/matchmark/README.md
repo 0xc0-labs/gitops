@@ -315,9 +315,78 @@ in 0xc0-labs/gitops#440).
   a call goes is the gateway's routes, and the only one that leaves the cluster
   is `claude`.
 
+## Temporal
+
+Temporal, the engine Matchmark's agents run in as workflows, from
+`temporal/`: the chart `temporal` 1.8.0 (server 1.32.2, UI 2.56.4) from
+`https://go.temporal.io/helm-charts`, in the namespace `matchmark`. Four
+server Deployments (`temporal-frontend`, `-history`, `-matching`, `-worker`),
+the UI (`temporal-web`), and two Jobs: the schema and the creation of the
+Temporal namespace `factory` (retention 7 days). The stores are two
+databases on the shared PostgreSQL, `matchmark-temporal` and
+`matchmark-temporal-visibility`, with a role each (`platform/postgres`);
+their passwords come from Vault (`matchmark/temporal-database`,
+`matchmark/temporal-visibility-database`) and a change restarts the server
+Deployments. The frontend is `temporal-frontend:7233` inside the namespace;
+no client of it is admitted yet.
+
+**Two Applications in one namespace.** `matchmark-temporal`
+(`bootstrap/prod/matchmark-temporal.yaml`) and `matchmark` share the
+namespace and nothing else. A sync that fails holds every later sync of its
+Application back (gitops#438), and the API releases on every merge while
+Temporal rarely changes: apart, neither holds the other. The namespace,
+`default-deny`, `vault-secrets` and the VaultAuth are `matchmark`'s.
+
+**No sync hooks.** The chart's schema Job is a `pre-install,pre-upgrade`
+hook by default, which Argo CD runs as PreSync before the Application's
+Secrets exist. `schema.useHelmHooks` and `server.config.namespaces.useHelmHooks`
+are false, so both Jobs are plain Jobs named after the chart's version
+(`temporal-schema-1-8-0-1`): a chart bump makes new ones. Never a
+sync-wave in `schema.jobAnnotations`: the namespace Job takes the same
+annotations and needs the frontend up. `skipTests` drops the test Pod, never
+`skipHooks`.
+
+**Pools.** The chart leaves a pool without an upper bound, and Temporal's
+sample (20, four services, two stores) reaches 160 connections; the shared
+server allows 100 to every application together. `maxConns` and
+`maxIdleConns` are 8 on the default store and 4 on visibility, 48 at most,
+with `maxConnLifetime: 1h` on both. They go away with a PostgreSQL of
+Matchmark's own.
+
+**Shards.** `numHistoryShards: 128`, fixed at the first start for the life
+of the databases: it can **never** be changed. Every shard polls the database
+a few times a minute even at rest, so a small server takes 128 where a
+production cluster takes 512.
+
+**No authentication.** Without an authorizer the frontend allows every
+request, and the UI is as open as the frontend. `TEMPORAL_ALLOW_NO_AUTH`
+says so. What stands in its place: the namespace's network policies (only
+the UI and the namespace Job reach the frontend) and WARP, the only way to
+`https://temporal.matchmark.int.0xc0.cc`. The route is on the
+`internal-matchmark` listener, with no `public` annotation.
+
+**Telemetry.** The server pods' metrics (`:9090`) carry `prometheus.io/*`
+annotations, as the collector's scrape reads them; traces go over OTLP gRPC
+to the collector's gateway (`OTEL_*` in `server.additionalEnv`); logs are
+JSON on stdout at `info`.
+
+**Resources** are a start, to be measured after the first week: requests
+only on CPU (the cluster's scarce resource), a memory limit of twice the
+request.
+
+**An upgrade** goes one minor version at a time. The chart's version brings
+the server's and the admin tools' together, and they must match. The new
+schema Job runs beside the new pods, which fail their schema-version check
+and restart until it is done. A schema only moves forward; a binary can be
+rolled back. Changing the retention of `factory` later is
+`temporal operator namespace update`: the Job never updates one.
+
 ## Checking
 
 ```sh
+kubectl -n matchmark get jobs -l app.kubernetes.io/name=temporal   # both Complete
+kubectl -n matchmark get deploy -l app.kubernetes.io/name=temporal # five available
+curl https://temporal.matchmark.int.0xc0.cc/api/v1/namespaces      # over WARP: lists factory
 kubectl -n matchmark get pods                 # controller and proxy Running
 kubectl get gatewayclass agentgateway         # Accepted
 kubectl -n matchmark get gateway gateway      # Programmed

@@ -65,6 +65,25 @@ spec:
                 values:
                   - matchmark-api
                   - matchmark-api-migrate
+        # Temporal's four server pods and its schema Job
+        # (apps/matchmark/temporal/network-policy.yaml).
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: matchmark
+          podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - temporal
+              - key: app.kubernetes.io/component
+                operator: In
+                values:
+                  - frontend
+                  - history
+                  - matching
+                  - worker
+                  - database
       ports:
         - protocol: TCP
           port: 5432
