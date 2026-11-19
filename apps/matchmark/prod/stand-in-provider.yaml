@@ -1,0 +1,94 @@
+# Matchmark's stand-in model provider (README.md, The route to the provider):
+# it answers in the shape of Anthropic's Messages API, checks no credential
+# and holds no data. The image is the kustomization's pin, never a tag here.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: stand-in-provider
+  namespace: matchmark
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stand-in-provider
+  namespace: matchmark
+spec:
+  selector:
+    app.kubernetes.io/name: matchmark-stand-in-provider
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stand-in-provider
+  namespace: matchmark
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: matchmark-stand-in-provider
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: matchmark-stand-in-provider
+    spec:
+      serviceAccountName: stand-in-provider
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      imagePullSecrets:
+        - name: ghcr-pull-vault
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: stand-in-provider
+          image: ghcr.io/0xc0-labs/matchmark-stand-in-provider
+          envFrom:
+            - configMapRef:
+                name: release
+          env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
+            - name: OTEL_SERVICE_NAME
+              value: matchmark-stand-in-provider
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: service.version=$(APP_VERSION),deployment.environment=prod
+          ports:
+            - name: http
+              containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 20
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi

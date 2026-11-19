@@ -25,18 +25,26 @@ resources:
   - vault-secrets.yaml
   - rustfs.yaml
   - api.yaml
+  - stand-in-provider.yaml
+  - gateway-route.yaml
+  - network-policy-provider.yaml
+  - proof.yaml
 images:
   - name: cr.agentgateway.dev/controller
     newTag: v1.7.0
     digest: sha256:87c1363bf0cbc7fdb375866e592294114c8763097d2d0c9fc45fcb1fe00a4ab8
-  # The API's pin: the application's release job moves it (README.md, The API).
+  # The API's and the stand-in's pins, one tag: the application's release job
+  # moves both (README.md, The API).
   - name: ghcr.io/0xc0-labs/matchmark-api
-    newTag: sha-f0cccc3
-    digest: sha256:2b465393bd61cda40fbbac5fb4eb6e784563d7109aedde69609ece3997a0ea7b
+    newTag: sha-c046ced
+    digest: sha256:d54a97012ef8ab458a5edec5298294a68b7294184ad03c532d364cf55b0335d9
+  - name: ghcr.io/0xc0-labs/matchmark-stand-in-provider
+    newTag: sha-c046ced
+    digest: sha256:f4e03d2a1bab7bc5b5da2583e819bc7fdff8647a1c4a6e31fc52a5dcc6da6b90
 configMapGenerator:
   - name: release
     literals:
-      - APP_VERSION=sha-f0cccc3
+      - APP_VERSION=sha-c046ced
 patches:
   # Deleting a CRD deletes every object of its kind.
   - target:
