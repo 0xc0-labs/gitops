@@ -76,6 +76,21 @@ gateway:
         selector:
           matchLabels:
             gateway.0xc0.cc/internal: "true"
+    # `*.int.0xc0.cc` covers one label, so these names need a wildcard of their own.
+    internal-matchmark:
+      port: 8444
+      protocol: HTTPS
+      hostname: "*.matchmark.int.0xc0.cc"
+      mode: Terminate
+      certificateRefs:
+        - name: wildcard-matchmark-int-0xc0-cc
+          group: ""
+          kind: Secret
+      namespacePolicy:
+        from: Selector
+        selector:
+          matchLabels:
+            gateway.0xc0.cc/internal: "true"
     websecure-offby1-cc-apex:
       port: 8443
       protocol: HTTPS

@@ -77,8 +77,10 @@ repo's own.
   public tunnel never targets. An internal service attaches to the Gateway's
   `internal` listener (`sectionName: internal`) with a `*.int.0xc0.cc` name,
   its namespace labelled `gateway.0xc0.cc/internal: "true"`, and never
-  carries the `public` annotation. external-dns never publishes under
-  `int.0xc0.cc`. A `*.int.0xc0.cc` name never goes on a `websecure` route
+  carries the `public` annotation. A name under `matchmark.int.0xc0.cc`
+  attaches to `sectionName: internal-matchmark` instead: `*.int.0xc0.cc`
+  covers one label, so those names have a wildcard of their own.
+  external-dns never publishes under `int.0xc0.cc`. A `*.int.0xc0.cc` name never goes on a `websecure` route
   either: the public `*.0xc0.cc` listener would accept it. The internal path
   has no WAF: CrowdSec's bouncer is on `websecure` only.
 - **The WAF lives at the ingress**: CrowdSec's bouncer on Traefik's
@@ -127,7 +129,8 @@ rules above:
 - A public route attaches to an HTTPS listener of `websecure`, never `web`.
   An internal one attaches to `sectionName: internal` with a
   `*.int.0xc0.cc` name, in a namespace labelled
-  `gateway.0xc0.cc/internal: "true"`, without the `public` annotation; that
+  `gateway.0xc0.cc/internal: "true"`, without the `public` annotation (a
+  `*.matchmark.int.0xc0.cc` name: `sectionName: internal-matchmark`); that
   name never goes on a `websecure` route.
 - The namespace denies by default and its NetworkPolicies open only what it
   needs. A data service accepts connections and initiates none.
