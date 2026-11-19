@@ -33,6 +33,7 @@ resources:
   - proof.yaml
   - claude-subscription.yaml
   - network-policy-subscription.yaml
+  - gateway-warp.yaml
 images:
   - name: cr.agentgateway.dev/controller
     newTag: v1.7.0

@@ -1,0 +1,62 @@
+# The gateway under the API's name, over WARP (README.md, The gateway over
+# WARP). Internal only, with no public annotation, on the same listener and host
+# as the `api` route: Gateway API gives an exact match precedence over a
+# prefix, so `/v1/messages` here wins over the API's `/v1/` prefix and every
+# other path stays with the API.
+#
+# Who may call is unchanged: the gateway's own policies (`agent-token` and
+# `claude-agent-token`) still ask for the agent's token on every one of these
+# paths.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: gateway-warp
+  namespace: matchmark
+spec:
+  parentRefs:
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: internal-matchmark
+  hostnames:
+    - api.matchmark.int.0xc0.cc
+  rules:
+    - matches:
+        - path:
+            type: Exact
+            value: /v1/chat/completions
+        - path:
+            type: Exact
+            value: /v1/messages
+        - path:
+            type: Exact
+            value: /v1/messages/count_tokens
+        - path:
+            type: PathPrefix
+            value: /claude/
+      backendRefs:
+        - name: gateway
+          port: 8080
+---
+# The proxy's port, open to Traefik's pods for WARP.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: gateway-ingress
+  namespace: matchmark
+spec:
+  podSelector:
+    matchLabels:
+      gateway.networking.k8s.io/gateway-name: gateway
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - protocol: TCP
+          port: 8080
