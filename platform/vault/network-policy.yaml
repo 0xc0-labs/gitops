@@ -56,6 +56,13 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/name: artistlabco-com-cms
+        # Matchmark's API signs its agent tokens with its Transit key.
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: matchmark
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: matchmark-api
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: vault

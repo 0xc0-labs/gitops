@@ -1,6 +1,6 @@
 # Matchmark's agentgateway (controller, CRDs and one Gateway, in-cluster only)
-# and its object store, RustFS (../README.md). The agentgateway holds no data;
-# RustFS's volume declares its backup in rustfs.yaml.
+# and its object store, RustFS, and its API (../README.md). The agentgateway
+# and the API hold no data; RustFS's volume declares its backup in rustfs.yaml.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: matchmark
@@ -24,10 +24,19 @@ resources:
   - network-policy.yaml
   - vault-secrets.yaml
   - rustfs.yaml
+  - api.yaml
 images:
   - name: cr.agentgateway.dev/controller
     newTag: v1.7.0
     digest: sha256:87c1363bf0cbc7fdb375866e592294114c8763097d2d0c9fc45fcb1fe00a4ab8
+  # The API's pin: the application's release job moves it (README.md, The API).
+  - name: ghcr.io/0xc0-labs/matchmark-api
+    newTag: sha-f0cccc3
+    digest: sha256:2b465393bd61cda40fbbac5fb4eb6e784563d7109aedde69609ece3997a0ea7b
+configMapGenerator:
+  - name: release
+    literals:
+      - APP_VERSION=sha-f0cccc3
 patches:
   # Deleting a CRD deletes every object of its kind.
   - target:

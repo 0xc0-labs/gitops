@@ -1,14 +1,15 @@
 # matchmark
 
-Matchmark's own agentgateway and object store (RustFS, below), in its namespace `matchmark`, from
+Matchmark's own agentgateway, object store (RustFS) and API (both below), in its namespace `matchmark`, from
 `prod/`: the controller, its CRDs (`agentgateway-crds`, `agentgateway`,
 both `v1.7.0` from `oci://cr.agentgateway.dev/charts`) and one `Gateway`
 named `gateway`, class `agentgateway`, with one HTTP listener on 8080 that
 admits routes of its own namespace only. The proxy is one Deployment the
 controller creates for that Gateway; its Service is `ClusterIP`. There is no
 route, no `AgentgatewayBackend` and no provider yet: agents will call it from
-inside the cluster, and nothing here is reachable from outside. Matchmark's
-API, its agent tokens and the provider's route come in their own changes.
+inside the cluster, and the gateway is not reachable from outside. Only the
+API is, over WARP; the gateway's routes, its JWT policy and the provider
+come in their own changes.
 
 ## Why this application has a project of its own
 
@@ -90,6 +91,47 @@ kubectl -n matchmark get svc rustfs                        # ClusterIP, 9000 onl
 
 To check the backup, look for the VM's last PBS job in the Proxmox backup
 datastore, and restore the volume's data from it.
+
+## The API
+
+`api.yaml`: one `Deployment` `api` (one replica) of the private image
+`ghcr.io/0xc0-labs/matchmark-api`, FastAPI on port 8000, a `Service` `api` on
+80 and an `HTTPRoute` for `https://api.matchmark.int.0xc0.cc` on Traefik's
+Gateway, `sectionName: internal-matchmark`, WARP only, with no `public`
+annotation. It serves `GET /healthz`, `POST /v1/agent-tokens` (behind the
+service token) and `GET /.well-known/jwks.json` (open).
+
+- **Pin**: the `images:` entry and `APP_VERSION` of the `release` ConfigMap in
+  `prod/kustomization.yaml`, which the application's release job moves with a
+  PR on every merge to its `main`; Matchmark has no staging. The image is
+  pulled with `ghcr-pull-vault`, from `apps/shared/ghcr-pull`.
+- **Vault**: the pod logs in with its `api` ServiceAccount (Kubernetes auth,
+  mount `kubernetes`, role `matchmark-api`) with a projected token of audience
+  `vault`, at `MATCHMARK_VAULT_SA_TOKEN_FILE`. It signs with the Transit key
+  `matchmark-agent-tokens`, which never leaves Vault, and publishes its public
+  half. `platform/vault/network-policy.yaml` admits its pods.
+- **Telemetry**: traces and metrics over OTLP/HTTP to the collector gateway on
+  4318 (`OTEL_EXPORTER_OTLP_ENDPOINT`), logs as JSON on stdout.
+- **Network**: the API's port is open to Traefik's pods and to this
+  namespace's gateway (controller and proxy, for the JWKS); it reaches Vault's
+  8200 and the collector's 4318.
+
+```sh
+kubectl -n matchmark get pod -l app.kubernetes.io/name=matchmark-api   # Ready
+curl https://api.matchmark.int.0xc0.cc/healthz                         # 200, over WARP
+curl https://api.matchmark.int.0xc0.cc/.well-known/jwks.json           # one Ed25519 key, kid matchmark-agent-tokens-v1
+```
+
+### Before the first sync: the secrets
+
+Written in Vault by the operator (`vault`'s README, Writing or rotating a
+secret); nothing here holds a value:
+
+| Path (mount `apps`) | Keys | Read by |
+|---|---|---|
+| `matchmark/api` | `service_token` (32 characters or more) | `matchmark-api`, into `MATCHMARK_SERVICE_TOKEN` |
+| `matchmark/storage` | `access_key`, `secret_key` | `rustfs-root` |
+| `shared/ghcr-pull` | `username`, `password` | `ghcr-pull`, the image pull |
 
 ## Checking
 
