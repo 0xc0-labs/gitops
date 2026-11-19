@@ -1,5 +1,5 @@
 # The route from Matchmark's gateway to Anthropic's real API, for Claude Code on
-# the operator's subscription (README.md, The subscription probe).
+# the operator's subscription (README.md, The subscription route).
 #
 # The backend has no credential of its own: the `Authorization` the caller sends
 # goes upstream as it is, and `anthropic-beta` is never touched. The agent
