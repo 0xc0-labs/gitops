@@ -181,8 +181,8 @@ its token's, is refused.
 
 ### The proof
 
-`proof.yaml`: a `Job` `gateway-proof`, an Argo CD `PostSync` hook replaced on
-each sync, running `proof.py` (a ConfigMap) with the API's image. It fails
+`proof.yaml`: a `Job` `gateway-proof-<APP_VERSION>`, one per deployed version,
+running `proof.py` (a ConfigMap) with the API's image. It fails
 unless: (1) the API issues a token (tenant `default`, app `smoke`, project
 `matchmark`, agent `proof`, task `phase-0`, attempt 1, model
 `claude-sonnet-4-5`); (2) a call to `/v1/chat/completions` with that token and
@@ -191,12 +191,18 @@ stand-in's rule for `Say only: ok`); (3) the same call to `/v1/messages`
 answers 200 with `usage.input_tokens` 3 and `output_tokens` 16; (4, 5) the
 same calls for another model answer 403; (6, 7) the same calls without a
 token answer 401. It prints each step's result and never
-the token. A failed attempt is retried up to six times, which covers the
-proxy still loading the policy.
+the token. It is not a sync hook, so a failing proof never
+holds a sync back: the Job's name takes the version from the `release`
+ConfigMap, a release makes a new Job and Argo CD prunes the previous one. It
+makes two attempts at most, within three minutes (the second covers the proxy
+still loading the policy). A failed Job leaves the application `Degraded`, a
+completed one `Healthy`: that, and the Job's log, is where to look. A change of
+configuration with no new version does not run it again; to run it by hand,
+delete the Job and let Argo CD recreate it.
 
 ```sh
-kubectl -n matchmark get job gateway-proof                # Complete
-kubectl -n matchmark logs job/gateway-proof               # seven lines, each "ok"
+kubectl -n matchmark get job                               # gateway-proof-<version>, Complete
+kubectl -n matchmark logs job/gateway-proof-<version>     # seven lines, each "ok"
 kubectl -n matchmark logs deploy/gateway | grep matchmark.tenant   # the access log, with the claims
 ```
 
