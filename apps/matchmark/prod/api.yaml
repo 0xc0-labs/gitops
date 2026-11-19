@@ -63,6 +63,20 @@ spec:
               value: https://api.matchmark.int.0xc0.cc
             - name: MATCHMARK_VAULT_SA_TOKEN_FILE
               value: /var/run/secrets/vault/token
+            - name: PGHOST
+              value: postgres.postgres.svc.cluster.local
+            - name: PGDATABASE
+              value: matchmark
+            - name: PGUSER
+              value: matchmark
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: matchmark-database-vault
+                  key: password
+            # The shared PostgreSQL serves no TLS (README.md, The usage record).
+            - name: PGSSLMODE
+              value: disable
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
             - name: OTEL_SERVICE_NAME
@@ -113,7 +127,8 @@ spec:
                   path: token
 ---
 # Internal only: WARP, on the listener of *.matchmark.int.0xc0.cc, with no
-# public annotation.
+# public annotation. The paths are named so `/otlp`, which asks for no
+# credential, is not reachable from here (README.md, The usage record).
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -127,6 +142,16 @@ spec:
   hostnames:
     - api.matchmark.int.0xc0.cc
   rules:
-    - backendRefs:
+    - matches:
+        - path:
+            type: Exact
+            value: /healthz
+        - path:
+            type: PathPrefix
+            value: /v1/
+        - path:
+            type: PathPrefix
+            value: /.well-known/
+      backendRefs:
         - name: api
           port: 80

@@ -98,8 +98,11 @@ datastore, and restore the volume's data from it.
 `ghcr.io/0xc0-labs/matchmark-api`, FastAPI on port 8000, a `Service` `api` on
 80 and an `HTTPRoute` for `https://api.matchmark.int.0xc0.cc` on Traefik's
 Gateway, `sectionName: internal-matchmark`, WARP only, with no `public`
-annotation. It serves `GET /healthz`, `POST /v1/agent-tokens` (behind the
-service token) and `GET /.well-known/jwks.json` (open).
+annotation. It serves `GET /healthz`, `POST /v1/agent-tokens` and `GET
+/v1/usage` (behind the service token), `GET /.well-known/jwks.json` (open) and
+`POST /otlp/v1/logs`, which only the collector reaches (The usage record). The
+route names `/healthz`, `/v1/` and `/.well-known/`, so a request for `/otlp`
+over WARP answers 404.
 
 - **Pin**: the `images:` entry and `APP_VERSION` of the `release` ConfigMap in
   `prod/kustomization.yaml`, which the application's release job moves with a
@@ -112,9 +115,10 @@ service token) and `GET /.well-known/jwks.json` (open).
   half. `platform/vault/network-policy.yaml` admits its pods.
 - **Telemetry**: traces and metrics over OTLP/HTTP to the collector gateway on
   4318 (`OTEL_EXPORTER_OTLP_ENDPOINT`), logs as JSON on stdout.
-- **Network**: the API's port is open to Traefik's pods and to this
-  namespace's gateway (controller and proxy, for the JWKS); it reaches Vault's
-  8200 and the collector's 4318.
+- **Network**: the API's port is open to Traefik's pods, to this
+  namespace's gateway (controller and proxy, for the JWKS) and to the
+  collector's gateway pods (The usage record); it reaches Vault's 8200, the
+  collector's 4318 and PostgreSQL's 5432.
 
 ```sh
 kubectl -n matchmark get pod -l app.kubernetes.io/name=matchmark-api   # Ready
@@ -130,6 +134,7 @@ secret); nothing here holds a value:
 | Path (mount `apps`) | Keys | Read by |
 |---|---|---|
 | `matchmark/api` | `service_token` (32 characters or more) | `matchmark-api`, into `MATCHMARK_SERVICE_TOKEN` |
+| `matchmark/database` | `password` | `matchmark-database`, into `PGPASSWORD` of the API and the migration. The role `matchmark` on the shared PostgreSQL: `platform/postgres` sets it |
 | `matchmark/storage` | `access_key`, `secret_key` | `rustfs-root` |
 | `shared/ghcr-pull` | `username`, `password` | `ghcr-pull`, the image pull |
 | `matchmark/claude-subscription` | `oauth_token` | `claude-subscription`, the subscription probe |
@@ -195,24 +200,87 @@ model answers 200 with `usage.prompt_tokens` 3 and `completion_tokens` 16 (the
 stand-in's rule for `Say only: ok`); (3) the same call to `/v1/messages`
 answers 200 with `usage.input_tokens` 3 and `output_tokens` 16; (4, 5) the
 same calls for another model answer 403; (6, 7) the same calls without a
-token answer 401. It prints each step's result and never
+token answer 401; (8) the API's `GET /v1/usage` for tenant `default`, agent
+`proof`, since the proof started, shows the two successful calls as rows with 3
+input and 16 output tokens, a cost above zero, app `smoke` and project
+`matchmark`, waiting up to a minute for them (The usage record). It prints each
+step's result and never
 the token. It is not a sync hook, so a failing proof never
 holds a sync back: the Job's name takes the version from the `release`
 ConfigMap, a release makes a new Job and Argo CD prunes the previous one. It
-makes two attempts at most, within three minutes (the second covers the proxy
-still loading the policy). A failed Job leaves the application `Degraded`, a
+runs in sync wave 1, after the API's new pods are Healthy. It
+makes two attempts at most, within seven minutes (the second covers the proxy
+still loading the policy; each attempt may wait the minute of step 8). A failed Job leaves the application `Degraded`, a
 completed one `Healthy`: that, and the Job's log, is where to look. A change of
 configuration with no new version does not run it again; to run it by hand,
 delete the Job and let Argo CD recreate it.
 
 ```sh
 kubectl -n matchmark get job                               # gateway-proof-<version>, Complete
-kubectl -n matchmark logs job/gateway-proof-<version>     # seven lines, each "ok"
+kubectl -n matchmark logs job/gateway-proof-<version>     # eight lines, each "ok"
 kubectl -n matchmark logs deploy/gateway | grep matchmark.tenant   # the access log, with the claims
 ```
 
 When a step fails, the cause of a refusal is in the proxy's access log, field
 `error`: the client's answer is generic.
+
+## The usage record
+
+`migrate.yaml`, `network-policy-usage.yaml` and, in
+`platform/openobserve-collector`, the patch that adds the `logs/matchmark_usage`
+pipeline. The cost of a model call lands in `usage_ledger` on the shared
+PostgreSQL, with its tenant, application, project and agent, from the API (its
+own README, Usage record).
+
+**The path of a row.**
+
+1. The proxy's `telemetry` policy exports each call's access log over OTLP gRPC
+   to the collector's gateway (4317). A model call's record carries
+   `gen_ai.usage.*`, `agw.ai.usage.cost.total` and the `matchmark.*` claims; a
+   refused call carries no `gen_ai.usage.*`.
+2. The pipeline `logs/matchmark_usage` takes the records from the OTLP receiver,
+   keeps those with `gen_ai.usage.input_tokens` or `.output_tokens`, batches
+   them and posts them as OTLP/HTTP protobuf, gzipped, to
+   `http://api.matchmark.svc.cluster.local/otlp` (`/v1/logs` is added).
+3. The API keeps the records that are a model call with usage and writes one
+   row each: a batch delivered twice adds none.
+
+**OpenObserve is not held back.** No other pipeline takes logs from the OTLP
+receiver, so the API's pipeline is the only one on that signal; metrics and
+traces are other signals, with their own pipelines. The exporter has its own
+queue (1000 batches) and its retries stop after two minutes: with the API down
+or slow, the queue fills, then the records of this pipeline alone are dropped,
+and nothing else the collector sends changes. The OpenObserve exporters are
+untouched.
+
+**The database.** `PGHOST=postgres.postgres.svc.cluster.local`,
+`PGDATABASE` and `PGUSER` `matchmark`, `PGPASSWORD` from Vault
+`apps/matchmark/database` through the `VaultStaticSecret` `matchmark-database`,
+which restarts the `api` Deployment when it changes. `PGSSLMODE=disable`: the
+shared PostgreSQL serves no TLS, as `artistlabco-com` sets for it
+(`DATABASE_SSL=false`); the traffic stays in the cluster, under policies that
+admit the API's pods and the migration's alone, at both ends
+(`network-policy-usage.yaml` and `platform/postgres/network-policy.yaml`).
+
+**The migration.** `Job` `api-migrate`, an Argo CD `Sync` hook in wave -1,
+deleted before each creation, so every sync runs it: `python -m matchmark_api
+migrate` with the API's image and the same `PG*` variables. It is idempotent.
+The secrets and the policy it needs are in wave -2 and the API's new pods in
+wave 0, so a version's pods start after its migration succeeded; a migration
+that fails (two attempts at most, within three minutes) fails the sync there
+and the previous pods keep serving.
+
+**Only the collector reaches `/otlp`.** The endpoint asks for no credential, and
+the tenant of a row is what the record says. The public route names the paths
+it serves, so over WARP `/otlp/v1/logs` answers 404, and
+`api-otlp-from-collector` opens the API's port to the collector's gateway pods
+alone outside this namespace, besides Traefik's.
+
+```sh
+kubectl -n matchmark logs job/api-migrate                  # the migrations applied
+curl -i https://api.matchmark.int.0xc0.cc/otlp/v1/logs     # 404, over WARP
+kubectl -n matchmark logs job/gateway-proof-<version>      # step 8: the rows
+```
 
 ## The subscription probe
 
