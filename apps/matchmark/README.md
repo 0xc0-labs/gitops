@@ -159,7 +159,10 @@ its token's, is refused.
   the stand-in's Messages), and `/v1/messages` is `Messages` (Anthropic's
   shape, `usage.input_tokens` and `output_tokens`). Matchmark's agents use
   `/v1/chat/completions`; `/v1/messages` is for clients that speak Anthropic's
-  API. The backend has no credential, and the proxy adds none.
+  API. The backend's `path` is `/v1/messages`: with `host` overridden and no
+  `path`, the proxy forwards the client's path unchanged, and the stand-in
+  answers 404 to `/v1/chat/completions`. The backend has no credential, and
+  the proxy adds none.
 - **The policy** `agent-token`, on that route, so on both paths: JWT authentication in `Strict`
   mode (issuer `https://api.matchmark.int.0xc0.cc`, audience
   `matchmark-gateway`, the JWKS fetched from the Service `api`), and one
