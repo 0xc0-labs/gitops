@@ -48,25 +48,33 @@ data:
         if issued.status_code != 201:
             sys.exit(1)
         token = issued.json()["token"]
-        url = f"{GATEWAY}/v1/messages"
+        headers = {"Authorization": f"Bearer {token}"}
+        chat_url = f"{GATEWAY}/v1/chat/completions"
+        messages_url = f"{GATEWAY}/v1/messages"
 
-        answered = client.post(url, headers={"Authorization": f"Bearer {token}"}, json=REQUEST)
+        answered = client.post(chat_url, headers=headers, json=REQUEST)
         usage = answered.json().get("usage") if answered.status_code == 200 else None
         check(
-            "2 call with the token and its model",
+            "2 chat completions, the token and its model",
+            usage is not None and usage.get("prompt_tokens") == 3 and usage.get("completion_tokens") == 16,
+            f"status {answered.status_code}, usage {usage}",
+        )
+
+        answered = client.post(messages_url, headers=headers, json=REQUEST)
+        usage = answered.json().get("usage") if answered.status_code == 200 else None
+        check(
+            "3 messages, the token and its model",
             usage is not None and usage.get("input_tokens") == 3 and usage.get("output_tokens") == 16,
             f"status {answered.status_code}, usage {usage}",
         )
 
-        other = client.post(
-            url,
-            headers={"Authorization": f"Bearer {token}"},
-            json={**REQUEST, "model": "claude-haiku-4-5"},
-        )
-        check("3 call asking for another model", other.status_code == 403, f"status {other.status_code}")
+        for step, url in (("4 chat completions", chat_url), ("5 messages", messages_url)):
+            other = client.post(url, headers=headers, json={**REQUEST, "model": "claude-haiku-4-5"})
+            check(f"{step}, another model", other.status_code == 403, f"status {other.status_code}")
 
-        bare = client.post(url, json=REQUEST)
-        check("4 call with no token", bare.status_code == 401, f"status {bare.status_code}")
+        for step, url in (("6 chat completions", chat_url), ("7 messages", messages_url)):
+            bare = client.post(url, json=REQUEST)
+            check(f"{step}, no token", bare.status_code == 401, f"status {bare.status_code}")
 
     sys.exit(1 if failures else 0)
 ---

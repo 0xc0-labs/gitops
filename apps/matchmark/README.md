@@ -147,11 +147,18 @@ its token's, is refused.
   data. It stands in for a real provider until there is one (no provider key
   exists anywhere yet): the cost the gateway reads is the catalog's price for
   the model asked for, over the stand-in's token counts.
-- **The route**: `HTTPRoute` `messages` on `gateway` sends `POST /v1/messages`,
-  and nothing else, to the `AgentgatewayBackend` `anthropic`, whose host and
-  port are the stand-in's Service, in plain HTTP. The backend has no
-  credential, and the proxy adds none.
-- **The policy** `agent-token`, on that route: JWT authentication in `Strict`
+- **The route**: `HTTPRoute` `model-calls` on `gateway` sends `POST
+  /v1/chat/completions` and `POST /v1/messages`, and nothing else, to the
+  `AgentgatewayBackend` `anthropic`, whose host and port are the stand-in's
+  Service, in plain HTTP. The backend's `policies.ai.routes` says which format
+  each path speaks, and without it every path answers in OpenAI's:
+  `/v1/chat/completions` is `Completions` (OpenAI's chat completions shape,
+  `usage.prompt_tokens` and `completion_tokens`; the gateway translates it to
+  the stand-in's Messages), and `/v1/messages` is `Messages` (Anthropic's
+  shape, `usage.input_tokens` and `output_tokens`). Matchmark's agents use
+  `/v1/chat/completions`; `/v1/messages` is for clients that speak Anthropic's
+  API. The backend has no credential, and the proxy adds none.
+- **The policy** `agent-token`, on that route, so on both paths: JWT authentication in `Strict`
   mode (issuer `https://api.matchmark.int.0xc0.cc`, audience
   `matchmark-gateway`, the JWKS fetched from the Service `api`), and one
   authorization of action `Require` whose expressions must all hold:
@@ -178,16 +185,18 @@ its token's, is refused.
 each sync, running `proof.py` (a ConfigMap) with the API's image. It fails
 unless: (1) the API issues a token (tenant `default`, app `smoke`, project
 `matchmark`, agent `proof`, task `phase-0`, attempt 1, model
-`claude-sonnet-4-5`); (2) a call with that token and model answers 200 with
-the `usage` the stand-in's rule gives (3 input and 16 output tokens for
-`Say only: ok`); (3) the same call for another model answers 403; (4) the
-same call without a token answers 401. It prints each step's result and never
+`claude-sonnet-4-5`); (2) a call to `/v1/chat/completions` with that token and
+model answers 200 with `usage.prompt_tokens` 3 and `completion_tokens` 16 (the
+stand-in's rule for `Say only: ok`); (3) the same call to `/v1/messages`
+answers 200 with `usage.input_tokens` 3 and `output_tokens` 16; (4, 5) the
+same calls for another model answer 403; (6, 7) the same calls without a
+token answer 401. It prints each step's result and never
 the token. A failed attempt is retried up to six times, which covers the
 proxy still loading the policy.
 
 ```sh
 kubectl -n matchmark get job gateway-proof                # Complete
-kubectl -n matchmark logs job/gateway-proof               # four lines, each "ok"
+kubectl -n matchmark logs job/gateway-proof               # seven lines, each "ok"
 kubectl -n matchmark logs deploy/gateway | grep matchmark.tenant   # the access log, with the claims
 ```
 
