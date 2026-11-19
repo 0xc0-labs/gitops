@@ -71,6 +71,40 @@ spec:
     transformation:
       excludeRaw: true
 ---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: matchmark-temporal-database
+  namespace: postgres
+spec:
+  vaultAuthRef: vault-secrets
+  type: kv-v2
+  mount: apps
+  path: matchmark/temporal-database
+  refreshAfter: 1h
+  destination:
+    name: matchmark-temporal-database-vault
+    create: true
+    transformation:
+      excludeRaw: true
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: matchmark-temporal-visibility-database
+  namespace: postgres
+spec:
+  vaultAuthRef: vault-secrets
+  type: kv-v2
+  mount: apps
+  path: matchmark/temporal-visibility-database
+  refreshAfter: 1h
+  destination:
+    name: matchmark-temporal-visibility-database-vault
+    create: true
+    transformation:
+      excludeRaw: true
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -153,6 +187,12 @@ spec:
             - name: matchmark
               mountPath: /databases/matchmark
               readOnly: true
+            - name: matchmark-temporal
+              mountPath: /databases/matchmark-temporal
+              readOnly: true
+            - name: matchmark-temporal-visibility
+              mountPath: /databases/matchmark-temporal-visibility
+              readOnly: true
             - name: tmp
               mountPath: /tmp
       volumes:
@@ -177,6 +217,18 @@ spec:
         - name: matchmark
           secret:
             secretName: matchmark-database-vault
+            items:
+              - key: password
+                path: password
+        - name: matchmark-temporal
+          secret:
+            secretName: matchmark-temporal-database-vault
+            items:
+              - key: password
+                path: password
+        - name: matchmark-temporal-visibility
+          secret:
+            secretName: matchmark-temporal-visibility-database-vault
             items:
               - key: password
                 path: password
