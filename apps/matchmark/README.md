@@ -326,6 +326,44 @@ in 0xc0-labs/gitops#440).
   (`proxy-to-internet`). A NetworkPolicy cannot name a host: what decides where
   a call goes is the gateway's routes, and the only one that leaves the cluster
   is `claude`.
+- **Over WARP**: the route is also reached from outside the cluster, under
+  `/claude/` of `api.matchmark.int.0xc0.cc` (The gateway over WARP), so a
+  person's machine can run Claude Code through the gateway with its own
+  credential in `Authorization`.
+
+## The gateway over WARP
+
+`gateway-warp.yaml`. The gateway answers under the API's name
+(operator decision, 2026-11-19: `api.matchmark.int.0xc0.cc` is the API, the
+gateway included), so an agent can run from a person's machine (`mm run`)
+against the same gateway and rules as the cluster's own agents.
+
+- **The route**: `HTTPRoute` `gateway-warp`, on the same `internal-matchmark`
+  listener and host as `api`, sends `/v1/chat/completions` and `/v1/messages`
+  (exact) and everything under `/claude/` to the Service `gateway`, port 8080.
+  Every other path stays with the API. Gateway API's precedence decides it,
+  across routes too: an exact match beats a prefix, so the API's `/v1/` prefix
+  never takes those two. Token counting reaches the gateway under
+  `/claude/v1/messages/count_tokens`, which the prefix covers. Internal only,
+  with no `public` annotation.
+- **Who may call** does not change: `agent-token` still asks for the agent's
+  token in `Authorization` on the model routes, and `claude-agent-token` in
+  `Matchmark-Agent-Token` under `/claude/`. A person's own Claude credential,
+  in `Authorization` under `/claude/`, goes to Anthropic untouched, as the
+  worker's will; the gateway holds no provider credential on that route.
+- **Streaming**: a streamed answer (server-sent events) is not buffered by
+  Traefik: it flushes `text/event-stream` as it arrives, the route carries no
+  buffering or compression Middleware, and the entrypoints set no
+  `writeTimeout`, so nothing cuts a long answer.
+- **Network**: `gateway-ingress` admits Traefik's pods to the proxy's 8080,
+  selecting it by `gateway.networking.k8s.io/gateway-name: gateway`, as
+  `api-ingress` does for the API.
+
+```sh
+curl -i -X POST https://api.matchmark.int.0xc0.cc/v1/messages                # 401, from the gateway
+curl -i -X POST https://api.matchmark.int.0xc0.cc/claude/v1/messages         # 401: no Matchmark-Agent-Token
+curl -i https://api.matchmark.int.0xc0.cc/healthz                            # 200, the API's
+```
 
 ## Temporal
 
@@ -403,4 +441,7 @@ kubectl -n matchmark get pods                 # controller and proxy Running
 kubectl get gatewayclass agentgateway         # Accepted
 kubectl -n matchmark get gateway gateway      # Programmed
 kubectl -n matchmark get svc                  # the proxy's is ClusterIP
+curl -i -X POST https://api.matchmark.int.0xc0.cc/v1/messages         # over WARP: 401 from the gateway
+curl -i -X POST https://api.matchmark.int.0xc0.cc/claude/v1/messages  # over WARP: 401, no Matchmark-Agent-Token
+curl -i https://api.matchmark.int.0xc0.cc/healthz                     # over WARP: the API's 200
 ```
