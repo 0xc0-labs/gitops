@@ -200,24 +200,36 @@ model answers 200 with `usage.prompt_tokens` 3 and `completion_tokens` 16 (the
 stand-in's rule for `Say only: ok`); (3) the same call to `/v1/messages`
 answers 200 with `usage.input_tokens` 3 and `output_tokens` 16; (4, 5) the
 same calls for another model answer 403; (6, 7) the same calls without a
-token answer 401; (8) the API's `GET /v1/usage` for tenant `default`, agent
-`proof`, since the proof started, shows the two successful calls as rows with 3
-input and 16 output tokens, a cost above zero, app `smoke` and project
-`matchmark`, waiting up to a minute for them (The usage record). It prints each
+token answer 401; (8) a call to `/v1/chat/completions` that forces a tool
+(Pydantic AI's request for a typed output: `tools` with `strict`,
+`tool_choice: "required"`, `max_completion_tokens`) answers 200 with
+`choices[0].message.tool_calls[0]` named `final_result` and `arguments` equal to
+`{"title": "", "kind": "feature", "done": false}`, the input the stand-in
+derives from the tool's schema; (9) the same call to `/v1/messages` (`tools`
+with `input_schema`, `tool_choice: {"type": "any"}`) answers 200 with
+`stop_reason` `tool_use` and `content[0]` a `tool_use` block named
+`final_result` with that `input`. Steps 8 and 9 prove that a typed output
+crosses the gateway on both ways in, the translation of the request and of the
+`tool_use` block included; a failing one prints the status and the first 300
+characters of the body, which tell the gateway's refusal from the stand-in's;
+(10) the API's `GET /v1/usage` for tenant `default`, agent
+`proof`, since the proof started, shows the two plain calls (steps 2 and 3) as
+rows with 3 input and 16 output tokens, a cost above zero, app `smoke` and
+project `matchmark`, waiting up to a minute for them (The usage record). It prints each
 step's result and never
 the token. It is not a sync hook, so a failing proof never
 holds a sync back: the Job's name takes the version from the `release`
 ConfigMap, a release makes a new Job and Argo CD prunes the previous one. It
 runs in sync wave 1, after the API's new pods are Healthy. It
 makes two attempts at most, within seven minutes (the second covers the proxy
-still loading the policy; each attempt may wait the minute of step 8). A failed Job leaves the application `Degraded`, a
+still loading the policy; each attempt may wait the minute of step 10). A failed Job leaves the application `Degraded`, a
 completed one `Healthy`: that, and the Job's log, is where to look. A change of
 configuration with no new version does not run it again; to run it by hand,
 delete the Job and let Argo CD recreate it.
 
 ```sh
 kubectl -n matchmark get job                               # gateway-proof-<version>, Complete
-kubectl -n matchmark logs job/gateway-proof-<version>     # eight lines, each "ok"
+kubectl -n matchmark logs job/gateway-proof-<version>     # ten lines, each "ok"
 kubectl -n matchmark logs deploy/gateway | grep matchmark.tenant   # the access log, with the claims
 ```
 
@@ -279,7 +291,7 @@ alone outside this namespace, besides Traefik's.
 ```sh
 kubectl -n matchmark logs job/api-migrate                  # the migrations applied
 curl -i https://api.matchmark.int.0xc0.cc/otlp/v1/logs     # 404, over WARP
-kubectl -n matchmark logs job/gateway-proof-<version>      # step 8: the rows
+kubectl -n matchmark logs job/gateway-proof-<version>      # step 10: the rows
 ```
 
 ## The subscription route
