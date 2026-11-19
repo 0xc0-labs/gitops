@@ -99,7 +99,8 @@ patches:
                 key: RABBITMQ_DEFAULT_PASS
           - name: AMQP_URL
             value: amqp://plane:$(RABBITMQ_DEFAULT_PASS)@plane-rabbitmq.plane.svc.cluster.local/
-  # The frontends' Caddyfile, without the rate limit (README, Hardening).
+  # The images' own Caddyfile limits requests per client address
+  # (../README.md, The frontends' rate limit).
   - target: {kind: Deployment, name: plane-web-wl}
     patch: |-
       - op: add
