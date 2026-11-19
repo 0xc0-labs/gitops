@@ -146,3 +146,29 @@ spec:
           port: 9092
         - protocol: TCP
           port: 15020
+---
+# RustFS pushes its metrics over OTLP/HTTP. It accepts connections from no pod
+# yet: the consumer's own policy opens 9000 when there is one.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rustfs-otlp-to-collector
+  namespace: matchmark
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: rustfs
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openobserve-collector
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/component: opentelemetry-collector
+              app.kubernetes.io/instance: openobserve-collector.openobserve-collector-gateway
+      ports:
+        - protocol: TCP
+          port: 4318
