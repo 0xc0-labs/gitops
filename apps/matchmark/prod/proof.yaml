@@ -9,6 +9,7 @@ metadata:
   namespace: matchmark
 data:
   proof.py: |
+    import json
     import os
     import sys
     import time
@@ -25,6 +26,55 @@ data:
         "max_tokens": 32,
         "messages": [{"role": "user", "content": "Say only: ok"}],
     }
+    # What Pydantic AI sends for a typed output, and Anthropic's shape of it:
+    # the stand-in answers a forced tool with an input that follows from the
+    # tool's schema (matchmark's README, A forced tool call).
+    TYPED_SCHEMA = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["title", "kind", "done"],
+        "properties": {
+            "title": {"type": "string"},
+            "kind": {"type": "string", "enum": ["feature", "fix"]},
+            "done": {"type": "boolean"},
+        },
+    }
+    TYPED_RESULT = {"title": "", "kind": "feature", "done": False}
+    FORCED_CHAT = {
+        "model": MODEL,
+        "stream": False,
+        "max_completion_tokens": 256,
+        "messages": [
+            {"role": "system", "content": "Be brief."},
+            {"role": "user", "content": "Describe the change."},
+        ],
+        "tool_choice": "required",
+        "tools": [
+            {
+                "type": "function",
+                "function": {
+                    "name": "final_result",
+                    "description": "The final response which ends this conversation",
+                    "parameters": TYPED_SCHEMA,
+                    "strict": True,
+                },
+            }
+        ],
+    }
+    FORCED_MESSAGES = {
+        "model": MODEL,
+        "max_tokens": 256,
+        "system": "Be brief.",
+        "messages": [{"role": "user", "content": "Describe the change."}],
+        "tool_choice": {"type": "any"},
+        "tools": [
+            {
+                "name": "final_result",
+                "description": "The final response which ends this conversation",
+                "input_schema": TYPED_SCHEMA,
+            }
+        ],
+    }
     failures = []
     # The usage record's `from` is the proof's start, less a margin for the
     # clocks of the nodes the pods run on.
@@ -36,6 +86,34 @@ data:
         print(f"{step}: {'ok' if ok else 'FAILED'} ({detail})", flush=True)
         if not ok:
             failures.append(step)
+
+
+    def chat_tool_arguments(answer):
+        call = answer["choices"][0]["message"]["tool_calls"][0]
+        return call["function"]["name"], json.loads(call["function"]["arguments"])
+
+
+    def messages_tool_input(answer):
+        block = answer["content"][0]
+        if answer["stop_reason"] != "tool_use" or block["type"] != "tool_use":
+            raise ValueError("not a tool_use answer")
+        return block["name"], block["input"]
+
+
+    # A refusal of the gateway and one of the stand-in differ in their body, so
+    # a failed step prints it.
+    def check_forced_tool(step, response, read):
+        ok = False
+        if response.status_code == 200:
+            try:
+                name, value = read(response.json())
+                ok = name == "final_result" and value == TYPED_RESULT
+            except (ValueError, KeyError, IndexError, TypeError):
+                pass
+        detail = f"status {response.status_code}"
+        if not ok:
+            detail += f", body {response.text[:300]!r}"
+        check(step, ok, detail)
 
 
     with httpx.Client(timeout=15) as client:
@@ -84,9 +162,20 @@ data:
             bare = client.post(url, json=REQUEST)
             check(f"{step}, no token", bare.status_code == 401, f"status {bare.status_code}")
 
+        check_forced_tool(
+            "8 chat completions, a forced tool",
+            client.post(chat_url, headers=headers, json=FORCED_CHAT),
+            chat_tool_arguments,
+        )
+        check_forced_tool(
+            "9 messages, a forced tool",
+            client.post(messages_url, headers=headers, json=FORCED_MESSAGES),
+            messages_tool_input,
+        )
+
         # The collector batches, so the rows land a moment after the calls. Both
-        # successful calls (steps 2 and 3) must be there; a refused call logs
-        # no usage and has none.
+        # plain calls (steps 2 and 3) must be there; a refused call logs no
+        # usage and has none, and the forced tools' token counts differ.
         def priced(row):
             cost = row.get("cost_usd")
             return (
@@ -112,7 +201,7 @@ data:
                 break
             time.sleep(3)
         check(
-            "8 usage record, one row per successful call",
+            "10 usage record, one row per successful call",
             len(rows) >= 2,
             f"status {listed.status_code}, {len(rows)} matching rows",
         )
