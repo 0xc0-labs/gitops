@@ -2,8 +2,8 @@
 
 The namespace Matchmark's factory runs its coding agents' sandboxes in, one at
 a time, and what surrounds them. The `Sandbox` kind and its controller are
-`platform/agent-sandbox`. **Nothing here creates a sandbox yet** but the proof:
-the factory worker that does comes next.
+`platform/agent-sandbox`. The factory worker creates them, with the Role in
+`worker-role.yaml` (below); the proof creates one too.
 
 It is an Application of its own, `matchmark-sandboxes`, so that a failed sync
 here never holds Matchmark's releases back. Its Argo CD project is `apps`,
@@ -41,6 +41,9 @@ Default deny in both directions, then:
 | the proxy | the internet, private ranges left out | 443 |
 | the proxy | the cluster's DNS | 53 |
 | the proof | the Kubernetes API servers and the sandbox | 6443; 8080 and 9090 |
+
+The factory worker's own egress (the API servers, and the sandboxes' 8080 and
+9090) is in `apps/matchmark/prod/network-policy-worker.yaml`.
 
 The gateway's own rule admitting the sandboxes is in `apps/matchmark/prod`
 (`network-policy-sandbox.yaml`).
@@ -89,12 +92,12 @@ Nothing else is tried: there is no other way out.
 
 ## The proof
 
-`sandbox-proof-2`, a plain Job (`sandbox-proof.yaml`, `proof.py`), kept after it
+`sandbox-proof-3`, a plain Job (`sandbox-proof.yaml`, `proof.py`), kept after it
 ends and not run again by a sync. To run it again, raise the number in its
-name (`-2` to `-3`): the sync creates the new Job and prunes the old one.
+name (`-3` to `-4`): the sync creates the new Job and prunes the old one.
 
 ```sh
-kubectl -n matchmark-sandboxes logs job/sandbox-proof-2
+kubectl -n matchmark-sandboxes logs job/sandbox-proof-3
 ```
 
 One line per step, `ok` or `FAILED`, and a last line `all steps ok`:
@@ -145,8 +148,24 @@ The Job's identity is its own, the ServiceAccount `sandbox-proof`: a Role
 limited to the `Sandbox` kind (`create`, `get`, `list`, `delete`) and to
 reading pods, in this namespace, plus a read of the node and its metrics
 (`platform/agent-sandbox`) and of the `gateway` Service in `matchmark`, by
-name (`apps/matchmark/prod/network-policy-sandbox.yaml`). The factory worker will get the same Role for the first two
-later.
+name (`apps/matchmark/prod/network-policy-sandbox.yaml`).
+
+The sandboxd image is not written here: the Job reads it from the ConfigMap
+that `sandboxd-image/` (a component, not an Application) generates, which the
+factory worker's Deployment reads too. Bumping it changes the Job's template,
+so raise the number in its name then as well.
+
+### The worker's Role
+
+`worker-role.yaml`: what the factory worker's sandbox adapter calls and no
+more, for its ServiceAccount in `matchmark`: `create`, `get` and `delete` on
+`sandboxes.agents.x-k8s.io` and `get` on `pods`. It has no `list` and no
+`watch` (it polls the sandbox it made, by name, and finds its pod's address in
+the sandbox's status), and nothing on Secrets: a stolen worker token cannot
+enumerate the namespace or read the subscription's token. The sandbox's own
+token is derived from a key the worker holds, never stored. The proof here has
+more (`list`) because it counts what is left behind. What the worker's own
+proof shows is in `apps/matchmark/README.md`, Artifacts.
 
 The proof's pod is a sandbox for the network: its label gives it the
 sandboxes' egress rules, which is how it installs `k8s-agent-sandbox` and

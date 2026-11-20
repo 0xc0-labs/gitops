@@ -1,17 +1,21 @@
 # The namespace the factory's sandboxes run in, and what surrounds them: their
 # quota, their network, the proxy that is their only way out, and the proof
-# and the one Secret they read (README.md). Nothing creates a sandbox here yet but the proof.
+# and the one Secret they read (README.md). The factory worker creates them
+# with the Role in worker-role.yaml.
 #
 # Backups: no volumes beyond emptyDir.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: matchmark-sandboxes
+components:
+  - ../sandboxd-image
 resources:
   - namespace.yaml
   - quota.yaml
   - network-policy.yaml
   - proxy.yaml
   - sandbox-proof.yaml
+  - worker-role.yaml
   - vault-secrets.yaml
 configMapGenerator:
   # With a hash in its name: a change to the allowlist rolls the proxy.

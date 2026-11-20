@@ -39,7 +39,7 @@ roleRef:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: sandbox-proof-2
+  name: sandbox-proof-3
   namespace: matchmark-sandboxes
 spec:
   backoffLimit: 0
@@ -66,7 +66,10 @@ spec:
             - name: SANDBOX_IMAGE
               value: docker.io/library/python:3.13.9-slim-bookworm@sha256:b685a4fa58bb19d1814d78a1ec0f0208f351452724f78b20212c984d6e124a34
             - name: SANDBOXD_IMAGE
-              value: registry.k8s.io/agent-sandbox/sandboxd:v1.0.11@sha256:c4719d5dd70a29b6c0ce9f90a2bf56c52938b0467684510b0fd78e4a3a775fe9
+              valueFrom:
+                configMapKeyRef:
+                  name: sandboxd-image
+                  key: MATCHMARK_SANDBOX_SANDBOXD_IMAGE
             - name: PYTHONDONTWRITEBYTECODE
               value: "1"
             # With a read-only root, pip's build and target temporaries and

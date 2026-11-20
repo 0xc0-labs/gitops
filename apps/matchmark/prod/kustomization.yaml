@@ -4,6 +4,9 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: matchmark
+# The sandboxd pin, shared with the sandbox proof (README.md, The factory worker).
+components:
+  - ../../matchmark-sandboxes/sandboxd-image
 helmCharts:
   - name: agentgateway-crds
     repo: oci://cr.agentgateway.dev/charts
@@ -37,6 +40,8 @@ resources:
   - factory-worker.yaml
   - network-policy-worker.yaml
   - network-policy-sandbox.yaml
+  - network-policy-artifacts.yaml
+  - artifacts.yaml
 images:
   - name: cr.agentgateway.dev/controller
     newTag: v1.7.0
@@ -53,6 +58,16 @@ images:
     newTag: v0.22.0
     digest: sha256:25c5c2df9742d58793eac0c59d450d8aa6fb4016b45b7741490549fb62c19ddd
 configMapGenerator:
+  # No hash suffix: a Job's pod template cannot change, so a renamed ConfigMap
+  # would fail the sync instead of leaving the finished Jobs alone.
+  - name: artifacts
+    files:
+      - artifacts/s3.py
+      - artifacts/setup.py
+      - artifacts/worker-proof.py
+      - artifacts/policy.json
+    options:
+      disableNameSuffixHash: true
   - name: release
     literals:
       - APP_VERSION=v0.22.0

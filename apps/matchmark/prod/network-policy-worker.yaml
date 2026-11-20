@@ -3,8 +3,9 @@
 # before a policy applies, so the rules name the pods' ports (README.md, The
 # factory worker).
 #
-# The worker calls the API, the gateway's proxy, Temporal's frontend and the
-# collector. Nothing reaches it.
+# The worker calls the API, the gateway's proxy, Temporal's frontend, the
+# collector, the Kubernetes API servers, the sandboxes' runtime and RustFS.
+# Nothing reaches it.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -50,6 +51,40 @@ spec:
       ports:
         - protocol: TCP
           port: 4318
+    # Under Canal a Service address is translated before the policy applies,
+    # so the rule names the three RKE2 servers (infrastructure's `servers`).
+    - to:
+        - ipBlock:
+            cidr: 10.10.4.21/32
+        - ipBlock:
+            cidr: 10.10.4.22/32
+        - ipBlock:
+            cidr: 10.10.4.23/32
+      ports:
+        - protocol: TCP
+          port: 6443
+    # The sandboxes' runtime: files over REST, processes over gRPC. Their own
+    # ingress policy admits the worker (apps/matchmark-sandboxes). The worker
+    # resolves the proxy's name and never connects to it.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: matchmark-sandboxes
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: matchmark-sandbox
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 9090
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: rustfs
+      ports:
+        - protocol: TCP
+          port: 9000
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
