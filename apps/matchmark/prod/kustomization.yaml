@@ -44,18 +44,18 @@ images:
   # The API's and the stand-in's pins, one tag: the application's release job
   # moves both (README.md, The API).
   - name: ghcr.io/0xc0-labs/matchmark-api
-    newTag: v0.20.0
-    digest: sha256:860deaf39fee25214a4ca9d0b88a0b9f6f32c162a95c273acc9e43d1c06df232
+    newTag: v0.21.0
+    digest: sha256:57a122904f7576d1ae772a480a197de65451e67bc374fc7bf4c42898eac53018
   - name: ghcr.io/0xc0-labs/matchmark-stand-in-provider
-    newTag: v0.20.0
-    digest: sha256:005143ea6a739c59d7bb926bf139a0657f6b4e99ac1fca06662242526f5de6f8
+    newTag: v0.21.0
+    digest: sha256:d315167a84a0d2a294891917b82db3381d48f1218da1d1e284dd7a65c43791e7
   - name: ghcr.io/0xc0-labs/matchmark-factory-worker
-    newTag: v0.20.0
-    digest: sha256:a1b25f93ec7e66a0017731d75fe6a9e9e13005e7ac78061bc858641da73a6d3f
+    newTag: v0.21.0
+    digest: sha256:fb777b1c4d5fab54453a27ce26d50835f77a81f67f062bc1a35e82c8443f866e
 configMapGenerator:
   - name: release
     literals:
-      - APP_VERSION=v0.20.0
+      - APP_VERSION=v0.21.0
 replacements:
   - source:
       kind: ConfigMap
