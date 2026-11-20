@@ -34,6 +34,8 @@ resources:
   - claude-subscription.yaml
   - network-policy-subscription.yaml
   - gateway-warp.yaml
+  - factory-worker.yaml
+  - network-policy-worker.yaml
 images:
   - name: cr.agentgateway.dev/controller
     newTag: v1.7.0

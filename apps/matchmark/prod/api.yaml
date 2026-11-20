@@ -77,6 +77,16 @@ spec:
             # The shared PostgreSQL serves no TLS (README.md, The usage record).
             - name: PGSSLMODE
               value: disable
+            - name: MATCHMARK_TEMPORAL_ADDRESS
+              value: temporal-frontend.matchmark.svc.cluster.local:7233
+            # Operator decision, 2026-11-19: an agent runs on one of two
+            # harnesses, chosen by the platform's administrator per
+            # workspace, and the operator's own workspace runs on the Claude
+            # Agent SDK, paid by their subscription. Until there is more than
+            # one workspace the choice is this setting, kept in Git with the
+            # deployment (matchmark's docs/platform/workspaces.md).
+            - name: MATCHMARK_HARNESS
+              value: claude_agent_sdk
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
             - name: OTEL_SERVICE_NAME
