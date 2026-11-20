@@ -7,9 +7,9 @@ import time
 
 
 def inside_gvisor():
-    # gVisor's Sentry answers with a fixed 4.4.0 kernel; a runc pod on the
-    # node reports the host's own.
-    return os.uname().release == "4.4.0" and "Linux version 4.4.0" in pathlib.Path("/proc/version").read_text()
+    # The Sentry names itself in the kernel release (`4.19.0-gvisor`); the
+    # version number behind it changes between runsc releases.
+    return "gvisor" in os.uname().release
 
 
 def timed(label, fn):

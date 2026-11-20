@@ -18,27 +18,29 @@ modules byte-compiled.
 
 | Job | Runtime |
 |---|---|
-| `gvisor-proof` | `gvisor` |
-| `runc-baseline` | the default, on the same node |
+| `gvisor-proof-2` | `gvisor` |
+| `runc-baseline-2` | the default, on the same node |
 
 Each prints which runtime it believes it runs in, checked from the kernel the
-pod sees (gVisor's is a fixed `4.4.0`; the node's is not), and **fails** when
+pod sees (gVisor's release names it, as `4.19.0-gvisor`; the node's does not), and **fails** when
 that is not the runtime it expected.
 
 ## Reading the logs
 
 ```sh
-kubectl -n gvisor logs job/gvisor-proof
-kubectl -n gvisor logs job/runc-baseline
+kubectl -n gvisor logs job/gvisor-proof-2
+kubectl -n gvisor logs job/runc-baseline-2
 ```
 
-`gvisor-proof` must print `inside gVisor: True`, `runc-baseline` `False`. Each
+`gvisor-proof-2` must print `inside gVisor: True`, `runc-baseline-2` `False`. Each
 prints the time of its three phases and a `total:`; the difference between the
 two totals is the cost of the sandbox for that kind of work.
 
 The Jobs are plain, not sync hooks, and are kept after they finish. A sync
-does not run them again; to run them again, delete them and Argo CD recreates
-them.
+does not run a finished Job again and a Job's pod template cannot change, so
+to run them again, raise the number in both names (`-2` to `-3`): the sync
+creates the new pair and prunes the old one. Both always carry the same
+number, so the pair comes from the same workload.
 
 ## Removing it
 
