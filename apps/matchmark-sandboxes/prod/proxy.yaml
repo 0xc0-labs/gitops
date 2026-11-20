@@ -1,0 +1,109 @@
+# The sandboxes' only way to the internet (README.md, The proxy).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: egress-proxy
+  namespace: matchmark-sandboxes
+  labels:
+    app.kubernetes.io/name: egress-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: egress-proxy
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: egress-proxy
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 13
+        runAsGroup: 13
+        fsGroup: 13
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: squid
+          # ubuntu/squid, from Docker Hub as mariadb is. Its entrypoint
+          # changes owners as root: the pod runs Squid itself.
+          image: docker.io/ubuntu/squid:6.6-24.04_edge@sha256:d9c34c5ab74c6dd41cf1070d9b4221aac072e67e983527ca2d41512958f77506
+          command: ["squid", "-N", "-f", "/etc/squid/squid.conf"]
+          ports:
+            - name: proxy
+              containerPort: 3128
+          readinessProbe:
+            tcpSocket:
+              port: proxy
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/squid
+              readOnly: true
+            - name: log
+              mountPath: /var/log/squid
+            - name: run
+              mountPath: /var/run/squid
+            - name: tmp
+              mountPath: /tmp
+        # The access log to stdout, where the cluster's collector takes every
+        # pod's log to OpenObserve.
+        - name: access-log
+          image: docker.io/ubuntu/squid:6.6-24.04_edge@sha256:d9c34c5ab74c6dd41cf1070d9b4221aac072e67e983527ca2d41512958f77506
+          command: ["sh", "-c", "touch /var/log/squid/access.log /var/log/squid/cache.log && exec tail -q -n +1 -F /var/log/squid/access.log /var/log/squid/cache.log"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          volumeMounts:
+            - name: log
+              mountPath: /var/log/squid
+      volumes:
+        # Generated with a hash in its name: a change to the list or the
+        # configuration rolls the pod.
+        - name: config
+          configMap:
+            name: proxy-config
+        # Backup: none, the log is read from stdout. The limit bounds it.
+        - name: log
+          emptyDir:
+            sizeLimit: 256Mi
+        - name: run
+          emptyDir:
+            sizeLimit: 16Mi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: egress-proxy
+  namespace: matchmark-sandboxes
+spec:
+  selector:
+    app.kubernetes.io/name: egress-proxy
+  ports:
+    - name: proxy
+      port: 3128
+      targetPort: proxy

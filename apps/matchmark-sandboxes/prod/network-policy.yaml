@@ -1,0 +1,171 @@
+# Default deny, then exactly this (README.md, The network). A Service's port
+# is translated to the pod's before a policy applies, so the rules name the
+# pods' ports. `matchmark.0xc0.cc/sandbox: "true"` marks the pods the sandbox
+# rules apply to: the sandboxes and the proof.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: matchmark-sandboxes
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+# A sandbox reaches Matchmark's gateway and the proxy by address, and nothing
+# else, DNS included: a query's name could carry data out.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sandbox-egress
+  namespace: matchmark-sandboxes
+spec:
+  podSelector:
+    matchLabels:
+      matchmark.0xc0.cc/sandbox: "true"
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: matchmark
+          podSelector:
+            matchLabels:
+              gateway.networking.k8s.io/gateway-name: gateway
+      ports:
+        - protocol: TCP
+          port: 8080
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: egress-proxy
+      ports:
+        - protocol: TCP
+          port: 3128
+---
+# The runtime inside a sandbox: files over REST on 8080, processes over gRPC
+# on 9090, for the factory worker and for the proof.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sandbox-ingress
+  namespace: matchmark-sandboxes
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: matchmark-sandbox
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: matchmark
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: matchmark-factory-worker
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: matchmark-sandbox-proof
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 9090
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: proxy-ingress
+  namespace: matchmark-sandboxes
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: egress-proxy
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              matchmark.0xc0.cc/sandbox: "true"
+      ports:
+        - protocol: TCP
+          port: 3128
+---
+# The proxy reaches the internet on 443 with the private ranges left out
+# (a policy cannot name a host: the proxy's list does), and the cluster's DNS
+# to resolve what it tunnels to. Nothing inside the cluster.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: proxy-egress
+  namespace: matchmark-sandboxes
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: egress-proxy
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443
+---
+# The proof creates and deletes a Sandbox, so it reaches the Kubernetes API
+# (the three RKE2 servers, as the other components: Canal translates a Service
+# address before the policy applies) and the sandbox's runtime.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: proof-egress
+  namespace: matchmark-sandboxes
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: matchmark-sandbox-proof
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 10.10.4.21/32
+        - ipBlock:
+            cidr: 10.10.4.22/32
+        - ipBlock:
+            cidr: 10.10.4.23/32
+      ports:
+        - protocol: TCP
+          port: 6443
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: matchmark-sandbox
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 9090

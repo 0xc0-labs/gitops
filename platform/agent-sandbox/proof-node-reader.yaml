@@ -1,0 +1,27 @@
+# What the sandbox proof in apps/matchmark-sandboxes reads to record the node's
+# free memory: the node and its metrics, read-only. Cluster-scoped, so it lives
+# here; the proof's own Role, in its namespace, is what creates a Sandbox.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: sandbox-proof-node-reader
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["nodes"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: sandbox-proof-node-reader
+subjects:
+  - kind: ServiceAccount
+    name: sandbox-proof
+    namespace: matchmark-sandboxes
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: sandbox-proof-node-reader

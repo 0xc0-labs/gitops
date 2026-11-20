@@ -1,0 +1,96 @@
+# The proof that a sandbox runs as designed (README.md, The proof): a plain
+# Job, not a sync hook, kept after it ends and not run again by a sync. Its
+# identity is its own: a Role limited to the `Sandbox` kind and the pods it
+# reads, in this namespace. The factory worker will get the same later.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sandbox-proof
+  namespace: matchmark-sandboxes
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sandbox-proof
+  namespace: matchmark-sandboxes
+rules:
+  - apiGroups: ["agents.x-k8s.io"]
+    resources: ["sandboxes"]
+    verbs: ["create", "get", "list", "delete"]
+  # The sandbox's pod: its address, its runtime class, whether it was killed.
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sandbox-proof
+  namespace: matchmark-sandboxes
+subjects:
+  - kind: ServiceAccount
+    name: sandbox-proof
+    namespace: matchmark-sandboxes
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: sandbox-proof
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sandbox-proof-1
+  namespace: matchmark-sandboxes
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: matchmark-sandbox-proof
+        matchmark.0xc0.cc/sandbox: "true"
+    spec:
+      restartPolicy: Never
+      serviceAccountName: sandbox-proof
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: proof
+          # python:3.13.9-slim-bookworm, from Docker Hub as mariadb is.
+          image: docker.io/library/python:3.13.9-slim-bookworm@sha256:b685a4fa58bb19d1814d78a1ec0f0208f351452724f78b20212c984d6e124a34
+          command: ["python", "/opt/proof/proof.py"]
+          env:
+            - name: SANDBOX_IMAGE
+              value: docker.io/library/python:3.13.9-slim-bookworm@sha256:b685a4fa58bb19d1814d78a1ec0f0208f351452724f78b20212c984d6e124a34
+            - name: SANDBOXD_IMAGE
+              value: registry.k8s.io/agent-sandbox/sandboxd:v1.0.11@sha256:c4719d5dd70a29b6c0ce9f90a2bf56c52938b0467684510b0fd78e4a3a775fe9
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          volumeMounts:
+            - name: work
+              mountPath: /work
+            - name: proof
+              mountPath: /opt/proof
+              readOnly: true
+      volumes:
+        - name: work
+          emptyDir:
+            sizeLimit: 512Mi
+        - name: proof
+          configMap:
+            name: proof-script

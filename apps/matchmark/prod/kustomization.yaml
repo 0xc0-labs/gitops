@@ -36,6 +36,7 @@ resources:
   - gateway-warp.yaml
   - factory-worker.yaml
   - network-policy-worker.yaml
+  - network-policy-sandbox.yaml
 images:
   - name: cr.agentgateway.dev/controller
     newTag: v1.7.0

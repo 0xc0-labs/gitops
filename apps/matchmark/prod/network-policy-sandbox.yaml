@@ -1,0 +1,53 @@
+# The sandboxes' side of what the gateway admits (apps/matchmark-sandboxes,
+# README.md, The network): a sandbox in `matchmark-sandboxes` calls the
+# gateway's proxy on 8080, by address. The sandbox's own egress rule is in its
+# namespace.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sandbox-to-proxy
+  namespace: matchmark
+spec:
+  podSelector:
+    matchLabels:
+      gateway.networking.k8s.io/gateway-name: gateway
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: matchmark-sandboxes
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: matchmark-sandbox
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+# The sandbox proof reads the gateway's address, which it hands to the sandbox
+# as `NO_PROXY`: the sandbox has no DNS.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sandbox-proof-gateway-address
+  namespace: matchmark
+rules:
+  - apiGroups: [""]
+    resources: ["services"]
+    resourceNames: ["gateway"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sandbox-proof-gateway-address
+  namespace: matchmark
+subjects:
+  - kind: ServiceAccount
+    name: sandbox-proof
+    namespace: matchmark-sandboxes
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: sandbox-proof-gateway-address

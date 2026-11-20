@@ -1,0 +1,12 @@
+# The sandboxes' own (apps/matchmark-sandboxes). Cluster-scoped, so it lives
+# here: the `apps` project admits no such kind. Below the default priority
+# (0) and never preempting: a node short of memory evicts a sandbox before
+# anything else.
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: matchmark-batch
+value: -100
+preemptionPolicy: Never
+globalDefault: false
+description: Matchmark agent sandboxes, evicted first and never preempting.

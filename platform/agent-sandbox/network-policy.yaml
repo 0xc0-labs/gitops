@@ -1,0 +1,35 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: agent-sandbox-system
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+# Under Canal a Service address is translated before the policy applies, so
+# the rule names the three RKE2 servers (infrastructure's `servers`).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: controller-to-api-server
+  namespace: agent-sandbox-system
+spec:
+  podSelector:
+    matchLabels:
+      app: agent-sandbox-controller
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 10.10.4.21/32
+        - ipBlock:
+            cidr: 10.10.4.22/32
+        - ipBlock:
+            cidr: 10.10.4.23/32
+      ports:
+        - protocol: TCP
+          port: 6443

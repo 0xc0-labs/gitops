@@ -31,6 +31,8 @@ spec:
     - server: https://kubernetes.default.svc
       namespace: artistlabco-com-staging
     - server: https://kubernetes.default.svc
+      namespace: matchmark-sandboxes
+    - server: https://kubernetes.default.svc
       namespace: mautic-artistlabco-com
     - server: https://kubernetes.default.svc
       namespace: offby1-cc
