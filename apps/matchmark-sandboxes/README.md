@@ -116,7 +116,7 @@ One line per step, `ok` or `FAILED`, and a last line `all steps ok`:
 | `direct name lookup does not resolve` | the sandbox has no DNS |
 | `gateway reachable` | the sandbox reaches the gateway by its address on 8080; with no address the step fails |
 | `second sandbox refused by the quota` | the API server refuses it: `exceeded quota` |
-| `no sandbox left behind` | what it created is deleted: the quota of one is free |
+| `no sandbox left behind` | the Sandboxes it created are gone (each read by name: the worker's proof may hold the quota's one slot at that moment, and that Sandbox is not this proof's) |
 | `small sandbox ready`, `no small sandbox left behind` | the second sandbox of the memory probe below, made once the first is gone, runs and is deleted |
 
 The proof makes a random token for each sandbox and passes only its SHA-256 to
@@ -164,7 +164,7 @@ more, for its ServiceAccount in `matchmark`: `create`, `get` and `delete` on
 the sandbox's status), and nothing on Secrets: a stolen worker token cannot
 enumerate the namespace or read the subscription's token. The sandbox's own
 token is derived from a key the worker holds, never stored. The proof here has
-more (`list`) because it counts what is left behind. What the worker's own
+more (`list`) because it reads the pods of its sandboxes. What the worker's own
 proof shows is in `apps/matchmark/README.md`, Artifacts.
 
 The proof's pod is a sandbox for the network: its label gives it the

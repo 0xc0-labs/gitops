@@ -274,15 +274,27 @@ print({max_mib})
 """
 
 
+def sandbox_gone(sandbox_name):
+    try:
+        custom.get_namespaced_custom_object(GROUP, VERSION, NAMESPACE, PLURAL, sandbox_name)
+    except ApiException as error:
+        return error.status == 404
+    return False
+
+
 def remove(names):
-    """Deletes the sandboxes and waits until none is left: the quota of one is free."""
+    """Deletes the sandboxes this proof created and waits until each is gone.
+
+    It looks at its own names alone: the worker's proof shares the quota of one,
+    and its Sandbox is not this one's to wait for.
+    """
     for sandbox_name in names:
         try:
             custom.delete_namespaced_custom_object(GROUP, VERSION, NAMESPACE, PLURAL, sandbox_name)
         except ApiException as error:
             if error.status != 404:
                 failures.append(f"delete {sandbox_name}")
-    return wait_for(lambda: not custom.list_namespaced_custom_object(GROUP, VERSION, NAMESPACE, PLURAL)["items"], 180)
+    return wait_for(lambda: all(sandbox_gone(sandbox_name) for sandbox_name in names), 180)
 
 
 def oom_killed(name):

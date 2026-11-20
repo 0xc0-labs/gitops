@@ -63,6 +63,7 @@ configMapGenerator:
   - name: artifacts
     files:
       - artifacts/s3.py
+      - artifacts/rc-setup.sh
       - artifacts/setup.py
       - artifacts/worker-proof.py
       - artifacts/policy.json

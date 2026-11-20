@@ -528,13 +528,15 @@ credential of its own and not the root one.
   bucket alone: list it and its multipart uploads, and get, put and delete its
   objects, multipart included. The sandboxes never get these keys.
 - **Setup**: `artifacts-setup-1`, a plain Job in wave 1, the only user of the
-  root credentials. Its init containers are `rc` (RustFS's CLI,
-  `rustfs/rc:v0.1.38`, pinned by digest): the alias, the policy, the user and
-  the policy's attachment; its container, `artifacts/setup.py`, creates the
-  bucket, sets the lifecycle rule and reads it back. It is not run again by a
-  sync. To run it again (a rotated key pair, a changed policy), raise the
-  number in its name; `rc` makes the user once, so after a run that failed
-  midway, remove the user from RustFS first.
+  root credentials. Its init container runs `rc` (RustFS's CLI,
+  `rustfs/rc:v0.1.38`, pinned by digest) through `artifacts/rc-setup.sh`: the
+  alias, the policy, the user and the policy's attachment; its container,
+  `artifacts/setup.py`, creates the bucket, sets the lifecycle rule and reads
+  it back. Every step passes when its result already exists (the policy is
+  written again, the user added only when missing, the attachment accepted
+  when the user carries it), so a run after a half-finished one needs nothing
+  removed by hand. It is not run again by a sync. To run it again (a rotated
+  key pair, a changed policy), raise the number in its name.
 - **Proof**: `worker-proof-1`, a plain Job in wave 2, with the worker's
   ServiceAccount and labels, so it has the worker's rights and network, and
   the two secrets the worker reads. It prints one line per step and ends `all
