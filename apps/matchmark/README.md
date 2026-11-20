@@ -140,7 +140,7 @@ secret); nothing here holds a value:
 | `matchmark/database` | `password` | `matchmark-database`, into `PGPASSWORD` of the API and the migration. The role `matchmark` on the shared PostgreSQL: `platform/postgres` sets it |
 | `matchmark/storage` | `access_key`, `secret_key` | `rustfs-root` |
 | `shared/ghcr-pull` | `username`, `password` | `ghcr-pull`, the image pull |
-| `matchmark/claude-subscription` | `oauth_token` | nothing: no pod mounts it (The subscription route) |
+| `matchmark/claude-subscription` | `oauth_token` | `claude-subscription`, into `CLAUDE_CODE_OAUTH_TOKEN` of the factory worker (The factory worker) |
 
 ## The route to the provider
 
@@ -302,8 +302,7 @@ kubectl -n matchmark logs job/gateway-proof-<version>      # step 10: the rows
 `claude-subscription.yaml` and `network-policy-subscription.yaml`. Matchmark's
 agents may run on the Claude Agent SDK with the operator's subscription
 (operator decision, 2026-11-19), calling Anthropic's native API through the
-gateway. The route is deployed ahead of them: **nothing calls it until those
-agents run.** It was proven on 2026-11-19 with a one-off probe, since removed:
+gateway; the factory worker's agents do (The factory worker). It was proven on 2026-11-19 with a one-off probe, since removed:
 Claude Code, on the subscription's token, works through the gateway (findings
 in 0xc0-labs/gitops#440).
 
@@ -322,8 +321,8 @@ in 0xc0-labs/gitops#440).
   token's.
 - **The secret**: the subscription's token stays in Vault,
   `apps/matchmark/claude-subscription`, key `oauth_token` (what
-  `claude setup-token` prints). **Nothing syncs or mounts it**: the change that
-  deploys the first agent adds the `VaultStaticSecret` again.
+  `claude setup-token` prints). Only the factory worker mounts it (The factory
+  worker).
 - **Network**: this is the namespace's first way out to the internet. The
   proxy reaches TCP 443 anywhere outside the private ranges
   (`proxy-to-internet`). A NetworkPolicy cannot name a host: what decides where
@@ -381,7 +380,7 @@ databases on the shared PostgreSQL, `matchmark-temporal` and
 their passwords come from Vault (`matchmark/temporal-database`,
 `matchmark/temporal-visibility-database`) and a change restarts the server
 Deployments. The frontend is `temporal-frontend:7233` inside the namespace;
-no client of it is admitted yet.
+its clients are the UI, the namespace Job, the API and the factory worker.
 
 **Two Applications in one namespace.** `matchmark-temporal`
 (`bootstrap/prod/matchmark-temporal.yaml`) and `matchmark` share the
@@ -414,7 +413,7 @@ production cluster takes 512.
 **No authentication.** Without an authorizer the frontend allows every
 request, and the UI is as open as the frontend. `TEMPORAL_ALLOW_NO_AUTH`
 says so. What stands in its place: the namespace's network policies (only
-the UI and the namespace Job reach the frontend) and WARP, the only way to
+the UI, the namespace Job, the API and the worker reach the frontend) and WARP, the only way to
 `https://temporal.matchmark.int.0xc0.cc`. The route is on the
 `internal-matchmark` listener, with no `public` annotation.
 
@@ -433,6 +432,59 @@ schema Job runs beside the new pods, which fail their schema-version check
 and restart until it is done. A schema only moves forward; a binary can be
 rolled back. Changing the retention of `factory` later is
 `temporal operator namespace update`: the Job never updates one.
+
+## The factory worker
+
+`factory-worker.yaml` and `network-policy-worker.yaml`. The worker of the
+`factory` task queue of Temporal's namespace `factory`: one `Deployment`
+`factory-worker` (one replica, `Recreate`) of the private image
+`ghcr.io/0xc0-labs/matchmark-factory-worker`, pinned in `prod/kustomization.yaml`
+beside the API's (The API, Pin). It takes the runs the API starts, asks the API
+for the definitions of the version a run names, issues the agent's token
+(`POST /v1/agent-tokens`) and reads the run's spend (`GET /v1/usage/totals`),
+and runs the agent with Claude Code through the gateway's `/claude` route (The
+subscription route): the agent's token in `Matchmark-Agent-Token`, the
+subscription's credential in `Authorization`. It calls nothing else.
+
+- **Harness**: the API starts runs with `MATCHMARK_HARNESS=claude_agent_sdk`
+  (`api.yaml`: an operator decision of 2026-11-19, kept here in Git with the
+  deployment) and reaches Temporal at `MATCHMARK_TEMPORAL_ADDRESS`.
+- **Secrets**: `MATCHMARK_SERVICE_TOKEN` is `matchmark/api`'s `service_token`,
+  the one the API reads, generated; `CLAUDE_CODE_OAUTH_TOKEN` is
+  `matchmark/claude-subscription`'s `oauth_token`, the operator's own
+  subscription, written by the operator (what `claude setup-token` prints).
+  Each `VaultStaticSecret` restarts the Deployment when its value changes. The
+  worker refuses to start with `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` or
+  `CLAUDE_CODE_USE_BEDROCK`, `_VERTEX` or `_FOUNDRY` in its environment: never
+  add one.
+- **Only the API starts runs.** The worker takes its input's word, so who
+  reaches Temporal's frontend is what decides who can start one: the policies
+  admit the API and the worker there (`temporal-frontend-from-clients`, in
+  `temporal/`, the other Application) and no other pod. Nothing reaches the
+  worker.
+- **Network**: the worker reaches the API's 8000, the proxy's 8080, the
+  frontend's 7233 and the collector's 4318 (`factory-worker-egress`); the API
+  admits it (`worker-to-api`), as does the proxy (`worker-to-proxy`); the API
+  reaches the frontend (`api-to-temporal`). The way out to Anthropic is the
+  proxy's, `proxy-to-internet`, already open for the `/claude` route: the
+  worker has none of its own.
+- **Probe and grace**: the liveness probe is the worker's own, `python -m
+  matchmark_factory_worker probe`, which reads the liveness file under
+  `/tmp`; there is no readiness probe, it takes no traffic.
+  `terminationGracePeriodSeconds` is 60: the worker waits 30 s for the runs in
+  flight, then cancels them and tells Temporal.
+- **Resources**: requests 100m and 512Mi, a memory limit of 2Gi, no CPU limit:
+  each run starts a Claude Code process of up to about 1 GiB. A start, to be
+  measured with the first runs. `/tmp` is an `emptyDir` of 1Gi (each run's
+  working files), read-only root filesystem.
+- **Order**: the worker registers Temporal's search attributes when it
+  starts, so it runs before the first run is started.
+
+```sh
+kubectl -n matchmark get pod -l app.kubernetes.io/name=matchmark-factory-worker  # Running
+kubectl -n matchmark logs deploy/factory-worker                                  # polls the task queue factory
+mm start analyst --idea "…"                                                      # over WARP: ends completed with a Spec
+```
 
 ## Checking
 

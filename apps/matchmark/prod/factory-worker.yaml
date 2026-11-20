@@ -1,0 +1,112 @@
+# Matchmark's factory worker (README.md, The factory worker). The image is the
+# kustomization's pin, never a tag here.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: factory-worker
+  namespace: matchmark
+# It calls no Kubernetes API, and Vault Secrets Operator reads its secrets
+# with `vault-secrets`.
+automountServiceAccountToken: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: factory-worker
+  namespace: matchmark
+spec:
+  # One run at a time is enough for this phase, and each run starts a Claude
+  # Code process that can take about 1 GiB.
+  replicas: 1
+  # A second pod beside the first would double that memory while it rolls.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: matchmark-factory-worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: matchmark-factory-worker
+    spec:
+      serviceAccountName: factory-worker
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      # 30 s for the runs in flight, then it cancels them and tells Temporal.
+      terminationGracePeriodSeconds: 60
+      imagePullSecrets:
+        - name: ghcr-pull-vault
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: factory-worker
+          image: ghcr.io/0xc0-labs/matchmark-factory-worker
+          envFrom:
+            - configMapRef:
+                name: release
+          # The worker refuses to start with ANTHROPIC_API_KEY,
+          # ANTHROPIC_AUTH_TOKEN or CLAUDE_CODE_USE_BEDROCK, _VERTEX or
+          # _FOUNDRY set: the subscription's token is its only credential.
+          env:
+            - name: MATCHMARK_TEMPORAL_ADDRESS
+              value: temporal-frontend.matchmark.svc.cluster.local:7233
+            - name: MATCHMARK_API_URL
+              value: http://api.matchmark.svc.cluster.local
+            - name: MATCHMARK_GATEWAY_URL
+              value: http://gateway.matchmark.svc.cluster.local:8080
+            # Both are plain HTTP between pods of the namespace, where its
+            # network policies stand in for TLS.
+            - name: MATCHMARK_PLAIN_HTTP
+              value: "1"
+            - name: TMPDIR
+              value: /tmp
+            - name: MATCHMARK_SERVICE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: matchmark-api-vault
+                  key: service_token
+            - name: CLAUDE_CODE_OAUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: claude-subscription-vault
+                  key: oauth_token
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
+            - name: OTEL_SERVICE_NAME
+              value: matchmark-factory-worker
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: service.version=$(APP_VERSION),deployment.environment=prod
+          # The worker's own check of its liveness file. No readiness probe:
+          # it takes no traffic.
+          livenessProbe:
+            exec:
+              command: [python, -m, matchmark_factory_worker, probe]
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          # A start, to be measured with the first runs.
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              memory: 2Gi
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        # Each run's working files and the liveness file. Not backed up: it
+        # holds nothing that outlives a pod.
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi
