@@ -38,7 +38,7 @@ def record(name, value):
 
 # The libraries come through the proxy as the sandbox's own installs do: this
 # pod carries the sandbox network label, so it reaches nothing else.
-subprocess.run(
+subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- pinned arguments, nothing from outside
     [
         sys.executable, "-m", "pip", "install", "--quiet", "--no-cache-dir",
         "--disable-pip-version-check", "--target", LIBS,
@@ -282,8 +282,9 @@ try:
         f"pod {pod.metadata.name if pod else None}, node {pod.spec.node_name if pod else None}",
     )
     ip = pod.status.pod_ip
-    health = requests.get(f"http://{ip}:8080/v1/health", timeout=10)
-    metadata = requests.get(f"http://{ip}:8080/v1/metadata", timeout=10)
+    # sandboxd serves plain HTTP and gRPC on the pod network; the policy is the boundary.
+    health = requests.get(f"http://{ip}:8080/v1/health", timeout=10)  # nosemgrep: python.lang.security.audit.insecure-transport.requests.request-with-http
+    metadata = requests.get(f"http://{ip}:8080/v1/metadata", timeout=10)  # nosemgrep: python.lang.security.audit.insecure-transport.requests.request-with-http
     check("sandboxd rest", health.ok and metadata.ok, f"health {health.status_code}, metadata {metadata.status_code}")
 
     stub = process_pb2_grpc.ProcessServiceStub(grpc.insecure_channel(f"{ip}:9090"))
