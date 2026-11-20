@@ -274,6 +274,34 @@ print({max_mib})
 """
 
 
+NAMESPACES_ALONE = ["unshare", "--user", "--map-root-user", "true"]
+# NAMESPACE_PROBE is in the environment of this command alone, so a /proc/1/environ
+# that holds it belongs to the new PID namespace's first process, not the sandbox's.
+NAMESPACES_TOGETHER = [
+    "env", "NAMESPACE_PROBE=1",
+    "unshare", "--user", "--map-root-user", "--pid", "--fork", "--mount-proc",
+    "/bin/sh", "-c",
+    "if tr '\\0' '\\n' < /proc/1/environ | grep -qx NAMESPACE_PROBE=1; then r='its own'; else r='not its own'; fi; "
+    "echo \"pid $$, /proc/1/environ is $r\"",
+]
+USER_NAMESPACE_SETTINGS = [
+    "/bin/sh", "-c",
+    "for f in /proc/sys/user/max_user_namespaces /proc/sys/kernel/unprivileged_userns_clone; do "
+    "if [ -e $f ]; then echo $f=$(cat $f); else echo $f is absent; fi; done",
+]
+
+
+def record_command(run_in_sandbox, name, command):
+    """Records the exit code and last line of a command; whatever it answers is not a failure."""
+    try:
+        code, output = run_in_sandbox(command)
+    except grpc.RpcError as error:
+        record(name, f"the call ended with {error.code().name}")
+        return
+    last = output.splitlines()[-1] if output else "no output"
+    record(name, f"exit code {code}, last line: {last}")
+
+
 def sandbox_gone(sandbox_name):
     try:
         custom.get_namespaced_custom_object(GROUP, VERSION, NAMESPACE, PLURAL, sandbox_name)
@@ -424,6 +452,14 @@ try:
         record("cpu limit (2) under gvisor", f"{ratio} CPUs used by 4 busy processes on {cpus} visible: {'binds' if binds else 'does not bind'}")
     else:
         record("cpu limit (2) under gvisor", f"probe failed: {output[-200:]}")
+
+    record_command(run_in_sandbox, "user namespace alone", NAMESPACES_ALONE)
+    record_command(run_in_sandbox, "user, PID and mount namespaces together", NAMESPACES_TOGETHER)
+    try:
+        code, output = run_in_sandbox(USER_NAMESPACE_SETTINGS)
+        record("what the sandbox says about user namespaces", f"exit code {code}: {output.replace(chr(10), ' | ')}")
+    except grpc.RpcError as error:
+        record("what the sandbox says about user namespaces", f"the call ended with {error.code().name}")
 
     if memory and memory[0] - memory[1] >= MEMORY_PROBE_MIN_NODE_FREE_GIB:
         try:
