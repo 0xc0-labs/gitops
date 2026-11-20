@@ -92,12 +92,12 @@ Nothing else is tried: there is no other way out.
 
 ## The proof
 
-`sandbox-proof-3`, a plain Job (`sandbox-proof.yaml`, `proof.py`), kept after it
+`sandbox-proof-4`, a plain Job (`sandbox-proof.yaml`, `proof.py`), kept after it
 ends and not run again by a sync. To run it again, raise the number in its
-name (`-3` to `-4`): the sync creates the new Job and prunes the old one.
+name (`-4` to `-5`): the sync creates the new Job and prunes the old one.
 
 ```sh
-kubectl -n matchmark-sandboxes logs job/sandbox-proof-3
+kubectl -n matchmark-sandboxes logs job/sandbox-proof-4
 ```
 
 One line per step, `ok` or `FAILED`, and a last line `all steps ok`:
@@ -130,7 +130,7 @@ The proof's pod has a read-only root filesystem: `/work` (the libraries'
 target and `HOME`) and `/tmp` (`TMPDIR`, for pip's temporaries) are its only
 writable paths, and bytecode is not written.
 
-Four `record` lines are for the first runs to read, not checks:
+Seven `record` lines are for the first runs to read, not checks:
 
 - the node's free memory with the sandbox up (allocatable less the metrics
   server's working set);
@@ -142,7 +142,13 @@ Four `record` lines are for the first runs to read, not checks:
 - the same for a small memory limit, which needs no free memory: a second
   sandbox with a limit of 256Mi, and a process that allocates up to 512 MiB;
   it records whether the container was killed (`OOMKilled`, its restarts) and
-  how the call ended.
+  how the call ended;
+- whether a process in the sandbox can make its own namespaces, which
+  Claude Code's isolation of its commands (`bubblewrap`) needs: a user
+  namespace alone, user, PID and mount namespaces together (with whether
+  `/proc/1/environ` is the new process's own), and what the sandbox says
+  about user namespaces (`max_user_namespaces`, `unprivileged_userns_clone`).
+  Each records the command's exit code and last line, and none fails the proof.
 
 The Job's identity is its own, the ServiceAccount `sandbox-proof`: a Role
 limited to the `Sandbox` kind (`create`, `get`, `list`, `delete`) and to
