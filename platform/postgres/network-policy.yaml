@@ -66,7 +66,7 @@ spec:
                   - matchmark-api
                   - matchmark-api-migrate
         # Temporal's four server pods and its schema Job
-        # (apps/matchmark/temporal/network-policy.yaml).
+        # (apps/matchmark-temporal/prod/network-policy.yaml).
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: matchmark

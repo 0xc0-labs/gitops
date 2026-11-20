@@ -1,7 +1,7 @@
 # Temporal's policies; the namespace denies by default and allows DNS
-# (../prod/network-policy.yaml). The server pods are those four components,
-# the Jobs are `database`. Its clients are its own UI and Job, the API and the
-# factory worker.
+# (apps/matchmark/prod/network-policy.yaml). The server pods are those four
+# components, the Jobs are `database`. Its clients are its own UI and Job, the
+# API and the factory worker.
 #
 # The four server pods find each other by pod IP through a table in the
 # database, not through Services: each opens its gRPC and membership ports to
@@ -44,8 +44,9 @@ spec:
       ports: *internode
 ---
 # The frontend's gRPC port: the UI, the Job that creates the Temporal
-# namespace, and the API and the factory worker of `../prod/` (their egress is
-# in `../prod/network-policy-worker.yaml`). The UI's Service port 8080 and the frontend's 7233 are the pods'.
+# namespace, and the API and the factory worker of `apps/matchmark/prod/`
+# (their egress is in `apps/matchmark/prod/network-policy-worker.yaml`). The
+# UI's Service port 8080 and the frontend's 7233 are the pods'.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:

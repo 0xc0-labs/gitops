@@ -1,8 +1,9 @@
 # Matchmark's Temporal (apps/matchmark/README.md, Temporal). Declared here, not
-# generated: the `apps` ApplicationSet takes only `prod` and `staging`
-# folders and names the namespace after the folder. An Application of its own,
-# so a failed sync of one never holds the other's back; both deploy into the
-# namespace `matchmark`, which the `matchmark` Application owns.
+# generated: it deploys into another application's namespace and project
+# (`matchmark`), and the `apps` ApplicationSet would name both after its
+# folder, so it excludes `apps/matchmark-temporal/prod`. An Application of its
+# own, so a failed sync of one never holds the other's back; the namespace is
+# the `matchmark` Application's.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -15,7 +16,7 @@ spec:
   source:
     repoURL: https://github.com/0xc0-labs/gitops.git
     targetRevision: main
-    path: apps/matchmark/temporal
+    path: apps/matchmark-temporal/prod
   destination:
     server: https://kubernetes.default.svc
     namespace: matchmark

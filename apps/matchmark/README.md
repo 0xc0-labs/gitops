@@ -370,8 +370,9 @@ curl -i https://api.matchmark.int.0xc0.cc/healthz                            # 2
 ## Temporal
 
 Temporal, the engine Matchmark's agents run in as workflows, from
-`temporal/`: the chart `temporal` 1.8.0 (server 1.32.2, UI 2.56.4) from
-`https://go.temporal.io/helm-charts`, in the namespace `matchmark`. Four
+`apps/matchmark-temporal/prod/`: the chart `temporal` 1.8.0 (server 1.32.2,
+UI 2.56.4) from `https://go.temporal.io/helm-charts`, in the namespace
+`matchmark`. Four
 server Deployments (`temporal-frontend`, `-history`, `-matching`, `-worker`),
 the UI (`temporal-web`), and two Jobs: the schema and the creation of the
 Temporal namespace `factory` (retention 7 days). The stores are two
@@ -383,10 +384,14 @@ Deployments. The frontend is `temporal-frontend:7233` inside the namespace;
 its clients are the UI, the namespace Job, the API and the factory worker.
 
 **Two Applications in one namespace.** `matchmark-temporal`
-(`bootstrap/prod/matchmark-temporal.yaml`) and `matchmark` share the
-namespace and nothing else. A sync that fails holds every later sync of its
-Application back (gitops#438), and the API releases on every merge while
-Temporal rarely changes: apart, neither holds the other. The namespace,
+(`bootstrap/prod/matchmark-temporal.yaml`, its folder
+`apps/matchmark-temporal/prod/`) and `matchmark` share the namespace and
+nothing else. `matchmark-temporal` is declared by hand and the `apps`
+ApplicationSet excludes its folder: its template would name the Application
+and the namespace `matchmark-temporal` and put it in the project `apps`. A
+sync that fails holds every later sync of its Application back (gitops#438),
+and the API releases on every merge while Temporal rarely changes: apart,
+neither holds the other. The namespace,
 `default-deny`, `vault-secrets` and the VaultAuth are `matchmark`'s.
 
 **No sync hooks.** The chart's schema Job is a `pre-install,pre-upgrade`
@@ -460,8 +465,8 @@ subscription's credential in `Authorization`. It calls nothing else.
 - **Only the API starts runs.** The worker takes its input's word, so who
   reaches Temporal's frontend is what decides who can start one: the policies
   admit the API and the worker there (`temporal-frontend-from-clients`, in
-  `temporal/`, the other Application) and no other pod. Nothing reaches the
-  worker.
+  `apps/matchmark-temporal/prod/`, the other Application) and no other pod.
+  Nothing reaches the worker.
 - **Network**: the worker reaches the API's 8000, the proxy's 8080, the
   frontend's 7233 and the collector's 4318 (`factory-worker-egress`); the API
   admits it (`worker-to-api`), as does the proxy (`worker-to-proxy`); the API
