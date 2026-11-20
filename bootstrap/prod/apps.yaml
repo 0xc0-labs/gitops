@@ -18,6 +18,10 @@ spec:
           - path: apps/mautic/*
           - path: apps/mautic/base
             exclude: true
+          # Deploys into another application's namespace and project, so it is
+          # declared by hand (bootstrap/prod/matchmark-temporal.yaml).
+          - path: apps/matchmark-temporal/prod
+            exclude: true
   # Deleting the ApplicationSet or an Application never deletes what it
   # deployed.
   syncPolicy:
