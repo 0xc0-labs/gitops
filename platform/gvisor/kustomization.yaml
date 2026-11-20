@@ -1,0 +1,20 @@
+# A test, not a service (workspace#266): README.md.
+#
+# Backups: no volumes beyond emptyDir.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: gvisor
+resources:
+  - namespace.yaml
+  - runtimeclass.yaml
+  - network-policy.yaml
+  - gvisor-proof.yaml
+  - runc-baseline.yaml
+# No hash suffix: a Job's pod template cannot change, so a renamed ConfigMap
+# would fail the sync instead of leaving the finished Jobs alone.
+configMapGenerator:
+  - name: workload
+    files:
+      - workload.py
+    options:
+      disableNameSuffixHash: true

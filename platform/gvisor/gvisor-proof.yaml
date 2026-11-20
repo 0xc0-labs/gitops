@@ -1,0 +1,59 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gvisor-proof
+  namespace: gvisor
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      runtimeClassName: gvisor
+      nodeSelector:
+        kubernetes.io/hostname: vm-rke2-04
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: workload
+          # python:3.13.9-slim-bookworm, from Docker Hub as mariadb is: the
+          # standard library alone covers files, processes and compiling.
+          image: docker.io/library/python:3.13.9-slim-bookworm@sha256:b685a4fa58bb19d1814d78a1ec0f0208f351452724f78b20212c984d6e124a34
+          command: ["python", "/opt/workload/workload.py"]
+          env:
+            - name: EXPECTED_RUNTIME
+              value: gvisor
+            - name: WORKDIR
+              value: /work
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            privileged: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: "1"
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          volumeMounts:
+            - name: work
+              mountPath: /work
+            - name: workload
+              mountPath: /opt/workload
+              readOnly: true
+      volumes:
+        - name: work
+          emptyDir:
+            sizeLimit: 256Mi
+        - name: workload
+          configMap:
+            name: workload
