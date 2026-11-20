@@ -69,7 +69,14 @@ Squid, `egress-proxy`, the sandboxes' only way to the internet.
 - Its access log (when, client, method, host, result: `TCP_TUNNEL/200` allowed,
   `TCP_DENIED/403` refused) goes to stdout, from a sidecar following the log
   file (the pod's user cannot open the container's stdout), so the collector
-  takes it to OpenObserve as every pod's log.
+  takes it to OpenObserve as every pod's log. The sidecar drops the lines of
+  the readiness probe (a connection with no request,
+  `host=error:transaction-end-before-headers`: the kubelet's address changes
+  with the node, so no Squid ACL can name it), so the log is the sandboxes'
+  alone, and empties each file once it passes 10 MiB, so that the volume
+  never grows until the pod is evicted. `cache.log` follows the same way.
+- The pinger is off (`pinger_enable off`): the container may not open ICMP
+  sockets and there are no peers to measure.
 
 **Changing the allowlist** is a PR here, in this phase: edit
 `allowed-hosts.txt`. The ConfigMap is generated with a hash in its name, so
@@ -82,31 +89,45 @@ Nothing else is tried: there is no other way out.
 
 ## The proof
 
-`sandbox-proof-1`, a plain Job (`sandbox-proof.yaml`, `proof.py`), kept after it
+`sandbox-proof-2`, a plain Job (`sandbox-proof.yaml`, `proof.py`), kept after it
 ends and not run again by a sync. To run it again, raise the number in its
-name (`-1` to `-2`): the sync creates the new Job and prunes the old one.
+name (`-2` to `-3`): the sync creates the new Job and prunes the old one.
 
 ```sh
-kubectl -n matchmark-sandboxes logs job/sandbox-proof-1
+kubectl -n matchmark-sandboxes logs job/sandbox-proof-2
 ```
 
 One line per step, `ok` or `FAILED`, and a last line `all steps ok`:
 
 | Step | Shows |
 |---|---|
+| `gateway address` | the proof reads the `gateway` Service's ClusterIP in `matchmark`; a missing address fails the step |
 | `sandbox ready` | a `Sandbox` created as the worker will create one becomes ready |
 | `gvisor runtime class`, `kernel is gvisor` | its pod runs under the RuntimeClass `gvisor` |
-| `sandboxd rest` | agent-sandbox's runtime answers on 8080 |
+| `sandboxd rest` | agent-sandbox's runtime answers on 8080, health without a token and metadata with it |
+| `call without the token refused` | the same call with no token is refused, over REST (`401`/`403`) and gRPC (`UNAUTHENTICATED`) |
 | `command through sandboxd` | a command run over gRPC on 9090, as user `10001`, and its output read back |
 | `pip install through the proxy` | one small package installs through the proxy |
 | `host outside the list refused` | the proxy answers `403` for a host that is not allowed |
 | `request that ignores the proxy fails` | a direct connection to a public address fails |
 | `direct name lookup does not resolve` | the sandbox has no DNS |
-| `gateway reachable` | the sandbox reaches the gateway by address on 8080 |
+| `gateway reachable` | the sandbox reaches the gateway by its address on 8080; with no address the step fails |
 | `second sandbox refused by the quota` | the API server refuses it: `exceeded quota` |
 | `no sandbox left behind` | what it created is deleted: the quota of one is free |
+| `small sandbox ready`, `no small sandbox left behind` | the second sandbox of the memory probe below, made once the first is gone, runs and is deleted |
 
-Three `record` lines are for the first runs to read, not checks:
+The proof makes a random token for each sandbox and passes only its SHA-256 to
+`sandboxd` (`--auth-token-sha256`) in the pod's spec, so the token is in no
+manifest. Every call but `/v1/health`, which the readiness probe makes, carries
+it (`Authorization: Bearer`, or the `authorization` metadata in gRPC). The
+NetworkPolicy is the first wall; the token is the second, and the worker's
+sandboxes will have it too.
+
+The proof's pod has a read-only root filesystem: `/work` (the libraries'
+target and `HOME`) and `/tmp` (`TMPDIR`, for pip's temporaries) are its only
+writable paths, and bytecode is not written.
+
+Four `record` lines are for the first runs to read, not checks:
 
 - the node's free memory with the sandbox up (allocatable less the metrics
   server's working set);
@@ -114,13 +135,17 @@ Three `record` lines are for the first runs to read, not checks:
 - whether the CPU and memory limits bind under gVisor (gvisor#13777 and
   #15756 say they may not): four busy processes against a limit of 2 CPUs,
   and an allocation one step past the 4Gi limit, skipped when the node has
-  less than 8 GiB free.
+  less than 8 GiB free;
+- the same for a small memory limit, which needs no free memory: a second
+  sandbox with a limit of 256Mi, and a process that allocates up to 512 MiB;
+  it records whether the container was killed (`OOMKilled`, its restarts) and
+  how the call ended.
 
 The Job's identity is its own, the ServiceAccount `sandbox-proof`: a Role
 limited to the `Sandbox` kind (`create`, `get`, `list`, `delete`) and to
 reading pods, in this namespace, plus a read of the node and its metrics
-(`platform/agent-sandbox`) and of the `gateway` Service's address in
-`matchmark`. The factory worker will get the same Role for the first two
+(`platform/agent-sandbox`) and of the `gateway` Service in `matchmark`, by
+name (`apps/matchmark/prod/network-policy-sandbox.yaml`). The factory worker will get the same Role for the first two
 later.
 
 The proof's pod is a sandbox for the network: its label gives it the
