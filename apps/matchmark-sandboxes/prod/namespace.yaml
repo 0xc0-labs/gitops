@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: matchmark-sandboxes
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+  # No pruning: deleting it deletes everything in it.
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false

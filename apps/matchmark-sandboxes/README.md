@@ -1,0 +1,142 @@
+# matchmark-sandboxes
+
+The namespace Matchmark's factory runs its coding agents' sandboxes in, one at
+a time, and what surrounds them. The `Sandbox` kind and its controller are
+`platform/agent-sandbox`. **Nothing here creates a sandbox yet** but the proof:
+the factory worker that does comes next.
+
+It is an Application of its own, `matchmark-sandboxes`, so that a failed sync
+here never holds Matchmark's releases back. Its Argo CD project is `apps`,
+which now admits the namespace `matchmark-sandboxes` as a destination: nothing
+else had to be admitted, since the cluster-scoped kinds it needs
+(`PriorityClass`, a read-only `ClusterRole`) are in `platform/agent-sandbox`.
+
+Where a sandbox runs: `vm-rke2-04`, the only node with gVisor, through the
+RuntimeClass `gvisor` (`platform/gvisor`).
+
+## The quota
+
+Two `ResourceQuota`s:
+
+| | Hard |
+|---|---|
+| `sandbox-compute`, scoped to the PriorityClass `matchmark-batch` | 2 pods; requests 2 CPU and 4Gi; limits 4 CPU and 8Gi |
+| `sandbox-count` | `count/sandboxes.agents.x-k8s.io: 1` |
+
+The first counts only pods with the sandboxes' priority class, so the proxy
+and the proof are not in it. The requests allow two pods' worth of a sandbox
+(1 CPU, 2Gi) so that a terminating pod does not block the next. The second is
+"one sandbox at a time", refused by the API server on creation. They are two
+objects because a scoped quota cannot hold an object count.
+
+## The network
+
+Default deny in both directions, then:
+
+| From | To | Port |
+|---|---|---|
+| a sandbox | Matchmark's gateway pods (`matchmark`) | 8080 |
+| a sandbox | the proxy's pods | 3128 |
+| the factory worker's pods (`matchmark`) and the proof | a sandbox | 8080 (files) and 9090 (processes): its runtime, `sandboxd` |
+| the proxy | the internet, private ranges left out | 443 |
+| the proxy | the cluster's DNS | 53 |
+| the proof | the Kubernetes API servers and the sandbox | 6443; 8080 and 9090 |
+
+The gateway's own rule admitting the sandboxes is in `apps/matchmark/prod`
+(`network-policy-sandbox.yaml`).
+
+A sandbox has **no DNS**, so the gateway and the proxy are reached by address
+(their ClusterIPs). A NetworkPolicy cannot name hosts, Canal has no rule by
+domain, and gVisor cannot redirect a pod's traffic, so the tools are pointed
+at the proxy by environment (`HTTPS_PROXY`, `HTTP_PROXY`, `NO_PROXY` for the
+gateway, `NODE_USE_ENV_PROXY=1`) and the policy lets the pod reach nothing
+else: **a tool that ignores the proxy fails closed**. With DNS, a sandbox
+could send data out in the name of a query.
+
+## The proxy
+
+Squid, `egress-proxy`, the sandboxes' only way to the internet.
+
+- It tunnels `CONNECT` to port 443 and never opens TLS. Plain HTTP and other
+  ports are refused.
+- It allows the hosts in `allowed-hosts.txt` and refuses every other:
+  `pypi.org`, `files.pythonhosted.org`, `registry.npmjs.org`, `github.com`,
+  `api.github.com`.
+- It refuses private, link-local and cluster addresses on the address a name
+  resolves to, whatever the name.
+- It accepts connections from pods labelled `matchmark.0xc0.cc/sandbox: "true"`
+  alone: the sandboxes, and the proof, which installs its libraries through it.
+- Its access log (when, client, method, host, result: `TCP_TUNNEL/200` allowed,
+  `TCP_DENIED/403` refused) goes to stdout, from a sidecar following the log
+  file (the pod's user cannot open the container's stdout), so the collector
+  takes it to OpenObserve as every pod's log.
+
+**Changing the allowlist** is a PR here, in this phase: edit
+`allowed-hosts.txt`. The ConfigMap is generated with a hash in its name, so
+the proxy restarts on its own when the list changes. It will be a setting of
+the workspace, in the API, from phase 4 (operator, 2026-11-20).
+
+**A host that is not in the list**: the tunnel is refused with `403`, the tool
+fails with that error, and the refusal is in the access log as `TCP_DENIED`.
+Nothing else is tried: there is no other way out.
+
+## The proof
+
+`sandbox-proof-1`, a plain Job (`sandbox-proof.yaml`, `proof.py`), kept after it
+ends and not run again by a sync. To run it again, raise the number in its
+name (`-1` to `-2`): the sync creates the new Job and prunes the old one.
+
+```sh
+kubectl -n matchmark-sandboxes logs job/sandbox-proof-1
+```
+
+One line per step, `ok` or `FAILED`, and a last line `all steps ok`:
+
+| Step | Shows |
+|---|---|
+| `sandbox ready` | a `Sandbox` created as the worker will create one becomes ready |
+| `gvisor runtime class`, `kernel is gvisor` | its pod runs under the RuntimeClass `gvisor` |
+| `sandboxd rest` | agent-sandbox's runtime answers on 8080 |
+| `command through sandboxd` | a command run over gRPC on 9090, as user `10001`, and its output read back |
+| `pip install through the proxy` | one small package installs through the proxy |
+| `host outside the list refused` | the proxy answers `403` for a host that is not allowed |
+| `request that ignores the proxy fails` | a direct connection to a public address fails |
+| `direct name lookup does not resolve` | the sandbox has no DNS |
+| `gateway reachable` | the sandbox reaches the gateway by address on 8080 |
+| `second sandbox refused by the quota` | the API server refuses it: `exceeded quota` |
+| `no sandbox left behind` | what it created is deleted: the quota of one is free |
+
+Three `record` lines are for the first runs to read, not checks:
+
+- the node's free memory with the sandbox up (allocatable less the metrics
+  server's working set);
+- what the sandbox sees of its memory and CPU;
+- whether the CPU and memory limits bind under gVisor (gvisor#13777 and
+  #15756 say they may not): four busy processes against a limit of 2 CPUs,
+  and an allocation one step past the 4Gi limit, skipped when the node has
+  less than 8 GiB free.
+
+The Job's identity is its own, the ServiceAccount `sandbox-proof`: a Role
+limited to the `Sandbox` kind (`create`, `get`, `list`, `delete`) and to
+reading pods, in this namespace, plus a read of the node and its metrics
+(`platform/agent-sandbox`) and of the `gateway` Service's address in
+`matchmark`. The factory worker will get the same Role for the first two
+later.
+
+The proof's pod is a sandbox for the network: its label gives it the
+sandboxes' egress rules, which is how it installs `k8s-agent-sandbox` and
+`kubernetes` from PyPI through the proxy.
+
+## The pod's shape
+
+What the proof's sandbox has and the worker's will: user `10001`,
+`allowPrivilegeEscalation: false`, every capability dropped, `RuntimeDefault`
+seccomp, a read-only root filesystem, no ServiceAccount token, no service
+links, requests of 1 CPU and 2Gi, limits of 2 CPU and 4Gi, ephemeral storage
+of 10Gi, size-limited `emptyDir`s for `/workspace`, `/tmp` and the caches, and
+`sandboxd` copied in by an init container from the `sandboxd` image.
+
+## Removing it
+
+Delete `apps/matchmark-sandboxes/`. The `apps` ApplicationSet keeps what the
+Application deployed when it goes: delete the namespace by hand afterwards.

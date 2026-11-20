@@ -1,0 +1,60 @@
+# agent-sandbox's core, from its release manifest (README.md). Backups: it
+# holds no volumes.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # The core alone: the `Sandbox` kind and its controller. The release's
+  # extensions (templates, pools, claims) are not used.
+  - https://github.com/kubernetes-sigs/agent-sandbox/releases/download/v1.0.11/sandbox.yaml
+  - network-policy.yaml
+  - priority-class.yaml
+  - proof-node-reader.yaml
+# It brings CRDs: deleting them deletes every Sandbox.
+commonAnnotations:
+  argocd.argoproj.io/sync-options: Prune=false
+images:
+  - name: registry.k8s.io/agent-sandbox/agent-sandbox-controller
+    newTag: v1.0.11
+    digest: sha256:73cb162407cddf73f4cd063b02bdee2dac86aa342bbc40bd99a9f023e69b31ed
+patches:
+  # The release's Namespace carries no Pod Security label.
+  - target:
+      kind: Namespace
+      name: agent-sandbox-system
+    patch: |-
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: agent-sandbox-system
+        labels:
+          pod-security.kubernetes.io/enforce: restricted
+  # The release's Deployment sets no resources and no security context.
+  - target:
+      kind: Deployment
+      name: agent-sandbox-controller
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: agent-sandbox-controller
+      spec:
+        template:
+          spec:
+            securityContext:
+              runAsNonRoot: true
+              seccompProfile:
+                type: RuntimeDefault
+            containers:
+              - name: agent-sandbox-controller
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  readOnlyRootFilesystem: true
+                  capabilities:
+                    drop: ["ALL"]
+                resources:
+                  requests:
+                    cpu: 10m
+                    memory: 64Mi
+                  limits:
+                    cpu: 500m
+                    memory: 256Mi

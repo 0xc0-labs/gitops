@@ -1,0 +1,30 @@
+# What bounds the sandboxes, and nothing else that runs here (README.md,
+# The quota). Two objects: a quota scoped to a PriorityClass counts only the
+# pods that carry it, and cannot hold an object count.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: sandbox-compute
+  namespace: matchmark-sandboxes
+spec:
+  hard:
+    pods: "2"
+    requests.cpu: "2"
+    requests.memory: 4Gi
+    limits.cpu: "4"
+    limits.memory: 8Gi
+  scopeSelector:
+    matchExpressions:
+      - scopeName: PriorityClass
+        operator: In
+        values: ["matchmark-batch"]
+---
+# One sandbox at a time, refused by the API server itself.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: sandbox-count
+  namespace: matchmark-sandboxes
+spec:
+  hard:
+    count/sandboxes.agents.x-k8s.io: "1"

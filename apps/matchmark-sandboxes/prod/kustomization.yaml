@@ -1,0 +1,27 @@
+# The namespace the factory's sandboxes run in, and what surrounds them: their
+# quota, their network, the proxy that is their only way out, and the proof
+# (README.md). Nothing creates a sandbox here yet but the proof.
+#
+# Backups: no volumes beyond emptyDir.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: matchmark-sandboxes
+resources:
+  - namespace.yaml
+  - quota.yaml
+  - network-policy.yaml
+  - proxy.yaml
+  - sandbox-proof.yaml
+configMapGenerator:
+  # With a hash in its name: a change to the allowlist rolls the proxy.
+  - name: proxy-config
+    files:
+      - squid.conf
+      - allowed-hosts.txt
+  # No hash suffix: a Job's pod template cannot change, so a renamed ConfigMap
+  # would fail the sync instead of leaving the finished Job alone.
+  - name: proof-script
+    files:
+      - proof.py
+    options:
+      disableNameSuffixHash: true
