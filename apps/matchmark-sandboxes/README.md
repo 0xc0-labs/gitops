@@ -152,6 +152,35 @@ The proof's pod is a sandbox for the network: its label gives it the
 sandboxes' egress rules, which is how it installs `k8s-agent-sandbox` and
 `kubernetes` from PyPI through the proxy.
 
+## The subscription token
+
+The namespace's **only Secret**: `claude-subscription-vault`, one key,
+`oauth_token`, the token of the operator's Claude subscription (from `claude
+setup-token`). Vault Secrets Operator makes it from
+`apps/matchmark/claude-subscription`, the secret the factory worker reads
+too (`apps/matchmark/prod/vault-secrets.yaml`): it is written once, by the
+operator, in Vault. The value is trimmed and nothing raw from Vault is kept.
+
+What reads it: a sandbox's pod, by `secretKeyRef` into
+`CLAUDE_CODE_OAUTH_TOKEN`, when the coding agent is paid by that
+subscription. Nothing mounts it yet: the worker's settings that name it come
+with its Role here. The gateway never holds it for a sandbox.
+
+`VaultAuth` uses the Kubernetes auth role `matchmark-sandboxes`
+(`0xc0-labs/vault`), bound to this namespace and the ServiceAccount
+`vault-secrets`, with read on that one path. The namespace is not labelled
+`vault.0xc0.cc/apps`, which would admit it to the shared `apps` role. Nothing
+is restarted when the token changes: a sandbox lives for one attempt.
+
+No NetworkPolicy is added: Vault Secrets Operator, in its own namespace,
+talks to Vault and writes the Secret through the API server, and no pod here
+does either.
+
+The risk this accepts, and why: `docs/accepted-risks.md` in
+[`0xc0-labs/workspace`](https://github.com/0xc0-labs/workspace/blob/main/docs/accepted-risks.md),
+and Matchmark's design, `docs/architecture/sandbox.md` in
+[`0xc0-labs/matchmark`](https://github.com/0xc0-labs/matchmark/blob/main/docs/architecture/sandbox.md).
+
 ## The pod's shape
 
 What the proof's sandbox has and the worker's will: user `10001`,
