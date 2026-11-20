@@ -9,13 +9,13 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import socket
 import ssl
 import sys
 import time
 import urllib.error
 import urllib.request
-import xml.etree.ElementTree as ET
 
 from s3 import Client, md5_header
 
@@ -49,7 +49,7 @@ def kube(method, path, body=None):
         headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
     )
     try:
-        with urllib.request.urlopen(request, context=context, timeout=30) as response:
+        with urllib.request.urlopen(request, context=context, timeout=30) as response:  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected -- the URL is the API server's fixed address plus a path this script builds
             return response.status, json.load(response)
     except urllib.error.HTTPError as error:
         try:
@@ -64,7 +64,7 @@ def runtime(ip, token=None):
     if token:
         request.add_header("Authorization", f"Bearer {token}")
     try:
-        with urllib.request.urlopen(request, timeout=10) as response:  # nosemgrep: python.lang.security.audit.insecure-transport.urllib.insecure-urlopen.insecure-urlopen -- same
+        with urllib.request.urlopen(request, timeout=10) as response:  # nosemgrep: python.lang.security.audit.insecure-transport.urllib.insecure-urlopen.insecure-urlopen, python.lang.security.audit.dynamic-urllib-use-detected -- same
             return response.status
     except urllib.error.HTTPError as error:
         return error.code
@@ -226,6 +226,11 @@ def sandboxes_proof():
             check("sandbox deleted", status in (200, 202, 404) and bool(gone), f"delete status {status}")
 
 
+def upload_id_of(body):
+    found = re.search(rb"<UploadId>([^<]+)</UploadId>", body)
+    return found.group(1).decode() if found else None
+
+
 def etag_of(headers):
     return next((value for name, value in headers.items() if name.lower() == "etag"), "")
 
@@ -242,10 +247,7 @@ def artifacts_proof():
         check("object read back", status == 200 and body == data, f"status {status}")
 
         status, body, _ = client.request("POST", BUCKET, multi, query={"uploads": ""})
-        upload_id = None
-        if status == 200:
-            node = ET.fromstring(body).find("{*}UploadId")
-            upload_id = node.text if node is not None else None
+        upload_id = upload_id_of(body) if status == 200 else None
         check("multipart upload started", bool(upload_id), f"status {status}")
         if upload_id:
             status, _, headers = client.request(
@@ -263,10 +265,7 @@ def artifacts_proof():
             check("multipart object read back", status == 200 and body == data, f"status {status}")
 
         status, body, _ = client.request("POST", BUCKET, aborted, query={"uploads": ""})
-        second = None
-        if status == 200:
-            node = ET.fromstring(body).find("{*}UploadId")
-            second = node.text if node is not None else None
+        second = upload_id_of(body) if status == 200 else None
         if second:
             status, _, _ = client.request("DELETE", BUCKET, aborted, query={"uploadId": second})
             check("multipart upload aborted", status in (200, 204), f"status {status}")

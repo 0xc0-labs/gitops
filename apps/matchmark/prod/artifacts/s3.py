@@ -17,7 +17,7 @@ REGION = "us-east-1"
 
 
 def md5_header(body):
-    return base64.b64encode(hashlib.md5(body).digest()).decode()  # nosemgrep: python.lang.security.insecure-hash-algorithms-md5.insecure-hash-algorithm-md5 -- S3's Content-MD5 is an integrity check, not a secret
+    return base64.b64encode(hashlib.md5(body).digest()).decode()  # nosemgrep: python.lang.security.insecure-hash-algorithm-md5 -- S3's Content-MD5 is an integrity check, not a secret
 
 
 def _sign(key, message):
