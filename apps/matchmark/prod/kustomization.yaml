@@ -46,6 +46,9 @@ images:
   - name: ghcr.io/0xc0-labs/matchmark-stand-in-provider
     newTag: v0.11.0
     digest: sha256:b6db9bb142fd9936959730fc8758e1961c5f839c0fc669fa17cb9601e23c3ae0
+  - name: ghcr.io/0xc0-labs/matchmark-factory-worker
+    newTag: v0.14.0
+    digest: sha256:5f04bab9c34157cdc4bac711576ed9681a2e8d426e101725906bbb65978dbda9
 configMapGenerator:
   - name: release
     literals:

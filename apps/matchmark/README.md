@@ -107,7 +107,10 @@ over WARP answers 404.
 - **Pin**: the `images:` entry and `APP_VERSION` of the `release` ConfigMap in
   `prod/kustomization.yaml`, which the application's release job moves with a
   PR on every merge to its `main`; Matchmark has no staging. The image is
-  pulled with `ghcr-pull-vault`, from `apps/shared/ghcr-pull`.
+  pulled with `ghcr-pull-vault`, from `apps/shared/ghcr-pull`. An image the
+  application's release names (its `extra-images`) must have its `images:`
+  entry here first: otherwise the release's `pin` step fails with "No images
+  entry named …" and no promotion PR opens.
 - **Vault**: the pod logs in with its `api` ServiceAccount (Kubernetes auth,
   mount `kubernetes`, role `matchmark-api`) with a projected token of audience
   `vault`, at `MATCHMARK_VAULT_SA_TOKEN_FILE`. It signs with the Transit key
