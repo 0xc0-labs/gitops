@@ -1,3 +1,4 @@
+import compileall
 import os
 import pathlib
 import subprocess
@@ -29,7 +30,7 @@ def small_files(root):
 
 def processes():
     for _ in range(150):
-        subprocess.run([sys.executable, "-S", "-c", "pass"], check=True)
+        subprocess.run(["/usr/local/bin/python", "-S", "-c", "pass"], check=True)
 
 
 def compile_sources(root):
@@ -38,7 +39,7 @@ def compile_sources(root):
     for i in range(300):
         body = "\n".join(f"def f{j}(x):\n    return x * {j} + {i}\n" for j in range(40))
         (sources / f"m{i}.py").write_text(body)
-    subprocess.run([sys.executable, "-m", "compileall", "-q", "-f", str(sources)], check=True)
+    assert compileall.compile_dir(sources, quiet=2, force=True)
 
 
 def main():
