@@ -1,0 +1,45 @@
+# RustFS's 9000 (README.md, Artifacts): the factory worker's pods, the
+# worker's proof among them, and the Job that creates the bucket and the user.
+# No other pod. Their side is `factory-worker-egress` and `artifacts-setup-egress`.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rustfs-ingress
+  namespace: matchmark
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: rustfs
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: matchmark-factory-worker
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: matchmark-artifacts-setup
+      ports:
+        - protocol: TCP
+          port: 9000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: artifacts-setup-egress
+  namespace: matchmark
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: matchmark-artifacts-setup
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: rustfs
+      ports:
+        - protocol: TCP
+          port: 9000

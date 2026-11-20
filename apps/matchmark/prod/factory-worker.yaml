@@ -5,9 +5,10 @@ kind: ServiceAccount
 metadata:
   name: factory-worker
   namespace: matchmark
-# It calls no Kubernetes API, and Vault Secrets Operator reads its secrets
-# with `vault-secrets`.
-automountServiceAccountToken: false
+# The sandbox adapter calls the API server with this token (README.md, The
+# factory worker); Vault Secrets Operator reads the secrets with
+# `vault-secrets`.
+automountServiceAccountToken: true
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -30,7 +31,7 @@ spec:
         app.kubernetes.io/name: matchmark-factory-worker
     spec:
       serviceAccountName: factory-worker
-      automountServiceAccountToken: false
+      automountServiceAccountToken: true
       enableServiceLinks: false
       # 30 s for the runs in flight, then it cancels them and tells Temporal.
       terminationGracePeriodSeconds: 60
@@ -48,6 +49,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: release
+            - configMapRef:
+                name: sandboxd-image
           # The worker refuses to start with ANTHROPIC_API_KEY,
           # ANTHROPIC_AUTH_TOKEN or CLAUDE_CODE_USE_BEDROCK, _VERTEX or
           # _FOUNDRY set: the subscription's token is its only credential.
@@ -74,6 +77,26 @@ spec:
                 secretKeyRef:
                   name: claude-subscription-vault
                   key: oauth_token
+            # The other MATCHMARK_SANDBOX_* settings keep the adapter's defaults.
+            - name: MATCHMARK_SANDBOX_TOKEN_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: matchmark-sandbox-vault
+                  key: token_key
+            - name: MATCHMARK_ARTIFACTS_ENDPOINT
+              value: http://rustfs.matchmark.svc.cluster.local:9000
+            - name: MATCHMARK_ARTIFACTS_BUCKET
+              value: matchmark-artifacts
+            - name: MATCHMARK_ARTIFACTS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: matchmark-artifacts-vault
+                  key: access_key_id
+            - name: MATCHMARK_ARTIFACTS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: matchmark-artifacts-vault
+                  key: secret_access_key
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
             - name: OTEL_SERVICE_NAME

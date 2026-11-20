@@ -185,6 +185,18 @@ def wait_for(predicate, timeout, interval=3):
     return None
 
 
+def create_when_free(body, timeout=1500):
+    """Creates a Sandbox, waiting while the factory worker's proof holds the quota of one."""
+    deadline = time.monotonic() + timeout
+    while True:
+        try:
+            return custom.create_namespaced_custom_object(GROUP, VERSION, NAMESPACE, PLURAL, body)
+        except ApiException as error:
+            if error.status != 403 or "exceeded quota" not in (error.body or "") or time.monotonic() > deadline:
+                raise
+            time.sleep(10)
+
+
 def sandbox_ready(name):
     try:
         sandbox = custom.get_namespaced_custom_object(GROUP, VERSION, NAMESPACE, PLURAL, name)
@@ -262,15 +274,27 @@ print({max_mib})
 """
 
 
+def sandbox_gone(sandbox_name):
+    try:
+        custom.get_namespaced_custom_object(GROUP, VERSION, NAMESPACE, PLURAL, sandbox_name)
+    except ApiException as error:
+        return error.status == 404
+    return False
+
+
 def remove(names):
-    """Deletes the sandboxes and waits until none is left: the quota of one is free."""
+    """Deletes the sandboxes this proof created and waits until each is gone.
+
+    It looks at its own names alone: the worker's proof shares the quota of one,
+    and its Sandbox is not this one's to wait for.
+    """
     for sandbox_name in names:
         try:
             custom.delete_namespaced_custom_object(GROUP, VERSION, NAMESPACE, PLURAL, sandbox_name)
         except ApiException as error:
             if error.status != 404:
                 failures.append(f"delete {sandbox_name}")
-    return wait_for(lambda: not custom.list_namespaced_custom_object(GROUP, VERSION, NAMESPACE, PLURAL)["items"], 180)
+    return wait_for(lambda: all(sandbox_gone(sandbox_name) for sandbox_name in names), 180)
 
 
 def oom_killed(name):
@@ -306,7 +330,7 @@ created = []
 try:
     token = secrets.token_urlsafe(32)
     name = f"proof-{int(time.time())}"
-    custom.create_namespaced_custom_object(GROUP, VERSION, NAMESPACE, PLURAL, sandbox_body(name, gateway, token))
+    create_when_free(sandbox_body(name, gateway, token))
     created.append(name)
     sandbox = wait_for(lambda: sandbox_ready(name), 420)
     check("sandbox ready", sandbox is not None, name)
@@ -427,7 +451,7 @@ if not failures:
     }
     created = []
     try:
-        custom.create_namespaced_custom_object(GROUP, VERSION, NAMESPACE, PLURAL, sandbox_body(small, gateway, small_token, small_resources))
+        create_when_free(sandbox_body(small, gateway, small_token, small_resources))
         created.append(small)
         ready = wait_for(lambda: sandbox_ready(small), 420)
         check("small sandbox ready", ready is not None, small)

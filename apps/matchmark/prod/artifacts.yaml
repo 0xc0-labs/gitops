@@ -1,0 +1,193 @@
+# The artifacts bucket, its credential and the proof of what the factory worker
+# has been given (README.md, Artifacts). Two plain Jobs, kept after they end
+# and not run again by a sync, as Temporal's namespace Job is. To run one again,
+# raise the number in its name: the sync creates the new Job and prunes the
+# old one.
+#
+# `artifacts-setup-1` runs in wave 1, after RustFS is Healthy, and the proof in
+# wave 2: Argo CD waits for a Job to complete before the next wave.
+#
+# Setup is the only user of RustFS's root credentials. `rc` creates the user
+# (its key pair is `matchmark/artifacts` in Vault), the policy that allows the
+# bucket alone, and attaches one to the other; the last container creates the
+# bucket and its lifecycle rule. Every step passes when its result already
+# exists, so a run after a half-finished one needs nothing removed by hand.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: artifacts-setup-1
+  namespace: matchmark
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: matchmark-artifacts-setup
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        # rc v0.1.38 (docker.io/rustfs/rc), run through the image's `sh`:
+        # artifacts/rc-setup.sh. It writes its alias under $RC_CONFIG_DIR.
+        - name: user
+          image: docker.io/rustfs/rc:v0.1.38@sha256:3c080aff53f0d3b06554fd08711d05c80be40bd7e56001874d7df5e18d5ec88a
+          command: [sh, /opt/artifacts/rc-setup.sh]
+          env:
+            - name: RC_CONFIG_DIR
+              value: /work
+            - name: ROOT_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: rustfs-root-vault
+                  key: access_key
+            - name: ROOT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: rustfs-root-vault
+                  key: secret_key
+            - name: ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: matchmark-artifacts-vault
+                  key: access_key_id
+            - name: SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: matchmark-artifacts-vault
+                  key: secret_access_key
+          securityContext: &locked
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources: &small
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          volumeMounts:
+            - name: work
+              mountPath: /work
+            - name: artifacts
+              mountPath: /opt/artifacts
+              readOnly: true
+      containers:
+        - name: bucket
+          # python:3.13.9-slim-bookworm, as the proofs'.
+          image: docker.io/library/python:3.13.9-slim-bookworm@sha256:b685a4fa58bb19d1814d78a1ec0f0208f351452724f78b20212c984d6e124a34
+          command: [python, /opt/artifacts/setup.py]
+          env:
+            - name: ROOT_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: rustfs-root-vault
+                  key: access_key
+            - name: ROOT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: rustfs-root-vault
+                  key: secret_key
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+          securityContext: *locked
+          resources: *small
+          volumeMounts:
+            - name: artifacts
+              mountPath: /opt/artifacts
+              readOnly: true
+      volumes:
+        - name: work
+          emptyDir:
+            sizeLimit: 16Mi
+        - name: artifacts
+          configMap:
+            name: artifacts
+---
+# The factory worker's identity and network (its ServiceAccount and its
+# labels), and the two secrets it reads: what it shows is in README.md,
+# Artifacts. The Deployment's selector does not adopt it: a Job's pods have an
+# owner. Waits for the one Sandbox the quota allows, so it can run beside the
+# sandbox proof.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: worker-proof-1
+  namespace: matchmark
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 4200
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: matchmark-factory-worker
+        app.kubernetes.io/component: proof
+    spec:
+      restartPolicy: Never
+      serviceAccountName: factory-worker
+      automountServiceAccountToken: true
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: proof
+          image: docker.io/library/python:3.13.9-slim-bookworm@sha256:b685a4fa58bb19d1814d78a1ec0f0208f351452724f78b20212c984d6e124a34
+          command: [python, /opt/artifacts/worker-proof.py]
+          envFrom:
+            - configMapRef:
+                name: sandboxd-image
+          env:
+            - name: MATCHMARK_SANDBOX_TOKEN_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: matchmark-sandbox-vault
+                  key: token_key
+            - name: MATCHMARK_ARTIFACTS_BUCKET
+              value: matchmark-artifacts
+            - name: MATCHMARK_ARTIFACTS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: matchmark-artifacts-vault
+                  key: access_key_id
+            - name: MATCHMARK_ARTIFACTS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: matchmark-artifacts-vault
+                  key: secret_access_key
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          volumeMounts:
+            - name: artifacts
+              mountPath: /opt/artifacts
+              readOnly: true
+      volumes:
+        - name: artifacts
+          configMap:
+            name: artifacts

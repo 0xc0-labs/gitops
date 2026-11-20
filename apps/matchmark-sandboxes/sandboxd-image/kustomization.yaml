@@ -1,0 +1,11 @@
+# The pin of sandboxd's image, written once: the sandbox proof
+# (apps/matchmark-sandboxes/prod) and the factory worker (apps/matchmark/prod)
+# both include this component and read `MATCHMARK_SANDBOX_SANDBOXD_IMAGE` from
+# the ConfigMap it generates, so the two cannot drift (README.md, The worker).
+# Not under `prod/`: no Application is made from it.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+configMapGenerator:
+  - name: sandboxd-image
+    literals:
+      - MATCHMARK_SANDBOX_SANDBOXD_IMAGE=registry.k8s.io/agent-sandbox/sandboxd:v1.0.11@sha256:c4719d5dd70a29b6c0ce9f90a2bf56c52938b0467684510b0fd78e4a3a775fe9
