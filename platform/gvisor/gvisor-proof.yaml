@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: gvisor-proof
+  name: gvisor-proof-2
   namespace: gvisor
 spec:
   backoffLimit: 0
