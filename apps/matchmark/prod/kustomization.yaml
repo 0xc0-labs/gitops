@@ -49,14 +49,14 @@ images:
   # The API's and the stand-in's pins, one tag: the application's release job
   # moves both (README.md, The API).
   - name: ghcr.io/0xc0-labs/matchmark-api
-    newTag: v0.23.0
-    digest: sha256:a4163cb15515c1094e91ec88c0067bea5c8c1214839e45bbe404fc516a83a74a
+    newTag: v0.24.0
+    digest: sha256:dc7b43ad3fda9d8fcecb25ee092605086470c81c71b36d7a801fa4b34253c16d
   - name: ghcr.io/0xc0-labs/matchmark-stand-in-provider
-    newTag: v0.23.0
-    digest: sha256:bd85ed55122aa79d55a5b9a8f4ba7b8bc55f06e0c5fb2c989a720fe7deb381d7
+    newTag: v0.24.0
+    digest: sha256:a1559e6197a0e62e6a1ec1e19b8615a92f4c3e9fceed77262f5078bf83761587
   - name: ghcr.io/0xc0-labs/matchmark-factory-worker
-    newTag: v0.23.0
-    digest: sha256:f27d85c6b42825002790e56ba89d9d8be08d14fa79b782e34e72fe5ae216c05e
+    newTag: v0.24.0
+    digest: sha256:cf5cb9890faaf5e7bc53507b67423d0fcc4484bedf8d915178eea8ca1310ddda
 configMapGenerator:
   # No hash suffix: a Job's pod template cannot change, so a renamed ConfigMap
   # would fail the sync instead of leaving the finished Jobs alone.
@@ -71,7 +71,7 @@ configMapGenerator:
       disableNameSuffixHash: true
   - name: release
     literals:
-      - APP_VERSION=v0.23.0
+      - APP_VERSION=v0.24.0
 replacements:
   - source:
       kind: ConfigMap
