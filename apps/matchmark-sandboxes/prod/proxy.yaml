@@ -58,11 +58,27 @@ spec:
               mountPath: /var/run/squid
             - name: tmp
               mountPath: /tmp
-        # The access log to stdout, where the cluster's collector takes every
-        # pod's log to OpenObserve.
+        # The logs to stdout, where the cluster's collector takes every pod's
+        # log to OpenObserve, and what bounds them: the readiness probe opens
+        # and closes a connection, which Squid logs as a request that never
+        # was, so those lines are dropped here; and each file is emptied once
+        # it passes 10 MiB (Squid appends, and `tail -F` follows the
+        # truncation), so the volume never fills the pod up to eviction.
         - name: access-log
           image: docker.io/ubuntu/squid:6.6-24.04_edge@sha256:d9c34c5ab74c6dd41cf1070d9b4221aac072e67e983527ca2d41512958f77506
-          command: ["sh", "-c", "touch /var/log/squid/access.log /var/log/squid/cache.log && exec tail -q -n +1 -F /var/log/squid/access.log /var/log/squid/cache.log"]
+          command:
+            - sh
+            - -c
+            - |
+              cd /var/log/squid
+              touch access.log cache.log
+              while sleep 60; do
+                for f in access.log cache.log; do
+                  [ "$(wc -c < "$f")" -gt 10485760 ] && : > "$f"
+                done
+              done &
+              tail -q -n +1 -F access.log cache.log 2>/dev/null |
+                grep --line-buffered -v 'host=error:transaction-end-before-headers'
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

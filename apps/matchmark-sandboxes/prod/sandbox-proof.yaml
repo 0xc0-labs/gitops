@@ -39,7 +39,7 @@ roleRef:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: sandbox-proof-1
+  name: sandbox-proof-2
   namespace: matchmark-sandboxes
 spec:
   backoffLimit: 0
@@ -69,6 +69,12 @@ spec:
               value: registry.k8s.io/agent-sandbox/sandboxd:v1.0.11@sha256:c4719d5dd70a29b6c0ce9f90a2bf56c52938b0467684510b0fd78e4a3a775fe9
             - name: PYTHONDONTWRITEBYTECODE
               value: "1"
+            # With a read-only root, pip's build and target temporaries and
+            # the libraries' target all go to the two volumes below.
+            - name: TMPDIR
+              value: /tmp
+            - name: HOME
+              value: /work
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -84,6 +90,8 @@ spec:
           volumeMounts:
             - name: work
               mountPath: /work
+            - name: tmp
+              mountPath: /tmp
             - name: proof
               mountPath: /opt/proof
               readOnly: true
@@ -91,6 +99,9 @@ spec:
         - name: work
           emptyDir:
             sizeLimit: 512Mi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 256Mi
         - name: proof
           configMap:
             name: proof-script
