@@ -1,6 +1,6 @@
 # Longhorn otherwise keeps every block ever written: OpenObserve's volume used
 # 2 GB but held 12 GiB per replica (2026-10-02). The default group covers every
-# volume.
+# volume that has no recurring job of its own.
 apiVersion: longhorn.io/v1beta2
 kind: RecurringJob
 metadata:
@@ -12,5 +12,24 @@ spec:
   cron: "17 */6 * * *"
   groups:
     - default
+  retain: 0
+  concurrency: 1
+---
+# OpenObserve's volume, alone and hourly (README, A trim that times out). The
+# recurring job's client gives each trim one minute and the manager's limit is
+# not configurable, while the trim goes on in the node: a volume written all
+# the time, six hours between trims, takes longer than that and fails the run.
+# An hour of writes is a trim that fits. Joined by the claim, not here.
+apiVersion: longhorn.io/v1beta2
+kind: RecurringJob
+metadata:
+  name: filesystem-trim-openobserve
+  namespace: longhorn-system
+spec:
+  name: filesystem-trim-openobserve
+  task: filesystem-trim
+  cron: "47 * * * *"
+  groups:
+    - openobserve
   retain: 0
   concurrency: 1
