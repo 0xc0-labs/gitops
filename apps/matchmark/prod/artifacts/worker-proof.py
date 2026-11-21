@@ -38,6 +38,9 @@ SANDBOX_IMAGE = "docker.io/library/python:3.13.9-slim-bookworm@sha256:b685a4fa58
 LIBS = "/work/lib"
 GITHUB = "api.github.com"
 REPOSITORY = "0xc0-labs/matchmark-playground"
+# The rule that lets the worker into the proxy belongs to another Application,
+# which can sync after this Job starts.
+PROXY_WAIT = 300
 PERMISSIONS = {"metadata": "read", "contents": "write", "pull_requests": "write", "checks": "write"}
 
 failures = []
@@ -303,6 +306,21 @@ def artifacts_proof():
     check("second bucket not listed", status == 403, f"status {status}")
 
 
+def accepts(host, port):
+    try:
+        socket.create_connection((host, port), timeout=5).close()
+    except OSError:
+        return False
+    return True
+
+
+def run(proof):
+    try:
+        proof()
+    except Exception as error:  # noqa: BLE001 - whatever a step raises must end as a line of the list
+        check(proof.__name__, False, f"{type(error).__name__}: {error}")
+
+
 def github_call(method, path, bearer=None, host=GITHUB):
     """(status, parsed body) of a call to GitHub through the proxy's CONNECT tunnel."""
     proxy = urlsplit(os.environ["MATCHMARK_GITHUB_PROXY_URL"])
@@ -356,6 +374,11 @@ def github_proof():
         f"mode {mode:04o}",
     )
     check("key is in no variable", not any("PRIVATE KEY" in value for value in os.environ.values()), "environment")
+
+    reachable = wait_for(lambda: accepts(proxy.hostname, proxy.port), PROXY_WAIT)
+    check("proxy accepts a connection", bool(reachable), f"{proxy.hostname}:{proxy.port}, waited up to {PROXY_WAIT}s")
+    if not reachable:
+        return
 
     status, _ = github_call("GET", "/zen")
     check("api.github.com answers through the proxy", status == 200, f"status {status}")
@@ -428,9 +451,9 @@ def github_proof():
         check("token revoked", status == 204, f"status {status}")
 
 
-sandboxes_proof()
-artifacts_proof()
-github_proof()
+run(sandboxes_proof)
+run(artifacts_proof)
+run(github_proof)
 
 if failures:
     print(f"FAILED: {', '.join(failures)}", flush=True)
