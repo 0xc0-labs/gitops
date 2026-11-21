@@ -77,6 +77,14 @@ spec:
                 secretKeyRef:
                   name: claude-subscription-vault
                   key: oauth_token
+            # Replaced by the kustomization with the pinned image of
+            # `ghcr.io/0xc0-labs/matchmark-runner` (README.md, The runner).
+            - name: MATCHMARK_RUNNER_IMAGE
+              value: ghcr.io/0xc0-labs/matchmark-runner
+            # The workspace runs on the subscription whose token is
+            # CLAUDE_CODE_OAUTH_TOKEN above.
+            - name: MATCHMARK_RUNNER_SUBSCRIPTION
+              value: "true"
             # The other MATCHMARK_SANDBOX_* settings keep the adapter's defaults.
             - name: MATCHMARK_SANDBOX_TOKEN_KEY
               valueFrom:

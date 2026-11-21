@@ -42,6 +42,7 @@ resources:
   - network-policy-sandbox.yaml
   - network-policy-artifacts.yaml
   - artifacts.yaml
+  - runner-proof.yaml
 images:
   - name: cr.agentgateway.dev/controller
     newTag: v1.7.0
@@ -57,6 +58,13 @@ images:
   - name: ghcr.io/0xc0-labs/matchmark-factory-worker
     newTag: v0.31.0
     digest: sha256:7f815a9aec576ff1945ebd6dc09aecbb1281c201f9cff36ee4e78780f4db7563
+  # The runner's pin: the proof's init container carries it, and the worker's
+  # MATCHMARK_RUNNER_IMAGE is copied from there (replacements, below). v0.31.0
+  # was built from the commit of this digest; the registry carries that tag for
+  # the runner from the first release that lists it. A pull goes by the digest.
+  - name: ghcr.io/0xc0-labs/matchmark-runner
+    newTag: v0.31.0
+    digest: sha256:ccdb75d4fcf7c38a824faddea145eb04a2407faf523723cb9787bfd207ee63b5
 configMapGenerator:
   # No hash suffix: a Job's pod template cannot change, so a renamed ConfigMap
   # would fail the sync instead of leaving the finished Jobs alone.
@@ -69,10 +77,30 @@ configMapGenerator:
       - artifacts/policy.json
     options:
       disableNameSuffixHash: true
+  # Same reason as `artifacts`: the proof Job's template cannot change.
+  - name: runner-proof
+    files:
+      - runner-proof/proof.py
+    options:
+      disableNameSuffixHash: true
   - name: release
     literals:
       - APP_VERSION=v0.31.0
 replacements:
+  # `images:` rewrites container images only, so the worker's setting takes the
+  # rendered `<name>:<tag>@sha256:<digest>` of the proof's init container:
+  # one pin, and the two cannot differ (README.md, The runner). It comes first:
+  # it finds the Job by the name the next entry replaces.
+  - source:
+      kind: Job
+      name: runner-proof-version
+      fieldPath: spec.template.spec.initContainers.[name=runner].image
+    targets:
+      - select:
+          kind: Deployment
+          name: factory-worker
+        fieldPaths:
+          - spec.template.spec.containers.[name=factory-worker].env.[name=MATCHMARK_RUNNER_IMAGE].value
   - source:
       kind: ConfigMap
       name: release
@@ -81,6 +109,14 @@ replacements:
       - select:
           kind: Job
           name: gateway-proof-version
+        fieldPaths:
+          - metadata.name
+        options:
+          delimiter: "-"
+          index: 2
+      - select:
+          kind: Job
+          name: runner-proof-version
         fieldPaths:
           - metadata.name
         options:
