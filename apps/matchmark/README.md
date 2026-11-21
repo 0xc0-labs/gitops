@@ -119,6 +119,13 @@ over WARP answers 404.
   half. `platform/vault/network-policy.yaml` admits its pods.
 - **Telemetry**: traces and metrics over OTLP/HTTP to the collector gateway on
   4318 (`OTEL_EXPORTER_OTLP_ENDPOINT`), logs as JSON on stdout.
+- **Trace link**: `MATCHMARK_TRACE_URL_TEMPLATE`, OpenObserve's trace view
+  (`https://o2.int.0xc0.cc`, WARP only) for the `default` stream of the
+  `default` organization, where the collector writes traces, with one
+  `{trace_id}` where the API puts a task's trace id. A task's read, `mm
+  status --task`, prints the link; absent, it shows only the id. Check: run a
+  task, then open the link `mm status --task <id>` prints over WARP: it shows
+  that task's trace.
 - **Network**: the API's port is open to Traefik's pods, to this
   namespace's gateway (controller and proxy, for the JWKS) and to the
   collector's gateway pods (The usage record); it reaches Vault's 8200, the
