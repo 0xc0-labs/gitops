@@ -4,8 +4,8 @@
 # factory worker).
 #
 # The worker calls the API, the gateway's proxy, Temporal's frontend, the
-# collector, the Kubernetes API servers, the sandboxes' runtime and RustFS.
-# Nothing reaches it.
+# collector, the Kubernetes API servers, the sandboxes' runtime, RustFS and the
+# sandboxes' egress proxy. Nothing reaches it.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -64,8 +64,7 @@ spec:
         - protocol: TCP
           port: 6443
     # The sandboxes' runtime: files over REST, processes over gRPC. Their own
-    # ingress policy admits the worker (apps/matchmark-sandboxes). The worker
-    # resolves the proxy's name and never connects to it.
+    # ingress policy admits the worker (apps/matchmark-sandboxes).
     - to:
         - namespaceSelector:
             matchLabels:
@@ -85,6 +84,19 @@ spec:
       ports:
         - protocol: TCP
           port: 9000
+    # GitHub's API, through the sandboxes' proxy: the worker's only way out. A
+    # policy cannot name a host, so the proxy's list decides which. The
+    # proxy's ingress policy admits the worker.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: matchmark-sandboxes
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: egress-proxy
+      ports:
+        - protocol: TCP
+          port: 3128
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

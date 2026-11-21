@@ -91,6 +91,14 @@ spec:
         - podSelector:
             matchLabels:
               matchmark.0xc0.cc/sandbox: "true"
+        # The factory worker's calls to GitHub (apps/matchmark, README.md, The
+        # factory worker): the list serves both.
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: matchmark
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: matchmark-factory-worker
       ports:
         - protocol: TCP
           port: 3128

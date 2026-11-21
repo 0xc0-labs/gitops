@@ -41,6 +41,9 @@ spec:
         runAsNonRoot: true
         runAsUser: 10001
         runAsGroup: 10001
+        # A Secret's files belong to root: the group is how the user reads the
+        # App's key (mode 0440, below, as decimal 288).
+        fsGroup: 10001
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -109,6 +112,24 @@ spec:
                 secretKeyRef:
                   name: matchmark-artifacts-vault
                   key: secret_access_key
+            # The App `matchmark-bot` (README.md, The factory worker). The key
+            # is a file; the adapter refuses it as a variable.
+            - name: MATCHMARK_GITHUB_APP_ID
+              valueFrom:
+                secretKeyRef:
+                  name: matchmark-github-app-vault
+                  key: app_id
+            - name: MATCHMARK_GITHUB_INSTALLATION_ID
+              valueFrom:
+                secretKeyRef:
+                  name: matchmark-github-app-vault
+                  key: installation_id
+            - name: MATCHMARK_GITHUB_APP_KEY_FILE
+              value: /run/secrets/github-app/private_key
+            # Every request to GitHub goes through the sandboxes' proxy, with
+            # CONNECT, and none goes direct. Set or absent, never empty.
+            - name: MATCHMARK_GITHUB_PROXY_URL
+              value: http://egress-proxy.matchmark-sandboxes.svc.cluster.local:3128
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
             - name: OTEL_SERVICE_NAME
@@ -139,7 +160,18 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            - name: github-app-key
+              mountPath: /run/secrets/github-app
+              readOnly: true
       volumes:
+        # Only the key: the two numbers reach the worker as variables.
+        - name: github-app-key
+          secret:
+            secretName: matchmark-github-app-vault
+            defaultMode: 288 # 0440
+            items:
+              - key: private_key
+                path: private_key
         # Each run's working files and the liveness file. Not backed up: it
         # holds nothing that outlives a pod.
         - name: tmp

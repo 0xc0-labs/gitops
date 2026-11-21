@@ -1,21 +1,28 @@
-"""Proof of what the factory worker has been given (README.md, Artifacts).
+"""Proof of what the factory worker has been given (README.md, Artifacts and
+The factory worker).
 
 Runs with the worker's ServiceAccount and labels, so it has the worker's
-rights and the worker's network. Prints one line per step, exits non-zero when
-one fails, and always deletes the Sandbox and the objects it made.
+rights and the worker's network, and with the App's key mounted as the worker
+has it. Prints one line per step, exits non-zero when one fails, and always
+deletes the Sandbox and the objects it made. It never prints the key, the JWT
+or a token.
 """
 
+import base64
 import hashlib
 import hmac
+import http.client
 import json
 import os
 import re
 import socket
 import ssl
+import subprocess
 import sys
 import time
 import urllib.error
 import urllib.request
+from urllib.parse import urlsplit
 
 from s3 import Client, md5_header
 
@@ -27,6 +34,11 @@ SANDBOXD_IMAGE = os.environ["MATCHMARK_SANDBOX_SANDBOXD_IMAGE"]
 TOKEN_KEY = os.environ["MATCHMARK_SANDBOX_TOKEN_KEY"]
 BUCKET = os.environ["MATCHMARK_ARTIFACTS_BUCKET"]
 SANDBOX_IMAGE = "docker.io/library/python:3.13.9-slim-bookworm@sha256:b685a4fa58bb19d1814d78a1ec0f0208f351452724f78b20212c984d6e124a34"
+
+LIBS = "/work/lib"
+GITHUB = "api.github.com"
+REPOSITORY = "0xc0-labs/matchmark-playground"
+PERMISSIONS = {"metadata": "read", "contents": "write", "pull_requests": "write", "checks": "write"}
 
 failures = []
 context = ssl.create_default_context(cafile=f"{SERVICE_ACCOUNT}/ca.crt")
@@ -291,8 +303,134 @@ def artifacts_proof():
     check("second bucket not listed", status == 403, f"status {status}")
 
 
+def github_call(method, path, bearer=None, host=GITHUB):
+    """(status, parsed body) of a call to GitHub through the proxy's CONNECT tunnel."""
+    proxy = urlsplit(os.environ["MATCHMARK_GITHUB_PROXY_URL"])
+    connection = http.client.HTTPSConnection(  # nosemgrep: python.lang.security.audit.httpsconnection-detected -- Python 3.13 verifies certificates and the context is the default one; only HTTPSConnection tunnels CONNECT
+        proxy.hostname, proxy.port, timeout=30, context=ssl.create_default_context()
+    )
+    connection.set_tunnel(host, 443)
+    headers = {"Accept": "application/vnd.github+json", "User-Agent": "matchmark-worker-proof"}
+    if bearer:
+        headers["Authorization"] = f"Bearer {bearer}"
+    try:
+        connection.request(method, path, headers=headers)
+        response = connection.getresponse()
+        raw = response.read()
+        try:
+            return response.status, json.loads(raw) if raw else {}
+        except ValueError:
+            return response.status, {}
+    finally:
+        connection.close()
+
+
+def app_jwt(key_path):
+    """The App's JWT, RS256, valid for ten minutes at most."""
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding
+
+    def part(value):
+        return base64.urlsafe_b64encode(json.dumps(value, separators=(",", ":")).encode()).rstrip(b"=")
+
+    now = int(time.time())
+    signing_input = part({"alg": "RS256", "typ": "JWT"}) + b"." + part(
+        {"iat": now - 60, "exp": now + 540, "iss": os.environ["MATCHMARK_GITHUB_APP_ID"]}
+    )
+    with open(key_path, "rb") as handle:
+        key = serialization.load_pem_private_key(handle.read(), password=None)
+    signature = key.sign(signing_input, padding.PKCS1v15(), hashes.SHA256())
+    return (signing_input + b"." + base64.urlsafe_b64encode(signature).rstrip(b"=")).decode()
+
+
+def github_proof():
+    key_path = os.environ["MATCHMARK_GITHUB_APP_KEY_FILE"]
+    installation = os.environ["MATCHMARK_GITHUB_INSTALLATION_ID"]
+    proxy_url = os.environ["MATCHMARK_GITHUB_PROXY_URL"]
+    proxy = urlsplit(proxy_url)
+
+    mode = os.stat(key_path).st_mode & 0o777
+    check(
+        "key is a file only its user and group read",
+        os.path.isfile(key_path) and mode & 0o007 == 0 and mode & 0o222 == 0,
+        f"mode {mode:04o}",
+    )
+    check("key is in no variable", not any("PRIVATE KEY" in value for value in os.environ.values()), "environment")
+
+    status, _ = github_call("GET", "/zen")
+    check("api.github.com answers through the proxy", status == 200, f"status {status}")
+    try:
+        github_call("GET", "/", host="example.com")
+        check("host outside the list refused", False, "the tunnel opened")
+    except OSError as error:
+        check("host outside the list refused", "403" in str(error), str(error))
+    try:
+        socket.create_connection(("1.1.1.1", 443), timeout=5).close()
+        check("direct connection to a public address fails", False, "connected")
+    except OSError as error:
+        check("direct connection to a public address fails", True, type(error).__name__)
+    try:
+        socket.create_connection((proxy.hostname, 22), timeout=5).close()
+        check("proxy not reached on another port", False, "connected to 22")
+    except OSError as error:
+        check("proxy not reached on another port", True, type(error).__name__)
+
+    # The worker's network reaches the proxy and nothing else, so the library
+    # that signs the JWT comes through the proxy, as the sandbox proof's do.
+    installed = subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- pinned arguments, nothing from outside
+        [
+            sys.executable, "-m", "pip", "install", "--quiet", "--no-cache-dir",
+            "--disable-pip-version-check", "--target", LIBS, "cryptography==46.0.3",
+        ],
+        env={**os.environ, "HTTPS_PROXY": proxy_url, "HTTP_PROXY": proxy_url},
+        capture_output=True,
+        check=False,
+    )
+    check("pip installs through the proxy", installed.returncode == 0, f"exit {installed.returncode}")
+    if installed.returncode != 0:
+        return
+    sys.path.insert(0, LIBS)
+
+    try:
+        token_jwt = app_jwt(key_path)
+    except Exception as error:  # noqa: BLE001 - the message of a key error can quote the key
+        check("JWT signed with the mounted key", False, type(error).__name__)
+        return
+    check("JWT signed with the mounted key", True, "RS256")
+
+    status, app = github_call("GET", "/app", bearer=token_jwt)
+    check("the App answers to its JWT", status == 200, f"status {status}")
+    if status == 200:
+        check("the App's permissions are the design's four", app.get("permissions") == PERMISSIONS, json.dumps(app.get("permissions")))
+        check("the App has no events", app.get("events") == [], json.dumps(app.get("events")))
+
+    status, found = github_call("GET", f"/app/installations/{installation}", bearer=token_jwt)
+    check("the installation answers", status == 200, f"status {status}")
+    if status == 200:
+        check("installation covers selected repositories", found.get("repository_selection") == "selected", str(found.get("repository_selection")))
+        check("installation's permissions are the four", found.get("permissions") == PERMISSIONS, json.dumps(found.get("permissions")))
+
+    status, granted = github_call("POST", f"/app/installations/{installation}/access_tokens", bearer=token_jwt)
+    token = granted.get("token") if status == 201 else None
+    check("token made for the installation", bool(token), f"status {status}")
+    if not token:
+        return
+    try:
+        status, listed = github_call("GET", "/installation/repositories", bearer=token)
+        names = [repository.get("full_name") for repository in listed.get("repositories", [])]
+        check(
+            f"installation's only repository is {REPOSITORY}",
+            status == 200 and names == [REPOSITORY] and listed.get("total_count") == 1,
+            f"status {status}, {len(names)} repositories: {', '.join(names)}",
+        )
+    finally:
+        status, _ = github_call("DELETE", "/installation/token", bearer=token)
+        check("token revoked", status == 204, f"status {status}")
+
+
 sandboxes_proof()
 artifacts_proof()
+github_proof()
 
 if failures:
     print(f"FAILED: {', '.join(failures)}", flush=True)
