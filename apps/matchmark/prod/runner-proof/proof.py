@@ -33,7 +33,8 @@ def tree_env(**extra):
 
 def run(argv, timeout=60, **kwargs):
     kwargs.setdefault("env", tree_env())
-    return subprocess.run(
+    # Every argv is a list of this file's own constants and paths of the tree.
+    return subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
         argv, capture_output=True, text=True, timeout=timeout, **kwargs
     )
 
