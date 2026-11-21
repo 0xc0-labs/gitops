@@ -541,15 +541,17 @@ runner and the Claude Agent SDK with its Claude Code binary, and `bwrap`.
   `CLAUDE_CODE_OAUTH_TOKEN`, which the worker hands to the runner when it
   starts it. `MATCHMARK_SANDBOX_IMAGE_PULL_SECRET` is not set: the sandboxes'
   namespace has no pull Secret for the private image yet.
-- **Proof**: `runner-proof-<APP_VERSION>`, a plain Job in wave 2, one per
+- **Proof**: `runner-proof-<APP_VERSION>-r2`, a plain Job in wave 2, one per
   deployed version like `gateway-proof` (a release moves the pin, a Job is
   immutable, so each release is a new Job and the previous one is pruned), not
   run again by a sync. It runs in `matchmark`, which can pull the image,
   in a pod with the sandbox's shape: `runtimeClassName: gvisor`, user 10001, no
   privilege escalation, every capability dropped, the default seccomp profile,
   a read-only root, no ServiceAccount token and no egress of its own. An init
-  container copies the tree with `cp -a /opt/runner/. /work/` into a volume the
-  toolchain image (the playground's, `uv` on Python 3.12) mounts read-only at
+  container copies the tree with `cp -a /opt/runner /work/` into a volume, as
+  one directory the user owns (the volume's root is not its own, and `cp -a`
+  of `.` fails on its times); the toolchain image (the playground's, `uv` on
+  Python 3.12) mounts that directory (`subPath: runner`) read-only at
   `/opt/runner`, with `/opt/runner/bin` first in `PATH`. It prints one line per
   check, `ok <name>` or `FAILED <name>: <how>`, and ends non-zero when any
   failed:
@@ -566,7 +568,7 @@ The last two are what Matchmark's design leaves to the cluster. If one fails,
 the Job fails, and its line says how.
 
 ```sh
-kubectl -n matchmark logs job/runner-proof-<version>    # each line "ok", then "all checks ok"
+kubectl -n matchmark logs job/runner-proof-<version>-r2    # each line "ok", then "all checks ok"
 kubectl -n matchmark get pod -l app.kubernetes.io/name=matchmark-factory-worker -o yaml | grep -A1 MATCHMARK_RUNNER_IMAGE
 ```
 

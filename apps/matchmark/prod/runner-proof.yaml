@@ -4,15 +4,18 @@
 # The pod has the sandbox's shape: gVisor, user 10001, no privilege escalation,
 # no capability, the runtime's default seccomp profile, a read-only root and no
 # ServiceAccount token. The init container copies the runner's tree as the
-# worker's sandboxes do; the toolchain image mounts it read-only. Its labels
+# worker's sandboxes do, as one directory (`/work/runner`, the user's own: `cp
+# -a` of the volume's root would fail on its times); the toolchain image mounts
+# that directory read-only. Its labels
 # match no egress policy, so it has the default's DNS and nothing else.
 apiVersion: batch/v1
 kind: Job
 metadata:
-  # The last segment is replaced with APP_VERSION (kustomization.yaml): the
+  # The middle segment is replaced with APP_VERSION (kustomization.yaml): the
   # release moves the runner's pin, a Job is immutable, so each release is a new
-  # Job and Argo CD prunes the previous one.
-  name: runner-proof-version
+  # Job and Argo CD prunes the previous one. `-r2` is the corrected copy: the
+  # Job a changed spec needs is a new name (#511).
+  name: runner-proof-version-r2
   namespace: matchmark
   annotations:
     argocd.argoproj.io/sync-wave: "2"
@@ -41,7 +44,7 @@ spec:
         # MATCHMARK_RUNNER_IMAGE is copied from it.
         - name: runner
           image: ghcr.io/0xc0-labs/matchmark-runner
-          command: [cp, -a, /opt/runner/., /work/]
+          command: [cp, -a, /opt/runner, /work/]
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -87,6 +90,7 @@ spec:
           volumeMounts:
             - name: runner
               mountPath: /opt/runner
+              subPath: runner
               readOnly: true
             - name: proof
               mountPath: /opt/proof

@@ -93,7 +93,7 @@ replacements:
   # it finds the Job by the name the next entry replaces.
   - source:
       kind: Job
-      name: runner-proof-version
+      name: runner-proof-version-r2
       fieldPath: spec.template.spec.initContainers.[name=runner].image
     targets:
       - select:
@@ -116,7 +116,7 @@ replacements:
           index: 2
       - select:
           kind: Job
-          name: runner-proof-version
+          name: runner-proof-version-r2
         fieldPaths:
           - metadata.name
         options:
