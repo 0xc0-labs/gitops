@@ -594,7 +594,7 @@ runner and the Claude Agent SDK with its Claude Code binary, and `bwrap`.
 The last two are what Matchmark's design leaves to the cluster. If one fails,
 the Job fails, and its line says how.
 
-- **Sandbox proof**: `runner-sandbox-proof-<APP_VERSION>`
+- **Sandbox proof**: `runner-sandbox-proof-<APP_VERSION>-r2`
   (`runner-sandbox-proof.yaml`, `runner-proof/sandbox-proof.py`), a plain Job
   in wave 2, one per deployed version like the one above, with the worker's
   ServiceAccount, labels and image (as `worker-proof-1`), so it has the
@@ -617,7 +617,7 @@ the Job fails, and its line says how.
 
 ```sh
 kubectl -n matchmark logs job/runner-proof-<version>-r2    # each line "ok", then "all checks ok"
-kubectl -n matchmark logs job/runner-sandbox-proof-<version>    # each step "ok", then "all steps ok"
+kubectl -n matchmark logs job/runner-sandbox-proof-<version>-r2    # each step "ok", then "all steps ok"
 kubectl -n matchmark get pod -l app.kubernetes.io/name=matchmark-factory-worker -o yaml | grep -A1 MATCHMARK_RUNNER_IMAGE
 ```
 

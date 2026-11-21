@@ -11,8 +11,10 @@ kind: Job
 metadata:
   # The middle segment is replaced with APP_VERSION (kustomization.yaml), as
   # runner-proof's: the release moves the runner's pin, a Job is immutable, so
-  # each release is a new Job and Argo CD prunes the previous one.
-  name: runner-sandbox-proof-version
+  # each release is a new Job and Argo CD prunes the previous one. `-r2` is
+  # the corrected copy: a Job cannot be edited, and the first one's `bwrap`
+  # check expected the wrong PID.
+  name: runner-sandbox-proof-version-r2
   namespace: matchmark
   annotations:
     argocd.argoproj.io/sync-wave: "2"

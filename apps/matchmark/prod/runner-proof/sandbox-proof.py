@@ -305,10 +305,16 @@ def main():
             ]
         )
         lines = inside.splitlines()
+        # bwrap runs its own init as PID 1 of the new namespace and the command
+        # as PID 2, unless given --as-pid-1.
         check(
             "bwrap makes its namespaces in a sandbox",
-            outside_code == 0 and code == 0 and lines[:1] == ["pid 1"] and len(lines) == 2 and lines[1] != outside,
-            inside.replace("\n", " | ")[-300:],
+            outside_code == 0
+            and code == 0
+            and lines[:1] in (["pid 1"], ["pid 2"])
+            and len(lines) == 2
+            and lines[1] != outside.strip(),
+            f"{inside.replace(chr(10), ' | ')[-200:]} (sandbox's own {outside.strip()[-80:]})",
         )
     finally:
         if channel is not None:

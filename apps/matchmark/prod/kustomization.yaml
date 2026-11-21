@@ -106,7 +106,7 @@ replacements:
           - spec.template.spec.containers.[name=factory-worker].env.[name=MATCHMARK_RUNNER_IMAGE].value
       - select:
           kind: Job
-          name: runner-sandbox-proof-version
+          name: runner-sandbox-proof-version-r2
         fieldPaths:
           - spec.template.spec.containers.[name=proof].env.[name=MATCHMARK_RUNNER_IMAGE].value
   - source:
@@ -132,7 +132,7 @@ replacements:
           index: 2
       - select:
           kind: Job
-          name: runner-sandbox-proof-version
+          name: runner-sandbox-proof-version-r2
         fieldPaths:
           - metadata.name
         options:
