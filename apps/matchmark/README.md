@@ -575,7 +575,7 @@ runner and the Claude Agent SDK with its Claude Code binary, and `bwrap`.
   starts it. `MATCHMARK_SANDBOX_IMAGE_PULL_SECRET` is `ghcr-pull-vault`: the
   pull Secret of the sandboxes' namespace, which the worker names in the pods
   it creates (`apps/matchmark-sandboxes`, README.md, The image pull Secret).
-- **Proof**: `runner-proof-<APP_VERSION>-r2`, a plain Job in wave 2, one per
+- **Proof**: `runner-proof-<APP_VERSION>-r3`, a plain Job in wave 2, one per
   deployed version like `gateway-proof` (a release moves the pin, a Job is
   immutable, so each release is a new Job and the previous one is pruned), not
   run again by a sync. It runs in `matchmark`, which can pull the image,
@@ -593,7 +593,8 @@ runner and the Claude Agent SDK with its Claude Code binary, and `bwrap`.
 | Check | Shows |
 |---|---|
 | `tree runs with its own python` | the venv's Python imports `matchmark_runner` and `claude_agent_sdk`, and nothing on its `sys.path` is outside the tree |
-| `claude binary starts` | the Claude Code binary the Agent SDK carries runs `--version` there |
+| `claude binary starts` | `_bundled/claude`, the file the Agent SDK starts, runs `--version` there; the line says which file ran, and a bundle without it fails with what the bundle holds |
+| `socat runs from the tree` | `/opt/runner/bin/socat -V` exits 0 as the runner's user: Claude Code's sandbox on Linux needs it beside `bwrap` |
 | `bwrap --version from the tree` | the tree's own `bwrap` and libraries load |
 | `bwrap makes user, pid and mount namespaces` | a command under `bwrap` ends well in namespaces of its own with a `/proc` of its own, and its `/proc/1/environ` is not the pod's first process's |
 | `a non-dumpable process cannot be read` | a process that sets `PR_SET_DUMPABLE` to 0 cannot have its `/proc/<pid>/environ` or `/proc/<pid>/mem` read by another of the same user; the same reads of a process that did not set it must succeed, or the check fails as blind |
@@ -623,7 +624,7 @@ the Job fails, and its line says how.
 | `sandbox deleted and none left` | the Sandbox is deleted and reads as gone |
 
 ```sh
-kubectl -n matchmark logs job/runner-proof-<version>-r2    # each line "ok", then "all checks ok"
+kubectl -n matchmark logs job/runner-proof-<version>-r3    # each line "ok", then "all checks ok"
 kubectl -n matchmark logs job/runner-sandbox-proof-<version>-r2    # each step "ok", then "all steps ok"
 kubectl -n matchmark get pod -l app.kubernetes.io/name=matchmark-factory-worker -o yaml | grep -A1 MATCHMARK_RUNNER_IMAGE
 ```

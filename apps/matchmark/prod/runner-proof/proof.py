@@ -14,6 +14,7 @@ import time
 TREE = "/opt/runner"
 VENV_PYTHON = f"{TREE}/venv/bin/python"
 BWRAP = f"{TREE}/bin/bwrap"
+SOCAT = f"{TREE}/bin/socat"
 MARKER = "PROOF_MARKER_5f0c1d"
 
 failed = []
@@ -67,17 +68,25 @@ def check_tree_python():
 
 
 def check_claude_binary():
-    # The Agent SDK bundles the Claude Code binary under its package.
+    name = "claude binary starts (--version)"
+    # The Agent SDK starts `_bundled/claude` by that exact name; a glob would
+    # also match any other file of the bundle that starts with `claude`.
     found = run(
         [VENV_PYTHON, "-c",
          "import pathlib, claude_agent_sdk as m;"
-         "print(*pathlib.Path(m.__file__).parent.glob('_bundled/claude*'))"]
+         "b = pathlib.Path(m.__file__).parent / '_bundled';"
+         "print(b / 'claude' if (b / 'claude').is_file() else 'MISSING ' + repr(sorted(p.name for p in b.glob('*'))))"]
     )
-    paths = found.stdout.split()
-    if found.returncode != 0 or not paths:
-        report("claude binary starts (--version)", False, f"not found: {tail(found)}")
+    path = found.stdout.strip()
+    if found.returncode != 0 or path.startswith("MISSING"):
+        report(name, False, f"no _bundled/claude: {path or tail(found)}")
         return
-    check_command("claude binary starts (--version)", [paths[0], "--version"])
+    print(f"claude binary: {path}", flush=True)
+    check_command(name, [path, "--version"])
+
+
+def check_socat():
+    check_command("socat runs from the tree", [SOCAT, "-V"])
 
 
 def check_bwrap_version():
@@ -204,6 +213,7 @@ def main():
     check_tree_python()
     check_claude_binary()
     check_bwrap_version()
+    check_socat()
     check_bwrap_namespaces()
     check_dumpable()
     if failed:
