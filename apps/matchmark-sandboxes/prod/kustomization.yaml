@@ -1,6 +1,6 @@
 # The namespace the factory's sandboxes run in, and what surrounds them: their
 # quota, their network, the proxy that is their only way out, and the proof
-# and the one Secret they read (README.md). The factory worker creates them
+# and the Secrets they read (README.md). The factory worker creates them
 # with the Role in worker-role.yaml.
 #
 # Backups: no volumes beyond emptyDir.

@@ -179,7 +179,8 @@ sandboxes' egress rules, which is how it installs `k8s-agent-sandbox` and
 
 ## The subscription token
 
-The namespace's **only Secret**: `claude-subscription-vault`, one key,
+One of the namespace's two Secrets (the other is The image pull Secret):
+`claude-subscription-vault`, one key,
 `oauth_token`, the token of the operator's Claude subscription (from `claude
 setup-token`). Vault Secrets Operator makes it from
 `apps/matchmark/claude-subscription`, the secret the factory worker reads
@@ -205,6 +206,25 @@ The risk this accepts, and why: `docs/accepted-risks.md` in
 [`0xc0-labs/workspace`](https://github.com/0xc0-labs/workspace/blob/main/docs/accepted-risks.md),
 and Matchmark's design, `docs/architecture/sandbox.md` in
 [`0xc0-labs/matchmark`](https://github.com/0xc0-labs/matchmark/blob/main/docs/architecture/sandbox.md).
+
+## The image pull Secret
+
+`ghcr-pull-vault`, a `kubernetes.io/dockerconfigjson` Secret for `ghcr.io`:
+the credential the kubelet pulls the factory's runner image with
+(`ghcr.io/0xc0-labs/matchmark-runner`, a private package). Vault Secrets
+Operator makes it from `shared/ghcr-pull` (`username`, `password`), the org's
+shared secret that can only read packages, and Matchmark's own namespace
+reads the same one (`apps/matchmark/prod/vault-secrets.yaml`). The
+`matchmark-sandboxes` role's policy grants that one path by name beside the
+subscription's (`0xc0-labs/vault`).
+
+What reads it: the kubelet, when a sandbox's pod pulls the runner image. The
+worker names it in the pods it creates, through its setting
+`MATCHMARK_SANDBOX_IMAGE_PULL_SECRET` (`ghcr-pull-vault`, in
+`apps/matchmark/prod/factory-worker.yaml`); the sandbox's own containers never
+mount it, and the worker's Role has no access to Secrets. The kubelet reads it
+at each pull, so a rotated token needs no restart. What it shows end to end is
+the `runner-sandbox-proof` Job in `apps/matchmark` (README.md, The runner).
 
 ## The pod's shape
 

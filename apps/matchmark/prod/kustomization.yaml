@@ -43,6 +43,7 @@ resources:
   - network-policy-artifacts.yaml
   - artifacts.yaml
   - runner-proof.yaml
+  - runner-sandbox-proof.yaml
 images:
   - name: cr.agentgateway.dev/controller
     newTag: v1.7.0
@@ -59,7 +60,8 @@ images:
     newTag: v0.31.0
     digest: sha256:7f815a9aec576ff1945ebd6dc09aecbb1281c201f9cff36ee4e78780f4db7563
   # The runner's pin: the proof's init container carries it, and the worker's
-  # MATCHMARK_RUNNER_IMAGE is copied from there (replacements, below). v0.31.0
+  # MATCHMARK_RUNNER_IMAGE, and the sandbox proof's, are copied from there
+  # (replacements, below). v0.31.0
   # was built from the commit of this digest; the registry carries that tag for
   # the runner from the first release that lists it. A pull goes by the digest.
   - name: ghcr.io/0xc0-labs/matchmark-runner
@@ -77,10 +79,11 @@ configMapGenerator:
       - artifacts/policy.json
     options:
       disableNameSuffixHash: true
-  # Same reason as `artifacts`: the proof Job's template cannot change.
+  # Same reason as `artifacts`: the proof Jobs' templates cannot change.
   - name: runner-proof
     files:
       - runner-proof/proof.py
+      - runner-proof/sandbox-proof.py
     options:
       disableNameSuffixHash: true
   - name: release
@@ -89,7 +92,7 @@ configMapGenerator:
 replacements:
   # `images:` rewrites container images only, so the worker's setting takes the
   # rendered `<name>:<tag>@sha256:<digest>` of the proof's init container:
-  # one pin, and the two cannot differ (README.md, The runner). It comes first:
+  # one pin, and they cannot differ (README.md, The runner). It comes first:
   # it finds the Job by the name the next entry replaces.
   - source:
       kind: Job
@@ -101,6 +104,11 @@ replacements:
           name: factory-worker
         fieldPaths:
           - spec.template.spec.containers.[name=factory-worker].env.[name=MATCHMARK_RUNNER_IMAGE].value
+      - select:
+          kind: Job
+          name: runner-sandbox-proof-version
+        fieldPaths:
+          - spec.template.spec.containers.[name=proof].env.[name=MATCHMARK_RUNNER_IMAGE].value
   - source:
       kind: ConfigMap
       name: release
@@ -122,6 +130,14 @@ replacements:
         options:
           delimiter: "-"
           index: 2
+      - select:
+          kind: Job
+          name: runner-sandbox-proof-version
+        fieldPaths:
+          - metadata.name
+        options:
+          delimiter: "-"
+          index: 3
 patches:
   # Deleting a CRD deletes every object of its kind.
   - target:
