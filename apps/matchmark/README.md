@@ -643,7 +643,7 @@ credential of its own and not the root one.
   when the user carries it), so a run after a half-finished one needs nothing
   removed by hand. It is not run again by a sync. To run it again (a rotated
   key pair, a changed policy), raise the number in its name.
-- **Proof**: `worker-proof-2`, a plain Job in wave 2, with the worker's
+- **Proof**: `worker-proof-3`, a plain Job in wave 2, with the worker's
   ServiceAccount and labels, so it has the worker's rights and network, and
   the secrets the worker reads (the App's key mounted as a file the same way).
   It prints one line per step and ends `all steps ok`. It prints nothing of
@@ -662,6 +662,7 @@ credential of its own and not the root one.
 | `bucket listed`, `objects deleted`, `no object left behind` | the credential lists the bucket and deletes (`DeleteObjects`) what it wrote |
 | `second bucket not created`, `second bucket not listed` | the policy ends at the bucket |
 | `key is a file only its user and group read`, `key is in no variable` | the App's key is a mounted file, read-only for the worker's user, and in no variable |
+| `proxy accepts a connection` | the proxy takes a connection, waiting up to five minutes for the rule that admits the worker (`matchmark-sandboxes` can sync after this Job starts) |
 | `api.github.com answers through the proxy` | the `CONNECT` tunnel to GitHub's API opens and GitHub answers |
 | `host outside the list refused` | the proxy answers `403` to a host that is not in its list |
 | `direct connection to a public address fails`, `proxy not reached on another port` | the worker's only way out is the proxy's 3128 |
@@ -679,7 +680,7 @@ proof waits for the one `Sandbox` the quota allows, so it can run beside
 
 ```sh
 kubectl -n matchmark logs job/artifacts-setup-1 -c bucket   # lifecycle rule read back
-kubectl -n matchmark logs job/worker-proof-2                # all steps ok
+kubectl -n matchmark logs job/worker-proof-3                # all steps ok
 ```
 
 ## Checking
