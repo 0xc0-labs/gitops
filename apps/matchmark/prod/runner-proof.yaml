@@ -13,9 +13,9 @@ kind: Job
 metadata:
   # The middle segment is replaced with APP_VERSION (kustomization.yaml): the
   # release moves the runner's pin, a Job is immutable, so each release is a new
-  # Job and Argo CD prunes the previous one. `-r2` is the corrected copy: the
-  # Job a changed spec needs is a new name (#511).
-  name: runner-proof-version-r2
+  # Job and Argo CD prunes the previous one. `-r3` is the corrected copy: the
+  # Job a changed spec needs is a new name (#511, #533).
+  name: runner-proof-version-r3
   namespace: matchmark
   annotations:
     argocd.argoproj.io/sync-wave: "2"
