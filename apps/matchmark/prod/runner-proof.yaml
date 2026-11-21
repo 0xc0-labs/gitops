@@ -1,6 +1,5 @@
 # The proof that the runner's tree works where a sandbox runs it (README.md,
-# The runner): a plain Job, kept after it ends and not run again by a sync. To
-# run it again, raise the number in its name.
+# The runner): a plain Job, kept after it ends and not run again by a sync.
 #
 # The pod has the sandbox's shape: gVisor, user 10001, no privilege escalation,
 # no capability, the runtime's default seccomp profile, a read-only root and no
@@ -10,7 +9,10 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: runner-proof-1
+  # The last segment is replaced with APP_VERSION (kustomization.yaml): the
+  # release moves the runner's pin, a Job is immutable, so each release is a new
+  # Job and Argo CD prunes the previous one.
+  name: runner-proof-version
   namespace: matchmark
   annotations:
     argocd.argoproj.io/sync-wave: "2"

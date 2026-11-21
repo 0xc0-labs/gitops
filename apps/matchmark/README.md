@@ -524,8 +524,9 @@ holds one self-contained tree at `/opt/runner`: its own Python, a venv with the
 runner and the Claude Agent SDK with its Claude Code binary, and `bwrap`.
 
 - **Pin**: the `images:` entry of `prod/kustomization.yaml`, tag and digest,
-  beside the other three. It is not part of a release yet, so its tag is the
-  build's commit (`sha-<short>`). The release refuses an image the
+  beside the other three, tagged `v0.31.0`: that release was built from the
+  commit of the pinned digest, and the registry carries the tag for the runner
+  from the first release that lists it (a pull goes by the digest). The release refuses an image the
   kustomization does not list: the entry is what lets it move this one once
   the application adds the runner to its images.
 - **How the worker reads it**: `MATCHMARK_RUNNER_IMAGE` in `factory-worker.yaml`
@@ -534,15 +535,16 @@ runner and the Claude Agent SDK with its Claude Code binary, and `bwrap`.
   rewrites container images only, so that is the one place the pin reaches the
   setting: moving the entry moves both, and they cannot differ. The worker
   refuses a value without `@sha256:`. Rendered today:
-  `ghcr.io/0xc0-labs/matchmark-runner:sha-d9c2d93@sha256:ccdb75d4fcf7c38a824faddea145eb04a2407faf523723cb9787bfd207ee63b5`.
+  `ghcr.io/0xc0-labs/matchmark-runner:v0.31.0@sha256:ccdb75d4fcf7c38a824faddea145eb04a2407faf523723cb9787bfd207ee63b5`.
 - **Subscription**: `MATCHMARK_RUNNER_SUBSCRIPTION` is `true`: the sandbox's
   workspace runs on the Claude subscription whose token is the worker's
   `CLAUDE_CODE_OAUTH_TOKEN`, which the worker hands to the runner when it
   starts it. `MATCHMARK_SANDBOX_IMAGE_PULL_SECRET` is not set: the sandboxes'
   namespace has no pull Secret for the private image yet.
-- **Proof**: `runner-proof-1`, a plain Job in wave 2, not run again by a sync
-  (raise the number in its name to run it again; its script is a ConfigMap, so
-  the template cannot change). It runs in `matchmark`, which can pull the image,
+- **Proof**: `runner-proof-<APP_VERSION>`, a plain Job in wave 2, one per
+  deployed version like `gateway-proof` (a release moves the pin, a Job is
+  immutable, so each release is a new Job and the previous one is pruned), not
+  run again by a sync. It runs in `matchmark`, which can pull the image,
   in a pod with the sandbox's shape: `runtimeClassName: gvisor`, user 10001, no
   privilege escalation, every capability dropped, the default seccomp profile,
   a read-only root, no ServiceAccount token and no egress of its own. An init
@@ -564,7 +566,7 @@ The last two are what Matchmark's design leaves to the cluster. If one fails,
 the Job fails, and its line says how.
 
 ```sh
-kubectl -n matchmark logs job/runner-proof-1    # each line "ok", then "all checks ok"
+kubectl -n matchmark logs job/runner-proof-<version>    # each line "ok", then "all checks ok"
 kubectl -n matchmark get pod -l app.kubernetes.io/name=matchmark-factory-worker -o yaml | grep -A1 MATCHMARK_RUNNER_IMAGE
 ```
 
