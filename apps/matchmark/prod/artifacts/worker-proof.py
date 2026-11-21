@@ -306,7 +306,9 @@ def artifacts_proof():
 def github_call(method, path, bearer=None, host=GITHUB):
     """(status, parsed body) of a call to GitHub through the proxy's CONNECT tunnel."""
     proxy = urlsplit(os.environ["MATCHMARK_GITHUB_PROXY_URL"])
-    connection = http.client.HTTPSConnection(proxy.hostname, proxy.port, timeout=30, context=ssl.create_default_context())
+    connection = http.client.HTTPSConnection(  # nosemgrep: python.lang.security.audit.httpsconnection-detected -- Python 3.13 verifies certificates and the context is the default one; only HTTPSConnection tunnels CONNECT
+        proxy.hostname, proxy.port, timeout=30, context=ssl.create_default_context()
+    )
     connection.set_tunnel(host, 443)
     headers = {"Accept": "application/vnd.github+json", "User-Agent": "matchmark-worker-proof"}
     if bearer:
