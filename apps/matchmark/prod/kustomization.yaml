@@ -51,22 +51,22 @@ images:
   # The API's and the stand-in's pins, one tag: the application's release job
   # moves both (README.md, The API).
   - name: ghcr.io/0xc0-labs/matchmark-api
-    newTag: v0.38.2
-    digest: sha256:d88da4f92bb1ff3d01ee0f31652124286a34f3ff3694a0fd50f904bbdeb090c7
+    newTag: v0.38.3
+    digest: sha256:4653f5d67fe75808ac776b9367093629753cfba3c9b36f8b828f5145655791bc
   - name: ghcr.io/0xc0-labs/matchmark-stand-in-provider
-    newTag: v0.38.2
-    digest: sha256:36cd8cc4b727fb2eb1120e26ba522cc2791e1e91cac3736eaf6f99a3781f9bad
+    newTag: v0.38.3
+    digest: sha256:f0bd6ed72a85dc64589e8d22b6e60192608d9f3a0b6dc1970fae059bb4801ec1
   - name: ghcr.io/0xc0-labs/matchmark-factory-worker
-    newTag: v0.38.2
-    digest: sha256:e2151a6cf024001417c5ae84bd25b15a36ffd2ac321b5853cf6cc274f865f28b
+    newTag: v0.38.3
+    digest: sha256:45e2f65a13bd6a9b8637b0b18fb27dbc7231e30e7f0e53d0cd023fed3383e23f
   # The runner's pin: the proof's init container carries it, and the worker's
   # MATCHMARK_RUNNER_IMAGE, and the sandbox proof's, are copied from there
   # (replacements, below). v0.31.0
   # was built from the commit of this digest; the registry carries that tag for
   # the runner from the first release that lists it. A pull goes by the digest.
   - name: ghcr.io/0xc0-labs/matchmark-runner
-    newTag: v0.38.2
-    digest: sha256:944d26732d69e67638e83dab1b74a5236e2ece35be0c018ba6d43f440b703e29
+    newTag: v0.38.3
+    digest: sha256:c7566454fd15c8b95458bee967408e4388a7bc611004034797d30337a3e58f11
 configMapGenerator:
   # No hash suffix: a Job's pod template cannot change, so a renamed ConfigMap
   # would fail the sync instead of leaving the finished Jobs alone.
@@ -88,7 +88,7 @@ configMapGenerator:
       disableNameSuffixHash: true
   - name: release
     literals:
-      - APP_VERSION=v0.38.2
+      - APP_VERSION=v0.38.3
 replacements:
   # `images:` rewrites container images only, so the worker's setting takes the
   # rendered `<name>:<tag>@sha256:<digest>` of the proof's init container:
