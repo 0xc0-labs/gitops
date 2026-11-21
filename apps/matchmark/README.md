@@ -140,7 +140,7 @@ secret); nothing here holds a value:
 | `matchmark/api` | `service_token` (32 characters or more) | `matchmark-api`, into `MATCHMARK_SERVICE_TOKEN` |
 | `matchmark/database` | `password` | `matchmark-database`, into `PGPASSWORD` of the API and the migration. The role `matchmark` on the shared PostgreSQL: `platform/postgres` sets it |
 | `matchmark/storage` | `access_key`, `secret_key` | `rustfs-root` |
-| `shared/ghcr-pull` | `username`, `password` | `ghcr-pull`, the image pull |
+| `shared/ghcr-pull` | `username`, `password` | `ghcr-pull`, the image pull; `apps/matchmark-sandboxes` reads it too, for its own namespace |
 | `matchmark/sandbox` | `token_key` (32 characters or more) | `matchmark-sandbox`, into `MATCHMARK_SANDBOX_TOKEN_KEY` of the factory worker (The factory worker) |
 | `matchmark/artifacts` | `access_key_id`, `secret_access_key` | `matchmark-artifacts`: the artifact user's key pair, read by the worker and by the Job that creates the user (Artifacts) |
 | `matchmark/claude-subscription` | `oauth_token` | `claude-subscription`, into `CLAUDE_CODE_OAUTH_TOKEN` of the factory worker (The factory worker) |
@@ -539,8 +539,9 @@ runner and the Claude Agent SDK with its Claude Code binary, and `bwrap`.
 - **Subscription**: `MATCHMARK_RUNNER_SUBSCRIPTION` is `true`: the sandbox's
   workspace runs on the Claude subscription whose token is the worker's
   `CLAUDE_CODE_OAUTH_TOKEN`, which the worker hands to the runner when it
-  starts it. `MATCHMARK_SANDBOX_IMAGE_PULL_SECRET` is not set: the sandboxes'
-  namespace has no pull Secret for the private image yet.
+  starts it. `MATCHMARK_SANDBOX_IMAGE_PULL_SECRET` is `ghcr-pull-vault`: the
+  pull Secret of the sandboxes' namespace, which the worker names in the pods
+  it creates (`apps/matchmark-sandboxes`, README.md, The image pull Secret).
 - **Proof**: `runner-proof-<APP_VERSION>-r2`, a plain Job in wave 2, one per
   deployed version like `gateway-proof` (a release moves the pin, a Job is
   immutable, so each release is a new Job and the previous one is pruned), not
@@ -567,8 +568,30 @@ runner and the Claude Agent SDK with its Claude Code binary, and `bwrap`.
 The last two are what Matchmark's design leaves to the cluster. If one fails,
 the Job fails, and its line says how.
 
+- **Sandbox proof**: `runner-sandbox-proof-<APP_VERSION>`
+  (`runner-sandbox-proof.yaml`, `runner-proof/sandbox-proof.py`), a plain Job
+  in wave 2, one per deployed version like the one above, with the worker's
+  ServiceAccount, labels and image (as `worker-proof-1`), so it has the
+  worker's rights and network. It makes a `Sandbox` in `matchmark-sandboxes`
+  the way the worker's adapter does: the runner copied by an init container
+  from the private image (the kustomization's one pin, copied into the Job's
+  `MATCHMARK_RUNNER_IMAGE` by the same `replacements` entry as the worker's) as
+  one directory mounted by `subPath`, the pull Secret named, `sandboxd` with its
+  token. It shares the quota's one `Sandbox` with the other proofs and waits for
+  the slot. One line per step, `ok` or `FAILED`:
+
+| Step | Shows |
+|---|---|
+| `sandbox ready (private image pulled, runner copied)` | the namespace's pull Secret pulled the private image and the copy worked |
+| `pull Secret named by the pod` | the pod carries the Secret's name |
+| `runner imports from the tree` | through `sandboxd`, the tree's Python imports `matchmark_runner` |
+| `bwrap runs from the tree` | through `sandboxd`, `/opt/runner/bin/bwrap --version` |
+| `bwrap makes its namespaces in a sandbox` | through `sandboxd`, `bwrap` makes its user, pid and mount namespaces (the check `runner-proof` makes in a plain pod) |
+| `sandbox deleted and none left` | the Sandbox is deleted and reads as gone |
+
 ```sh
 kubectl -n matchmark logs job/runner-proof-<version>-r2    # each line "ok", then "all checks ok"
+kubectl -n matchmark logs job/runner-sandbox-proof-<version>    # each step "ok", then "all steps ok"
 kubectl -n matchmark get pod -l app.kubernetes.io/name=matchmark-factory-worker -o yaml | grep -A1 MATCHMARK_RUNNER_IMAGE
 ```
 

@@ -81,6 +81,10 @@ spec:
             # `ghcr.io/0xc0-labs/matchmark-runner` (README.md, The runner).
             - name: MATCHMARK_RUNNER_IMAGE
               value: ghcr.io/0xc0-labs/matchmark-runner
+            # A sandbox's pod pulls the private runner image with this Secret
+            # of the sandboxes' namespace (apps/matchmark-sandboxes).
+            - name: MATCHMARK_SANDBOX_IMAGE_PULL_SECRET
+              value: ghcr-pull-vault
             # The workspace runs on the subscription whose token is
             # CLAUDE_CODE_OAUTH_TOKEN above.
             - name: MATCHMARK_RUNNER_SUBSCRIPTION
