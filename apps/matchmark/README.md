@@ -452,7 +452,8 @@ for the definitions of the version a run names, issues the agent's token
 (`POST /v1/agent-tokens`) and reads the run's spend (`GET /v1/usage/totals`),
 and runs the agent with Claude Code through the gateway's `/claude` route (The
 subscription route): the agent's token in `Matchmark-Agent-Token`, the
-subscription's credential in `Authorization`. It calls nothing else.
+subscription's credential in `Authorization`. It calls nothing else but
+GitHub's API, as the App `matchmark-bot` (GitHub App, below).
 
 - **Sandboxes**: the worker creates and deletes the sandboxes of
   `matchmark-sandboxes` and talks to their runtime. It calls the API server
@@ -472,6 +473,30 @@ subscription's credential in `Authorization`. It calls nothing else.
 - **Artifacts**: `MATCHMARK_ARTIFACTS_ENDPOINT` and `_BUCKET`, and the key pair
   `matchmark/artifacts` into `_ACCESS_KEY_ID` and `_SECRET_ACCESS_KEY`
   (Artifacts). Each secret restarts the Deployment when its value changes.
+- **GitHub App**: the worker acts on GitHub as `matchmark-bot`, an App owned
+  by `0xc0-labs` that the operator created (2026-11-20). Its secret is
+  `matchmark/github-app` (`app_id`, `installation_id`, `private_key`, a PEM),
+  read by the `VaultStaticSecret` `matchmark-github-app` into
+  `matchmark-github-app-vault`. `MATCHMARK_GITHUB_APP_ID` and
+  `MATCHMARK_GITHUB_INSTALLATION_ID` are variables; the key is a **file**,
+  `private_key` mounted read-only at `/run/secrets/github-app/`, mode 0440
+  with the pod's `fsGroup` (a Secret's files belong to root, so 0400 would
+  leave the worker's user out), and `MATCHMARK_GITHUB_APP_KEY_FILE` is its
+  path. No other pod mounts it, and the sandboxes' namespace never sees it
+  (the worker-proof Job does, being the worker's twin). The installation
+  covers `0xc0-labs/matchmark-playground` alone, `Only select repositories`
+  (an operator step: GitHub has no API for it), and the proof fails if it
+  covers anything else. The App's permissions are `metadata: read`,
+  `contents: write`, `pull_requests: write` and `checks: write`, and it has no
+  events. `MATCHMARK_GITHUB_PROXY_URL` is the sandboxes' proxy,
+  `http://egress-proxy.matchmark-sandboxes.svc.cluster.local:3128`: the
+  adapter tunnels every request through it with `CONNECT` and none goes
+  direct. **The proxy's list now serves the worker as well as the sandboxes**
+  (`api.github.com` and `github.com` are in it): whoever changes
+  `apps/matchmark-sandboxes/prod/allowed-hosts.txt` changes where the worker,
+  which holds the App's key, the service token, the artifact keys and the
+  subscription's token, can reach. The variable is set or absent, never
+  empty: an empty one is a settings error in the worker.
 - **Harness**: the API starts runs with `MATCHMARK_HARNESS=claude_agent_sdk`
   (`api.yaml`: an operator decision of 2026-11-19, kept here in Git with the
   deployment) and reaches Temporal at `MATCHMARK_TEMPORAL_ADDRESS`.
@@ -490,13 +515,14 @@ subscription's credential in `Authorization`. It calls nothing else.
   Nothing reaches the worker.
 - **Network**: the worker reaches the API's 8000, the proxy's 8080, the
   frontend's 7233, the collector's 4318, the three API servers' 6443, the
-  sandboxes' 8080 and 9090 and RustFS's 9000 (`factory-worker-egress`; the
-  sandboxes' own ingress policy admits it). It resolves the sandboxes' proxy
-  by name and never connects to it: the sandbox reaches it, by address; the API
-  admits it (`worker-to-api`), as does the proxy (`worker-to-proxy`); the API
-  reaches the frontend (`api-to-temporal`). The way out to Anthropic is the
-  proxy's, `proxy-to-internet`, already open for the `/claude` route: the
-  worker has none of its own.
+  sandboxes' 8080 and 9090, RustFS's 9000 and the sandboxes' egress proxy's
+  3128 (`factory-worker-egress`; the sandboxes' own ingress policies admit it,
+  `sandbox-ingress` and `proxy-ingress`). The API admits it (`worker-to-api`),
+  as does the gateway's proxy (`worker-to-proxy`); the API reaches the
+  frontend (`api-to-temporal`). The way out to Anthropic is the gateway's,
+  `proxy-to-internet`, already open for the `/claude` route; the way out to
+  GitHub is the sandboxes' proxy, 3128 (GitHub App). The worker has no route
+  of its own to any public address, and a direct connection fails.
 - **Probe and grace**: the liveness probe is the worker's own, `python -m
   matchmark_factory_worker probe`, which reads the liveness file under
   `/tmp`; there is no readiness probe, it takes no traffic.
@@ -594,10 +620,11 @@ credential of its own and not the root one.
   when the user carries it), so a run after a half-finished one needs nothing
   removed by hand. It is not run again by a sync. To run it again (a rotated
   key pair, a changed policy), raise the number in its name.
-- **Proof**: `worker-proof-1`, a plain Job in wave 2, with the worker's
+- **Proof**: `worker-proof-2`, a plain Job in wave 2, with the worker's
   ServiceAccount and labels, so it has the worker's rights and network, and
-  the two secrets the worker reads. It prints one line per step and ends `all
-  steps ok`:
+  the secrets the worker reads (the App's key mounted as a file the same way).
+  It prints one line per step and ends `all steps ok`. It prints nothing of
+  the key, the JWT or a token:
 
 | Step | Shows |
 |---|---|
@@ -611,17 +638,25 @@ credential of its own and not the root one.
 | `multipart upload started`, `part uploaded`, `multipart upload completed`, `multipart object read back`, `multipart upload aborted` | the calls the adapter's multipart put makes, and an abort |
 | `bucket listed`, `objects deleted`, `no object left behind` | the credential lists the bucket and deletes (`DeleteObjects`) what it wrote |
 | `second bucket not created`, `second bucket not listed` | the policy ends at the bucket |
+| `key is a file only its user and group read`, `key is in no variable` | the App's key is a mounted file, read-only for the worker's user, and in no variable |
+| `api.github.com answers through the proxy` | the `CONNECT` tunnel to GitHub's API opens and GitHub answers |
+| `host outside the list refused` | the proxy answers `403` to a host that is not in its list |
+| `direct connection to a public address fails`, `proxy not reached on another port` | the worker's only way out is the proxy's 3128 |
+| `pip installs through the proxy`, `JWT signed with the mounted key` | `cryptography` comes through the proxy, and the mounted key signs the App's JWT |
+| `the App answers to its JWT`, `the App's permissions are the design's four`, `the App has no events` | the App is `metadata: read`, `contents: write`, `pull_requests: write`, `checks: write` and nothing else |
+| `the installation answers`, `installation covers selected repositories`, `installation's permissions are the four` | the installation is `selected`, with the same four |
+| `token made for the installation`, `installation's only repository is 0xc0-labs/matchmark-playground`, `token revoked` | a token is made from the key and the installation lists that repository alone: the proof fails if it covers anything else. The token is revoked at the end |
 
-The proof is plain Python on the standard library (`artifacts/s3.py` signs
-SigV4 requests), as its pod cannot install anything: the worker's network has
-no way out. The lifecycle rule is read back by the setup Job with the root
+The proof is plain Python (`artifacts/s3.py` signs SigV4 requests), and
+installs `cryptography`, pinned, through the sandboxes' proxy to sign the
+App's JWT: the worker's network has no other way out. The lifecycle rule is read back by the setup Job with the root
 credentials, as the artifact user may not read a bucket's configuration. The
 proof waits for the one `Sandbox` the quota allows, so it can run beside
 `sandbox-proof-N`, which waits for it as well.
 
 ```sh
 kubectl -n matchmark logs job/artifacts-setup-1 -c bucket   # lifecycle rule read back
-kubectl -n matchmark logs job/worker-proof-1                # all steps ok
+kubectl -n matchmark logs job/worker-proof-2                # all steps ok
 ```
 
 ## Checking

@@ -115,14 +115,14 @@ spec:
             name: artifacts
 ---
 # The factory worker's identity and network (its ServiceAccount and its
-# labels), and the two secrets it reads: what it shows is in README.md,
-# Artifacts. The Deployment's selector does not adopt it: a Job's pods have an
-# owner. Waits for the one Sandbox the quota allows, so it can run beside the
-# sandbox proof.
+# labels), and the secrets it reads, the App's key as a file: what it shows is
+# in README.md, Artifacts and The factory worker. The Deployment's selector
+# does not adopt it: a Job's pods have an owner. Waits for the one Sandbox the
+# quota allows, so it can run beside the sandbox proof.
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: worker-proof-1
+  name: worker-proof-2
   namespace: matchmark
   annotations:
     argocd.argoproj.io/sync-wave: "2"
@@ -143,6 +143,7 @@ spec:
         runAsNonRoot: true
         runAsUser: 10001
         runAsGroup: 10001
+        fsGroup: 10001
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -170,8 +171,28 @@ spec:
                 secretKeyRef:
                   name: matchmark-artifacts-vault
                   key: secret_access_key
+            - name: MATCHMARK_GITHUB_APP_ID
+              valueFrom:
+                secretKeyRef:
+                  name: matchmark-github-app-vault
+                  key: app_id
+            - name: MATCHMARK_GITHUB_INSTALLATION_ID
+              valueFrom:
+                secretKeyRef:
+                  name: matchmark-github-app-vault
+                  key: installation_id
+            - name: MATCHMARK_GITHUB_APP_KEY_FILE
+              value: /run/secrets/github-app/private_key
+            - name: MATCHMARK_GITHUB_PROXY_URL
+              value: http://egress-proxy.matchmark-sandboxes.svc.cluster.local:3128
             - name: PYTHONDONTWRITEBYTECODE
               value: "1"
+            # The proof installs `cryptography` (to sign the App's JWT)
+            # through the proxy, into /work.
+            - name: HOME
+              value: /work
+            - name: TMPDIR
+              value: /tmp
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -182,12 +203,32 @@ spec:
               cpu: 50m
               memory: 64Mi
             limits:
-              memory: 128Mi
+              memory: 256Mi
           volumeMounts:
             - name: artifacts
               mountPath: /opt/artifacts
               readOnly: true
+            - name: github-app-key
+              mountPath: /run/secrets/github-app
+              readOnly: true
+            - name: work
+              mountPath: /work
+            - name: tmp
+              mountPath: /tmp
       volumes:
         - name: artifacts
           configMap:
             name: artifacts
+        - name: github-app-key
+          secret:
+            secretName: matchmark-github-app-vault
+            defaultMode: 288 # 0440
+            items:
+              - key: private_key
+                path: private_key
+        - name: work
+          emptyDir:
+            sizeLimit: 128Mi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi

@@ -38,6 +38,7 @@ Default deny in both directions, then:
 | a sandbox | Matchmark's gateway pods (`matchmark`) | 8080 |
 | a sandbox | the proxy's pods | 3128 |
 | the factory worker's pods (`matchmark`) and the proof | a sandbox | 8080 (files) and 9090 (processes): its runtime, `sandboxd` |
+| the factory worker's pods (`matchmark`) | the proxy's pods | 3128: its calls to GitHub's API |
 | the proxy | the internet, private ranges left out | 443 |
 | the proxy | the cluster's DNS | 53 |
 | the proof | the Kubernetes API servers and the sandbox | 6443; 8080 and 9090 |
@@ -58,7 +59,10 @@ could send data out in the name of a query.
 
 ## The proxy
 
-Squid, `egress-proxy`, the sandboxes' only way to the internet.
+Squid, `egress-proxy`, the sandboxes' only way to the internet, and the
+factory worker's way to GitHub's API (`apps/matchmark`, README.md, The
+factory worker): **one list serves both**, so a host added for the sandboxes
+is reachable by the worker too, which holds the GitHub App's key.
 
 - It tunnels `CONNECT` to port 443 and never opens TLS. Plain HTTP and other
   ports are refused.
@@ -68,7 +72,8 @@ Squid, `egress-proxy`, the sandboxes' only way to the internet.
 - It refuses private, link-local and cluster addresses on the address a name
   resolves to, whatever the name.
 - It accepts connections from pods labelled `matchmark.0xc0.cc/sandbox: "true"`
-  alone: the sandboxes, and the proof, which installs its libraries through it.
+  (the sandboxes, and the proof, which installs its libraries through it) and
+  from the factory worker's pods in `matchmark` (`proxy-ingress`), alone.
 - Its access log (when, client, method, host, result: `TCP_TUNNEL/200` allowed,
   `TCP_DENIED/403` refused) goes to stdout, from a sidecar following the log
   file (the pod's user cannot open the container's stdout), so the collector
