@@ -733,6 +733,67 @@ kubectl -n matchmark logs job/worker-proof-4 | grep -i -e plane -e tracker  # al
 kubectl -n matchmark logs deploy/factory-worker | grep -i tracker          # its poll, not "not configured"
 ```
 
+## intake-api
+
+`intake-api.yaml`, `network-policy-intake.yaml`, `matchmark-intake-api` in
+`vault-secrets.yaml`, and the settings of `api.yaml`. The door for what a
+connector sends signed, starting with Plane's webhook (`0xc0-labs/matchmark`,
+`services/intake-api/README.md`). It verifies the signature and hands the event
+to the API's `POST /v1/tracker/events`; it keeps nothing, and holds one secret
+of the connector (its webhook's) and one token (its own): never Plane's API key,
+never the token-signing key, no Temporal address. It has no route: only Plane's
+worker reaches it, inside the cluster, at
+`http://intake-api.matchmark.svc.cluster.local` (port 80, the pod's 8000).
+
+- **Pin**: `ghcr.io/0xc0-labs/matchmark-intake-api` in the `images:` of
+  `prod/kustomization.yaml`, with the API's tag and the digest of the image
+  built from that release's commit. The application's release does not list it
+  in its `extra-images` yet, so until it does the pin is moved by hand.
+- **Settings**: `MATCHMARK_INTAKE_API_ADDRESS` is the API's Service,
+  `MATCHMARK_INTAKE_API_TOKEN_FILE` the token's file, and
+  `MATCHMARK_INTAKE_API_CONNECTORS` is empty: it starts, says in its log that
+  it serves no connector, and answers every webhook `404`. The Plane
+  connector's settings are in `intake-api.yaml` as a commented block, with their
+  values, ready to turn on; a connector with some of its settings and not all
+  stops the start, which is why it stays off until its secret exists.
+- **Secrets**, both read by a `VaultStaticSecret` and mounted as a read-only
+  file, mode 0440, never a variable:
+
+  | Vault path (mount `apps`) | Key | Who mounts it | State |
+  |---|---|---|---|
+  | `matchmark/intake-api` | `token` | `intake-api`, and the API as `MATCHMARK_API_INTAKE_TOKEN_FILE`, so it accepts the door on `POST /v1/tracker/events` alone | written |
+  | `matchmark/plane-webhook` | `secret` | `intake-api` | not yet: Plane generates it with the webhook (below) |
+
+  The `VaultStaticSecret` of the second is commented in `vault-secrets.yaml`
+  until the secret exists. To rotate the token: write a new one with `vault`'s
+  README, Writing or rotating a secret; both Deployments restart.
+- **Network**: `intake-api-ingress` admits Plane's `plane-plane-worker` pods on
+  8000 and nothing else; `intake-api-egress` opens the API's 8000 and the
+  collector's 4318, and DNS is the namespace's `dns`; `api-ingress` also
+  admits `intake-api`. On Plane's side, `webhooks-to-matchmark`
+  (`apps/plane/prod/network-policy.yaml`) opens the worker's egress to
+  `intake-api`'s pods on 8000.
+- **Plane's allow list**: Plane delivers a webhook to a private address only
+  when told to. A patch in `apps/plane/prod/kustomization.yaml` sets
+  `WEBHOOK_ALLOWED_HOSTS=intake-api.matchmark.svc.cluster.local` on its `api`
+  and `worker`, naming that host alone; the chart has no value for it.
+
+**To turn the webhook on** (the operator's steps, once this is synced):
+
+1. In Plane, as an admin of the workspace `0xc0`, create a webhook in its
+   settings to
+   `http://intake-api.matchmark.svc.cluster.local/v1/webhooks/plane`, for
+   work items and their comments.
+2. Write the secret Plane shows to Vault at `apps/matchmark/plane-webhook`, key
+   `secret` (`vault`'s README, Writing or rotating a secret).
+3. A small change here uncomments the connector's settings, its volume and the
+   `VaultStaticSecret`.
+
+```sh
+kubectl -n matchmark get pod -l app.kubernetes.io/name=matchmark-intake-api  # Ready
+kubectl -n matchmark logs deploy/intake-api | grep -i connector               # serves no connector
+```
+
 ## Checking
 
 ```sh

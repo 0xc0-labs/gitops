@@ -102,6 +102,11 @@ spec:
               value: "0xc0"
             - name: MATCHMARK_TRACKER_API_KEY_FILE
               value: /run/secrets/plane/api_key
+            # The door's token, a file: `intake-api` holds the same one, and
+            # the API accepts it on `POST /v1/tracker/events` alone
+            # (README.md, intake-api).
+            - name: MATCHMARK_API_INTAKE_TOKEN_FILE
+              value: /run/secrets/intake-api/token
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
             # OpenObserve's trace view for one trace: the collector writes
@@ -147,6 +152,9 @@ spec:
             - name: plane-api-key
               mountPath: /run/secrets/plane
               readOnly: true
+            - name: intake-token
+              mountPath: /run/secrets/intake-api
+              readOnly: true
       volumes:
         - name: tmp
           emptyDir:
@@ -158,6 +166,13 @@ spec:
             items:
               - key: api_key
                 path: api_key
+        - name: intake-token
+          secret:
+            secretName: matchmark-intake-api-vault
+            defaultMode: 288 # 0440
+            items:
+              - key: token
+                path: token
         - name: vault-token
           projected:
             sources:

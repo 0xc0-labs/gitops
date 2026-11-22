@@ -28,6 +28,8 @@ resources:
   - vault-secrets.yaml
   - rustfs.yaml
   - api.yaml
+  - intake-api.yaml
+  - network-policy-intake.yaml
   - migrate.yaml
   - network-policy-usage.yaml
   - stand-in-provider.yaml
@@ -57,6 +59,11 @@ images:
   - name: ghcr.io/0xc0-labs/matchmark-stand-in-provider
     newTag: v0.38.8
     digest: sha256:789c5d6eac1d5d98f75f44f2d3c8196f92b7a44549f5a18f7ff129d28a986ee9
+  # Built from the release's commit, v0.38.8 (d416e8e): the release job does
+  # not list it yet, so this pin is moved by hand until it does.
+  - name: ghcr.io/0xc0-labs/matchmark-intake-api
+    newTag: v0.38.8
+    digest: sha256:91dd07c8ea8c5018f2fd6726c7bd32e690cb6a2afa557ac05165971db8f49fa8
   - name: ghcr.io/0xc0-labs/matchmark-factory-worker
     newTag: v0.38.8
     digest: sha256:ffc837a451c34208b1a742bd1dfe11b2b6305641143d20054cd9d3d718681a29

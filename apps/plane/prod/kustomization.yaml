@@ -87,6 +87,17 @@ patches:
                 key: RABBITMQ_DEFAULT_PASS
           - name: AMQP_URL
             value: amqp://plane:$(RABBITMQ_DEFAULT_PASS)@plane-rabbitmq.plane.svc.cluster.local/
+  # Plane delivers a webhook to a private address only when told to, and the
+  # chart has no value for it. Its `api` validates the URL when the webhook is
+  # saved, its `worker` when it delivers: Matchmark's `intake-api` alone
+  # (../../matchmark/README.md, intake-api).
+  - target: {kind: Deployment, name: "plane-(api|worker)-wl"}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: WEBHOOK_ALLOWED_HOSTS
+          value: intake-api.matchmark.svc.cluster.local
   - target: {kind: Job, name: plane-api-migrate-1}
     patch: |-
       - op: add

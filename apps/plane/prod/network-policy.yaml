@@ -147,3 +147,28 @@ spec:
       ports:
         - protocol: TCP
           port: 8000
+---
+# The worker delivers the webhooks, and Matchmark's `intake-api` takes them.
+# Its own ingress rule is `intake-api-ingress` in apps/matchmark.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: webhooks-to-matchmark
+  namespace: plane
+spec:
+  podSelector:
+    matchLabels:
+      app.name: plane-plane-worker
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: matchmark
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: matchmark-intake-api
+      ports:
+        - protocol: TCP
+          port: 8000
