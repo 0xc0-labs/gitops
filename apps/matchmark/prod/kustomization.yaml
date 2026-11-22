@@ -54,27 +54,27 @@ images:
   # The API's and the stand-in's pins, one tag: the application's release job
   # moves both (README.md, The API).
   - name: ghcr.io/0xc0-labs/matchmark-api
-    newTag: v0.39.0
-    digest: sha256:8235ac880e5015e636a5d1312c32f8ef21ce600d143064cef25114528a09f536
+    newTag: v0.39.2
+    digest: sha256:5f759440766ab0fb6cebc72cf49810cc47fabf52637f381c6271829f4343c8c4
   - name: ghcr.io/0xc0-labs/matchmark-stand-in-provider
-    newTag: v0.39.0
-    digest: sha256:87cf1aa5d088833bdd3dbc24a3adab6ba0c3bbd7a3530e0ecc3ebfed5ba2af10
+    newTag: v0.39.2
+    digest: sha256:c9867211cbaf42edbbd45058f2bb5158e694d9f023d8ceb948b35890bf8828db
   # Built from the release's commit, v0.38.8 (d416e8e): the release job does
   # not list it yet, so this pin is moved by hand until it does.
   - name: ghcr.io/0xc0-labs/matchmark-intake-api
-    newTag: v0.39.0
-    digest: sha256:b4cb03392ef20eb12bd6f4201b7ec1c20229917d99d35c89ea0127e64ee3cd60
+    newTag: v0.39.2
+    digest: sha256:6bb8b7f4d4225cbf98779cc274441328e246d27a64af494c455a7fa8ecadea98
   - name: ghcr.io/0xc0-labs/matchmark-factory-worker
-    newTag: v0.39.0
-    digest: sha256:99c382efc0389a2913892860eaabfd9c973a7e6979366f2c1271b9aca34e94a5
+    newTag: v0.39.2
+    digest: sha256:bc817e1ebae3e272d59814cf126bcdaaa9f2624876c5cd95e825cecb2c0634d0
   # The runner's pin: the proof's init container carries it, and the worker's
   # MATCHMARK_RUNNER_IMAGE, and the sandbox proof's, are copied from there
   # (replacements, below). v0.31.0
   # was built from the commit of this digest; the registry carries that tag for
   # the runner from the first release that lists it. A pull goes by the digest.
   - name: ghcr.io/0xc0-labs/matchmark-runner
-    newTag: v0.39.0
-    digest: sha256:392a107b8220028fb58b2c6bd15d17fddd7b827b71b94f3641674645bc6160ff
+    newTag: v0.39.2
+    digest: sha256:721c891532c1adcf27eb9e9b73b2a023854ef79909669d74e7a344b926ed430e
 configMapGenerator:
   # No hash suffix: a Job's pod template cannot change, so a renamed ConfigMap
   # would fail the sync instead of leaving the finished Jobs alone.
@@ -96,7 +96,7 @@ configMapGenerator:
       disableNameSuffixHash: true
   - name: release
     literals:
-      - APP_VERSION=v0.39.0
+      - APP_VERSION=v0.39.2
 replacements:
   # `images:` rewrites container images only, so the worker's setting takes the
   # rendered `<name>:<tag>@sha256:<digest>` of the proof's init container:
