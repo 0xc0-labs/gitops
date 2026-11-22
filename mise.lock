@@ -2,6 +2,21 @@
 
 lockfile_version = 2
 
+[[tools.duckdb]]
+version = "1.5.6"
+backend = "aqua:duckdb/duckdb"
+specifiers = ["1.5.6"]
+
+[tools.duckdb."platforms.linux-x64"]
+checksum = "sha256:6e89deac1ebbc36eed0291caf8b567b030c7b86ac35998f71854e22b3c5d5e2f"
+url = "https://github.com/duckdb/duckdb/releases/download/v1.5.6/duckdb_cli-linux-amd64.zip"
+url_api = "https://api.github.com/repos/duckdb/duckdb/releases/assets/595495137"
+
+[tools.duckdb."platforms.macos-arm64"]
+checksum = "sha256:80a80c68736bd7dea53e8b02447e9759db0c8596ea156476ba396c44f54c5810"
+url = "https://github.com/duckdb/duckdb/releases/download/v1.5.6/duckdb_cli-osx-universal.zip"
+url_api = "https://api.github.com/repos/duckdb/duckdb/releases/assets/595495619"
+
 [[tools.helm]]
 version = "4.3.0"
 backend = "aqua:helm/helm"

@@ -6,6 +6,7 @@ yq          = "4.53.6"
 kustomize   = "5.8.1"
 python      = "3.12.14"
 uv          = "0.12.17"
+duckdb      = "1.5.6"
 "pipx:semgrep" = "1.180.0"
 
 [settings]
