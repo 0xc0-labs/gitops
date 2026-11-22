@@ -59,13 +59,23 @@ spec:
             # moment a workflow closes; 1d is Temporal's minimum.
             - name: NAMESPACES
               value: "factory=30d platform=1d"
+            # The CLI looks for its config under $HOME.
+            - name: HOME
+              value: /tmp
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop: [ALL]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 10m
               memory: 64Mi
             limits:
               memory: 128Mi
+      volumes:
+        - name: tmp
+          emptyDir: {}
