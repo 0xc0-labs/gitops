@@ -435,7 +435,9 @@ the UI, the namespace Job, the API and the worker reach the frontend) and WARP, 
 
 **Telemetry.** The server pods' metrics (`:9090`) carry `prometheus.io/*`
 annotations, as the collector's scrape reads them; traces go over OTLP gRPC
-to the collector's gateway (`OTEL_*` in `server.additionalEnv`); logs are
+to the collector's gateway (`OTEL_*` in `server.additionalEnv`), only the
+spans of a trace a client started
+([`matchmark-temporal`](../matchmark-temporal/README.md#server-tracing)); logs are
 JSON on stdout at `info`.
 
 **Resources** are a start, to be measured after the first week: requests
