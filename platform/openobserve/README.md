@@ -65,13 +65,22 @@ folders are left alone, so the UI stays free for trying things.
 - **Matchmark**, written here as well, but SQL over the traces stream
   `default`, not metrics: the spans of the factory worker (tasks, attempts,
   waits, agent runs, model calls and tools), filtered by the `app` and
-  `project` variables. Its input tokens are the uncached part only: a `chat`
-  span carries no cache tokens, so the whole input waits for `matchmark`
-  (0xc0-labs/matchmark#201). It has no cost panel: the stream's
-  `gen_ai_usage_cost` is derived by OpenObserve from the tokens the span
-  carries, which leaves out the cached input and comes out far too low. A
-  panel reads only fields the stream has: a query naming one it lacks is an
-  error, not an empty result.
+  `project` variables, on the span itself: `chat` and `execute_tool` spans
+  carry their own application, project and agent since `matchmark` v0.41.3
+  (2026-11-22 13:30 UTC, 0xc0-labs/matchmark#203), so those panels need no
+  subquery, and older spans, which carry none, drop out of them. Since the
+  same version `gen_ai_usage_input_tokens` is the whole input, the cached part
+  included; the figures before that date held the uncached part alone. A model
+  call is a `chat` span with tokens: one response of the model can arrive as
+  several spans, and only the first carries the usage. It has no cost panel:
+  the stream's `gen_ai_usage_cost` is derived by OpenObserve from its own
+  price table, and the usage record in Postgres is the cost's home. A panel
+  reads only fields the stream has: a query naming one it lacks is an error,
+  not an empty result. A column alias that equals a stream field's name breaks
+  the `GROUP BY`: the aliases here are never one. The Failures tables link a
+  row to its trace with a `from` and a `to` (an hour before the row, a day
+  after it, in microseconds, in two labelled columns): the trace page looks
+  only inside that range, and the last fifteen minutes with none.
 
 **Changing or adding one:** edit it in the UI in any folder but `0xc0`,
 export it (dashboard → settings → export JSON), save it here as
@@ -80,7 +89,7 @@ in `kustomization.yaml`, and open a PR. The title is its key: renaming it is a
 delete and a create.
 
 The ConfigMap holds every dashboard, and a ConfigMap's limit is 1 MiB: about
-800 KiB today, most of it the cluster overview. Past roughly 900 KiB, split
+733 KiB today, most of it the cluster overview. Past roughly 900 KiB, split
 the files into a second ConfigMap mounted next to the first.
 
 ## Retention and size
