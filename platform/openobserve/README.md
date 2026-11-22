@@ -80,7 +80,7 @@ in `kustomization.yaml`, and open a PR. The title is its key: renaming it is a
 delete and a create.
 
 The ConfigMap holds every dashboard, and a ConfigMap's limit is 1 MiB: about
-775 KiB today, most of it the cluster overview. Past roughly 900 KiB, split
+800 KiB today, most of it the cluster overview. Past roughly 900 KiB, split
 the files into a second ConfigMap mounted next to the first.
 
 ## Retention and size

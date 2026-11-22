@@ -17,7 +17,7 @@
      "config": {
       "show_legends": true,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 0,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -67,7 +67,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", matchmark_task_outcome as \"x_axis_2\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name = 'matchmark.task' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", count(*) as \"y_axis_1\", matchmark_task_outcome as \"breakdown_1\" FROM \"default\" WHERE operation_name = 'matchmark.task' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -75,39 +75,75 @@
         "stream_type": "traces",
         "x": [
          {
-          "label": "X axis 1",
+          "label": "Time",
           "alias": "x_axis_1",
-          "column": "_timestamp",
+          "column": "x_axis_1",
+          "type": "build",
           "color": null,
+          "functionName": "histogram",
+          "sortBy": "ASC",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "_timestamp",
+             "streamAlias": null
+            }
+           },
+           {
+            "type": "histogramInterval"
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false,
-          "aggregationFunction": "histogram",
-          "sortBy": "ASC"
-         },
-         {
-          "label": "X axis 2",
-          "alias": "x_axis_2",
-          "column": "x_axis_2",
-          "color": null,
-          "isDerived": false,
-          "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [
          {
-          "label": "Y axis 1",
+          "label": "Tasks",
           "alias": "y_axis_1",
           "column": "y_axis_1",
-          "color": "#5960b2",
+          "type": "build",
+          "color": null,
+          "functionName": "count",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "y_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
          }
         ],
         "z": [],
-        "breakdown": [],
+        "breakdown": [
+         {
+          "label": "Outcome",
+          "alias": "breakdown_1",
+          "column": "breakdown_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "breakdown_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": []
+         }
+        ],
         "filter": {
          "filterType": "group",
          "logicalOperator": "AND",
@@ -128,8 +164,8 @@
      "layout": {
       "x": 0,
       "y": 0,
-      "w": 24,
-      "h": 9,
+      "w": 96,
+      "h": 20,
       "i": 1
      },
      "htmlContent": "",
@@ -144,7 +180,7 @@
      "config": {
       "show_legends": true,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 0,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -202,24 +238,47 @@
         "stream_type": "traces",
         "x": [
          {
-          "label": "X axis 1",
+          "label": "Outcome",
           "alias": "x_axis_1",
           "column": "x_axis_1",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "x_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [
          {
-          "label": "Y axis 1",
+          "label": "Tasks",
           "alias": "y_axis_1",
           "column": "y_axis_1",
-          "color": "#5960b2",
+          "type": "build",
+          "color": null,
+          "functionName": "count",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "y_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
          }
         ],
         "z": [],
@@ -242,10 +301,10 @@
       }
      ],
      "layout": {
-      "x": 24,
+      "x": 96,
       "y": 0,
-      "w": 24,
-      "h": 9,
+      "w": 96,
+      "h": 20,
       "i": 2
      },
      "htmlContent": "",
@@ -260,7 +319,7 @@
      "config": {
       "show_legends": true,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 1,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -268,7 +327,7 @@
       "label_option": {
        "rotate": 0
       },
-      "show_symbol": false,
+      "show_symbol": true,
       "line_interpolation": "smooth",
       "legend_width": {
        "unit": "px"
@@ -319,35 +378,71 @@
         "stream_type": "traces",
         "x": [
          {
-          "label": "X axis 1",
+          "label": "Time",
           "alias": "x_axis_1",
-          "column": "_timestamp",
+          "column": "x_axis_1",
+          "type": "build",
           "color": null,
+          "functionName": "histogram",
+          "sortBy": "ASC",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "_timestamp",
+             "streamAlias": null
+            }
+           },
+           {
+            "type": "histogramInterval"
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false,
-          "aggregationFunction": "histogram",
-          "sortBy": "ASC"
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [
          {
-          "label": "P50",
+          "label": "p50",
           "alias": "p50",
           "column": "p50",
-          "color": "#5960b2",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "p50",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
          },
          {
-          "label": "P95",
+          "label": "p95",
           "alias": "p95",
           "column": "p95",
-          "color": "#5960b2",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "p95",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
          }
         ],
         "z": [],
@@ -371,9 +466,9 @@
      ],
      "layout": {
       "x": 0,
-      "y": 9,
-      "w": 24,
-      "h": 9,
+      "y": 20,
+      "w": 96,
+      "h": 20,
       "i": 3
      },
      "htmlContent": "",
@@ -388,7 +483,7 @@
      "config": {
       "show_legends": true,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 0,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -446,24 +541,47 @@
         "stream_type": "traces",
         "x": [
          {
-          "label": "X axis 1",
+          "label": "Attempts",
           "alias": "x_axis_1",
           "column": "x_axis_1",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "x_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [
          {
-          "label": "Y axis 1",
+          "label": "Tasks",
           "alias": "y_axis_1",
           "column": "y_axis_1",
-          "color": "#5960b2",
+          "type": "build",
+          "color": null,
+          "functionName": "count",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "y_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
          }
         ],
         "z": [],
@@ -486,10 +604,10 @@
       }
      ],
      "layout": {
-      "x": 24,
-      "y": 9,
-      "w": 12,
-      "h": 9,
+      "x": 0,
+      "y": 40,
+      "w": 96,
+      "h": 20,
       "i": 4
      },
      "htmlContent": "",
@@ -504,7 +622,7 @@
      "config": {
       "show_legends": true,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 0,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -562,24 +680,47 @@
         "stream_type": "traces",
         "x": [
          {
-          "label": "X axis 1",
+          "label": "Restorations",
           "alias": "x_axis_1",
           "column": "x_axis_1",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "x_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [
          {
-          "label": "Y axis 1",
+          "label": "Tasks",
           "alias": "y_axis_1",
           "column": "y_axis_1",
-          "color": "#5960b2",
+          "type": "build",
+          "color": null,
+          "functionName": "count",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "y_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
          }
         ],
         "z": [],
@@ -602,10 +743,10 @@
       }
      ],
      "layout": {
-      "x": 36,
-      "y": 9,
-      "w": 12,
-      "h": 9,
+      "x": 96,
+      "y": 40,
+      "w": 96,
+      "h": 20,
       "i": 5
      },
      "htmlContent": "",
@@ -620,7 +761,7 @@
      "config": {
       "show_legends": true,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 0,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -670,7 +811,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", matchmark_attempt_outcome as \"x_axis_2\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name = 'matchmark.attempt' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", count(*) as \"y_axis_1\", matchmark_attempt_outcome as \"breakdown_1\" FROM \"default\" WHERE operation_name = 'matchmark.attempt' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -678,39 +819,75 @@
         "stream_type": "traces",
         "x": [
          {
-          "label": "X axis 1",
+          "label": "Time",
           "alias": "x_axis_1",
-          "column": "_timestamp",
+          "column": "x_axis_1",
+          "type": "build",
           "color": null,
+          "functionName": "histogram",
+          "sortBy": "ASC",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "_timestamp",
+             "streamAlias": null
+            }
+           },
+           {
+            "type": "histogramInterval"
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false,
-          "aggregationFunction": "histogram",
-          "sortBy": "ASC"
-         },
-         {
-          "label": "X axis 2",
-          "alias": "x_axis_2",
-          "column": "x_axis_2",
-          "color": null,
-          "isDerived": false,
-          "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [
          {
-          "label": "Y axis 1",
+          "label": "Attempts",
           "alias": "y_axis_1",
           "column": "y_axis_1",
-          "color": "#5960b2",
+          "type": "build",
+          "color": null,
+          "functionName": "count",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "y_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
          }
         ],
         "z": [],
-        "breakdown": [],
+        "breakdown": [
+         {
+          "label": "Outcome",
+          "alias": "breakdown_1",
+          "column": "breakdown_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "breakdown_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": []
+         }
+        ],
         "filter": {
          "filterType": "group",
          "logicalOperator": "AND",
@@ -730,9 +907,9 @@
      ],
      "layout": {
       "x": 0,
-      "y": 18,
-      "w": 24,
-      "h": 9,
+      "y": 60,
+      "w": 192,
+      "h": 20,
       "i": 6
      },
      "htmlContent": "",
@@ -747,7 +924,7 @@
      "config": {
       "show_legends": true,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 1,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -755,7 +932,7 @@
       "label_option": {
        "rotate": 0
       },
-      "show_symbol": false,
+      "show_symbol": true,
       "line_interpolation": "smooth",
       "legend_width": {
        "unit": "px"
@@ -806,35 +983,71 @@
         "stream_type": "traces",
         "x": [
          {
-          "label": "X axis 1",
+          "label": "Time",
           "alias": "x_axis_1",
-          "column": "_timestamp",
+          "column": "x_axis_1",
+          "type": "build",
           "color": null,
+          "functionName": "histogram",
+          "sortBy": "ASC",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "_timestamp",
+             "streamAlias": null
+            }
+           },
+           {
+            "type": "histogramInterval"
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false,
-          "aggregationFunction": "histogram",
-          "sortBy": "ASC"
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [
          {
-          "label": "P50",
+          "label": "p50",
           "alias": "p50",
           "column": "p50",
-          "color": "#5960b2",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "p50",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
          },
          {
-          "label": "P95",
+          "label": "p95",
           "alias": "p95",
           "column": "p95",
-          "color": "#5960b2",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "p95",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
          }
         ],
         "z": [],
@@ -857,10 +1070,10 @@
       }
      ],
      "layout": {
-      "x": 24,
-      "y": 18,
-      "w": 24,
-      "h": 9,
+      "x": 96,
+      "y": 20,
+      "w": 96,
+      "h": 20,
       "i": 7
      },
      "htmlContent": "",
@@ -875,7 +1088,7 @@
      "config": {
       "show_legends": false,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 1,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -920,7 +1133,8 @@
        "layout": null,
        "num_of_columns": 1,
        "group_by_y_axis": false
-      }
+      },
+      "table_pagination": false
      },
      "queryType": "sql",
      "queries": [
@@ -936,37 +1150,81 @@
           "label": "Stage",
           "alias": "stage",
           "column": "stage",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "stage",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "Runs",
           "alias": "runs",
           "column": "runs",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "runs",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
-          "label": "P50 s",
+          "label": "p50 (s)",
           "alias": "p50_s",
           "column": "p50_s",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "p50_s",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
-          "label": "P95 s",
+          "label": "p95 (s)",
           "alias": "p95_s",
           "column": "p95_s",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "p95_s",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [],
@@ -991,9 +1249,9 @@
      ],
      "layout": {
       "x": 0,
-      "y": 27,
-      "w": 48,
-      "h": 8,
+      "y": 80,
+      "w": 192,
+      "h": 26,
       "i": 8
      },
      "htmlContent": "",
@@ -1014,7 +1272,7 @@
      "config": {
       "show_legends": true,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 0,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -1064,7 +1322,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", matchmark_wait_stage as \"x_axis_2\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name = 'matchmark.wait' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", count(*) as \"y_axis_1\", matchmark_wait_stage as \"breakdown_1\" FROM \"default\" WHERE operation_name = 'matchmark.wait' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -1072,39 +1330,75 @@
         "stream_type": "traces",
         "x": [
          {
-          "label": "X axis 1",
+          "label": "Time",
           "alias": "x_axis_1",
-          "column": "_timestamp",
+          "column": "x_axis_1",
+          "type": "build",
           "color": null,
+          "functionName": "histogram",
+          "sortBy": "ASC",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "_timestamp",
+             "streamAlias": null
+            }
+           },
+           {
+            "type": "histogramInterval"
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false,
-          "aggregationFunction": "histogram",
-          "sortBy": "ASC"
-         },
-         {
-          "label": "X axis 2",
-          "alias": "x_axis_2",
-          "column": "x_axis_2",
-          "color": null,
-          "isDerived": false,
-          "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [
          {
-          "label": "Y axis 1",
+          "label": "Waits",
           "alias": "y_axis_1",
           "column": "y_axis_1",
-          "color": "#5960b2",
+          "type": "build",
+          "color": null,
+          "functionName": "count",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "y_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
          }
         ],
         "z": [],
-        "breakdown": [],
+        "breakdown": [
+         {
+          "label": "Stage",
+          "alias": "breakdown_1",
+          "column": "breakdown_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "breakdown_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": []
+         }
+        ],
         "filter": {
          "filterType": "group",
          "logicalOperator": "AND",
@@ -1125,8 +1419,8 @@
      "layout": {
       "x": 0,
       "y": 0,
-      "w": 16,
-      "h": 9,
+      "w": 96,
+      "h": 20,
       "i": 9
      },
      "htmlContent": "",
@@ -1141,7 +1435,7 @@
      "config": {
       "show_legends": true,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 1,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -1192,7 +1486,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", matchmark_wait_stage as \"x_axis_2\", sum(duration) as \"y_axis_1\" FROM \"default\" WHERE operation_name = 'matchmark.wait' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", sum(duration) as \"y_axis_1\", matchmark_wait_stage as \"breakdown_1\" FROM \"default\" WHERE operation_name = 'matchmark.wait' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -1200,39 +1494,74 @@
         "stream_type": "traces",
         "x": [
          {
-          "label": "X axis 1",
+          "label": "Time",
           "alias": "x_axis_1",
-          "column": "_timestamp",
+          "column": "x_axis_1",
+          "type": "build",
           "color": null,
+          "functionName": "histogram",
+          "sortBy": "ASC",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "_timestamp",
+             "streamAlias": null
+            }
+           },
+           {
+            "type": "histogramInterval"
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false,
-          "aggregationFunction": "histogram",
-          "sortBy": "ASC"
-         },
-         {
-          "label": "X axis 2",
-          "alias": "x_axis_2",
-          "column": "x_axis_2",
-          "color": null,
-          "isDerived": false,
-          "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [
          {
-          "label": "Y axis 1",
+          "label": "Time",
           "alias": "y_axis_1",
           "column": "y_axis_1",
-          "color": "#5960b2",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "y_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
          }
         ],
         "z": [],
-        "breakdown": [],
+        "breakdown": [
+         {
+          "label": "Stage",
+          "alias": "breakdown_1",
+          "column": "breakdown_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "breakdown_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": []
+         }
+        ],
         "filter": {
          "filterType": "group",
          "logicalOperator": "AND",
@@ -1251,10 +1580,10 @@
       }
      ],
      "layout": {
-      "x": 16,
+      "x": 96,
       "y": 0,
-      "w": 16,
-      "h": 9,
+      "w": 96,
+      "h": 20,
       "i": 10
      },
      "htmlContent": "",
@@ -1269,7 +1598,7 @@
      "config": {
       "show_legends": false,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 1,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -1314,7 +1643,8 @@
        "layout": null,
        "num_of_columns": 1,
        "group_by_y_axis": false
-      }
+      },
+      "table_pagination": false
      },
      "queryType": "sql",
      "queries": [
@@ -1330,46 +1660,101 @@
           "label": "Stage",
           "alias": "stage",
           "column": "stage",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "stage",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "Waits",
           "alias": "waits",
           "column": "waits",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "waits",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
-          "label": "Total s",
+          "label": "Total (s)",
           "alias": "total_s",
           "column": "total_s",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "total_s",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
-          "label": "P50 s",
+          "label": "p50 (s)",
           "alias": "p50_s",
           "column": "p50_s",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "p50_s",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
-          "label": "P95 s",
+          "label": "p95 (s)",
           "alias": "p95_s",
           "column": "p95_s",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "p95_s",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [],
@@ -1393,10 +1778,10 @@
       }
      ],
      "layout": {
-      "x": 32,
-      "y": 0,
-      "w": 16,
-      "h": 9,
+      "x": 0,
+      "y": 40,
+      "w": 192,
+      "h": 26,
       "i": 11
      },
      "htmlContent": "",
@@ -1411,7 +1796,7 @@
      "config": {
       "show_legends": true,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 1,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -1419,7 +1804,7 @@
       "label_option": {
        "rotate": 0
       },
-      "show_symbol": false,
+      "show_symbol": true,
       "line_interpolation": "smooth",
       "legend_width": {
        "unit": "px"
@@ -1462,7 +1847,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", matchmark_wait_stage as \"x_axis_2\", approx_percentile_cont(duration, 0.5) as p50 FROM \"default\" WHERE operation_name = 'matchmark.wait' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", approx_percentile_cont(duration, 0.5) as \"y_axis_1\", matchmark_wait_stage as \"breakdown_1\" FROM \"default\" WHERE operation_name = 'matchmark.wait' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -1470,39 +1855,74 @@
         "stream_type": "traces",
         "x": [
          {
-          "label": "X axis 1",
+          "label": "Time",
           "alias": "x_axis_1",
-          "column": "_timestamp",
+          "column": "x_axis_1",
+          "type": "build",
           "color": null,
+          "functionName": "histogram",
+          "sortBy": "ASC",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "_timestamp",
+             "streamAlias": null
+            }
+           },
+           {
+            "type": "histogramInterval"
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false,
-          "aggregationFunction": "histogram",
-          "sortBy": "ASC"
-         },
-         {
-          "label": "X axis 2",
-          "alias": "x_axis_2",
-          "column": "x_axis_2",
-          "color": null,
-          "isDerived": false,
-          "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [
          {
-          "label": "P50",
-          "alias": "p50",
-          "column": "p50",
-          "color": "#5960b2",
+          "label": "p50",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "y_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
          }
         ],
         "z": [],
-        "breakdown": [],
+        "breakdown": [
+         {
+          "label": "Stage",
+          "alias": "breakdown_1",
+          "column": "breakdown_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "breakdown_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": []
+         }
+        ],
         "filter": {
          "filterType": "group",
          "logicalOperator": "AND",
@@ -1522,9 +1942,9 @@
      ],
      "layout": {
       "x": 0,
-      "y": 9,
-      "w": 24,
-      "h": 9,
+      "y": 20,
+      "w": 96,
+      "h": 20,
       "i": 12
      },
      "htmlContent": "",
@@ -1539,7 +1959,7 @@
      "config": {
       "show_legends": true,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 1,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -1547,7 +1967,7 @@
       "label_option": {
        "rotate": 0
       },
-      "show_symbol": false,
+      "show_symbol": true,
       "line_interpolation": "smooth",
       "legend_width": {
        "unit": "px"
@@ -1590,7 +2010,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", matchmark_wait_stage as \"x_axis_2\", approx_percentile_cont(duration, 0.95) as p95 FROM \"default\" WHERE operation_name = 'matchmark.wait' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", approx_percentile_cont(duration, 0.95) as \"y_axis_1\", matchmark_wait_stage as \"breakdown_1\" FROM \"default\" WHERE operation_name = 'matchmark.wait' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -1598,39 +2018,74 @@
         "stream_type": "traces",
         "x": [
          {
-          "label": "X axis 1",
+          "label": "Time",
           "alias": "x_axis_1",
-          "column": "_timestamp",
+          "column": "x_axis_1",
+          "type": "build",
           "color": null,
+          "functionName": "histogram",
+          "sortBy": "ASC",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "_timestamp",
+             "streamAlias": null
+            }
+           },
+           {
+            "type": "histogramInterval"
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false,
-          "aggregationFunction": "histogram",
-          "sortBy": "ASC"
-         },
-         {
-          "label": "X axis 2",
-          "alias": "x_axis_2",
-          "column": "x_axis_2",
-          "color": null,
-          "isDerived": false,
-          "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [
          {
-          "label": "P95",
-          "alias": "p95",
-          "column": "p95",
-          "color": "#5960b2",
+          "label": "p95",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "y_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
          }
         ],
         "z": [],
-        "breakdown": [],
+        "breakdown": [
+         {
+          "label": "Stage",
+          "alias": "breakdown_1",
+          "column": "breakdown_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "breakdown_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": []
+         }
+        ],
         "filter": {
          "filterType": "group",
          "logicalOperator": "AND",
@@ -1649,10 +2104,10 @@
       }
      ],
      "layout": {
-      "x": 24,
-      "y": 9,
-      "w": 24,
-      "h": 9,
+      "x": 96,
+      "y": 20,
+      "w": 96,
+      "h": 20,
       "i": 13
      },
      "htmlContent": "",
@@ -1673,7 +2128,7 @@
      "config": {
       "show_legends": false,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 0,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -1718,7 +2173,8 @@
        "layout": null,
        "num_of_columns": 1,
        "group_by_y_axis": false
-      }
+      },
+      "table_pagination": false
      },
      "queryType": "sql",
      "queries": [
@@ -1734,28 +2190,61 @@
           "label": "Agent",
           "alias": "agent",
           "column": "agent",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "agent",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "Runs",
           "alias": "runs",
           "column": "runs",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "runs",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "Errors",
           "alias": "errors",
           "column": "errors",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "errors",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [],
@@ -1781,8 +2270,8 @@
      "layout": {
       "x": 0,
       "y": 0,
-      "w": 24,
-      "h": 8,
+      "w": 192,
+      "h": 22,
       "i": 14
      },
      "htmlContent": "",
@@ -1797,7 +2286,7 @@
      "config": {
       "show_legends": false,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 0,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -1842,7 +2331,8 @@
        "layout": null,
        "num_of_columns": 1,
        "group_by_y_axis": false
-      }
+      },
+      "table_pagination": false
      },
      "queryType": "sql",
      "queries": [
@@ -1858,28 +2348,61 @@
           "label": "Model",
           "alias": "model",
           "column": "model",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "model",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "Runs",
           "alias": "runs",
           "column": "runs",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "runs",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "Errors",
           "alias": "errors",
           "column": "errors",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "errors",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [],
@@ -1903,10 +2426,10 @@
       }
      ],
      "layout": {
-      "x": 24,
-      "y": 0,
-      "w": 24,
-      "h": 8,
+      "x": 0,
+      "y": 22,
+      "w": 192,
+      "h": 22,
       "i": 15
      },
      "htmlContent": "",
@@ -1921,7 +2444,7 @@
      "config": {
       "show_legends": true,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 0,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -1971,7 +2494,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", matchmark_agent as \"x_axis_2\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", count(*) as \"y_axis_1\", matchmark_agent as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -1979,39 +2502,75 @@
         "stream_type": "traces",
         "x": [
          {
-          "label": "X axis 1",
+          "label": "Time",
           "alias": "x_axis_1",
-          "column": "_timestamp",
+          "column": "x_axis_1",
+          "type": "build",
           "color": null,
+          "functionName": "histogram",
+          "sortBy": "ASC",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "_timestamp",
+             "streamAlias": null
+            }
+           },
+           {
+            "type": "histogramInterval"
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false,
-          "aggregationFunction": "histogram",
-          "sortBy": "ASC"
-         },
-         {
-          "label": "X axis 2",
-          "alias": "x_axis_2",
-          "column": "x_axis_2",
-          "color": null,
-          "isDerived": false,
-          "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [
          {
-          "label": "Y axis 1",
+          "label": "Runs",
           "alias": "y_axis_1",
           "column": "y_axis_1",
-          "color": "#5960b2",
+          "type": "build",
+          "color": null,
+          "functionName": "count",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "y_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
          }
         ],
         "z": [],
-        "breakdown": [],
+        "breakdown": [
+         {
+          "label": "Agent",
+          "alias": "breakdown_1",
+          "column": "breakdown_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "breakdown_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": []
+         }
+        ],
         "filter": {
          "filterType": "group",
          "logicalOperator": "AND",
@@ -2031,9 +2590,9 @@
      ],
      "layout": {
       "x": 0,
-      "y": 8,
-      "w": 24,
-      "h": 9,
+      "y": 44,
+      "w": 96,
+      "h": 20,
       "i": 16
      },
      "htmlContent": "",
@@ -2048,7 +2607,7 @@
      "config": {
       "show_legends": true,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 0,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -2098,7 +2657,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", matchmark_agent as \"x_axis_2\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) AND span_status = 'ERROR' GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", count(*) as \"y_axis_1\", matchmark_agent as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) AND span_status = 'ERROR' GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -2106,39 +2665,75 @@
         "stream_type": "traces",
         "x": [
          {
-          "label": "X axis 1",
+          "label": "Time",
           "alias": "x_axis_1",
-          "column": "_timestamp",
+          "column": "x_axis_1",
+          "type": "build",
           "color": null,
+          "functionName": "histogram",
+          "sortBy": "ASC",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "_timestamp",
+             "streamAlias": null
+            }
+           },
+           {
+            "type": "histogramInterval"
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false,
-          "aggregationFunction": "histogram",
-          "sortBy": "ASC"
-         },
-         {
-          "label": "X axis 2",
-          "alias": "x_axis_2",
-          "column": "x_axis_2",
-          "color": null,
-          "isDerived": false,
-          "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [
          {
-          "label": "Y axis 1",
+          "label": "Runs",
           "alias": "y_axis_1",
           "column": "y_axis_1",
-          "color": "#5960b2",
+          "type": "build",
+          "color": null,
+          "functionName": "count",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "y_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
          }
         ],
         "z": [],
-        "breakdown": [],
+        "breakdown": [
+         {
+          "label": "Agent",
+          "alias": "breakdown_1",
+          "column": "breakdown_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "breakdown_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": []
+         }
+        ],
         "filter": {
          "filterType": "group",
          "logicalOperator": "AND",
@@ -2157,10 +2752,10 @@
       }
      ],
      "layout": {
-      "x": 24,
-      "y": 8,
-      "w": 24,
-      "h": 9,
+      "x": 96,
+      "y": 44,
+      "w": 96,
+      "h": 20,
       "i": 17
      },
      "htmlContent": "",
@@ -2175,7 +2770,7 @@
      "config": {
       "show_legends": true,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 0,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -2225,7 +2820,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", gen_ai_request_model as \"x_axis_2\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", count(*) as \"y_axis_1\", gen_ai_request_model as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -2233,39 +2828,75 @@
         "stream_type": "traces",
         "x": [
          {
-          "label": "X axis 1",
+          "label": "Time",
           "alias": "x_axis_1",
-          "column": "_timestamp",
+          "column": "x_axis_1",
+          "type": "build",
           "color": null,
+          "functionName": "histogram",
+          "sortBy": "ASC",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "_timestamp",
+             "streamAlias": null
+            }
+           },
+           {
+            "type": "histogramInterval"
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false,
-          "aggregationFunction": "histogram",
-          "sortBy": "ASC"
-         },
-         {
-          "label": "X axis 2",
-          "alias": "x_axis_2",
-          "column": "x_axis_2",
-          "color": null,
-          "isDerived": false,
-          "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [
          {
-          "label": "Y axis 1",
+          "label": "Calls",
           "alias": "y_axis_1",
           "column": "y_axis_1",
-          "color": "#5960b2",
+          "type": "build",
+          "color": null,
+          "functionName": "count",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "y_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
          }
         ],
         "z": [],
-        "breakdown": [],
+        "breakdown": [
+         {
+          "label": "Model",
+          "alias": "breakdown_1",
+          "column": "breakdown_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "breakdown_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": []
+         }
+        ],
         "filter": {
          "filterType": "group",
          "logicalOperator": "AND",
@@ -2285,9 +2916,9 @@
      ],
      "layout": {
       "x": 0,
-      "y": 17,
-      "w": 48,
-      "h": 9,
+      "y": 64,
+      "w": 192,
+      "h": 20,
       "i": 18
      },
      "htmlContent": "",
@@ -2302,7 +2933,7 @@
      "config": {
       "show_legends": true,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 0,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -2352,7 +2983,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", gen_ai_request_model as \"x_axis_2\", sum(gen_ai_usage_input_tokens) as \"y_axis_1\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", sum(gen_ai_usage_input_tokens) as \"y_axis_1\", gen_ai_request_model as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -2360,39 +2991,74 @@
         "stream_type": "traces",
         "x": [
          {
-          "label": "X axis 1",
+          "label": "Time",
           "alias": "x_axis_1",
-          "column": "_timestamp",
+          "column": "x_axis_1",
+          "type": "build",
           "color": null,
+          "functionName": "histogram",
+          "sortBy": "ASC",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "_timestamp",
+             "streamAlias": null
+            }
+           },
+           {
+            "type": "histogramInterval"
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false,
-          "aggregationFunction": "histogram",
-          "sortBy": "ASC"
-         },
-         {
-          "label": "X axis 2",
-          "alias": "x_axis_2",
-          "column": "x_axis_2",
-          "color": null,
-          "isDerived": false,
-          "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [
          {
-          "label": "Y axis 1",
+          "label": "Tokens",
           "alias": "y_axis_1",
           "column": "y_axis_1",
-          "color": "#5960b2",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "y_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
          }
         ],
         "z": [],
-        "breakdown": [],
+        "breakdown": [
+         {
+          "label": "Model",
+          "alias": "breakdown_1",
+          "column": "breakdown_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "breakdown_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": []
+         }
+        ],
         "filter": {
          "filterType": "group",
          "logicalOperator": "AND",
@@ -2412,9 +3078,9 @@
      ],
      "layout": {
       "x": 0,
-      "y": 26,
-      "w": 24,
-      "h": 9,
+      "y": 84,
+      "w": 96,
+      "h": 20,
       "i": 20
      },
      "htmlContent": "",
@@ -2429,7 +3095,7 @@
      "config": {
       "show_legends": true,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 0,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -2479,7 +3145,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", gen_ai_request_model as \"x_axis_2\", sum(gen_ai_usage_output_tokens) as \"y_axis_1\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", sum(gen_ai_usage_output_tokens) as \"y_axis_1\", gen_ai_request_model as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -2487,39 +3153,74 @@
         "stream_type": "traces",
         "x": [
          {
-          "label": "X axis 1",
+          "label": "Time",
           "alias": "x_axis_1",
-          "column": "_timestamp",
+          "column": "x_axis_1",
+          "type": "build",
           "color": null,
+          "functionName": "histogram",
+          "sortBy": "ASC",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "_timestamp",
+             "streamAlias": null
+            }
+           },
+           {
+            "type": "histogramInterval"
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false,
-          "aggregationFunction": "histogram",
-          "sortBy": "ASC"
-         },
-         {
-          "label": "X axis 2",
-          "alias": "x_axis_2",
-          "column": "x_axis_2",
-          "color": null,
-          "isDerived": false,
-          "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [
          {
-          "label": "Y axis 1",
+          "label": "Tokens",
           "alias": "y_axis_1",
           "column": "y_axis_1",
-          "color": "#5960b2",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "y_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
          }
         ],
         "z": [],
-        "breakdown": [],
+        "breakdown": [
+         {
+          "label": "Model",
+          "alias": "breakdown_1",
+          "column": "breakdown_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "breakdown_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": []
+         }
+        ],
         "filter": {
          "filterType": "group",
          "logicalOperator": "AND",
@@ -2538,10 +3239,10 @@
       }
      ],
      "layout": {
-      "x": 24,
-      "y": 26,
-      "w": 24,
-      "h": 9,
+      "x": 96,
+      "y": 84,
+      "w": 96,
+      "h": 20,
       "i": 21
      },
      "htmlContent": "",
@@ -2556,7 +3257,7 @@
      "config": {
       "show_legends": false,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 0,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -2601,7 +3302,8 @@
        "layout": null,
        "num_of_columns": 1,
        "group_by_y_axis": false
-      }
+      },
+      "table_pagination": false
      },
      "queryType": "sql",
      "queries": [
@@ -2617,37 +3319,81 @@
           "label": "Model",
           "alias": "model",
           "column": "model",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "model",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "Calls",
           "alias": "calls",
           "column": "calls",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "calls",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
-          "label": "Input tokens, uncached",
+          "label": "Input tokens (uncached)",
           "alias": "input_tokens",
           "column": "input_tokens",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "input_tokens",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "Output tokens",
           "alias": "output_tokens",
           "column": "output_tokens",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "output_tokens",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [],
@@ -2672,9 +3418,9 @@
      ],
      "layout": {
       "x": 0,
-      "y": 35,
-      "w": 48,
-      "h": 8,
+      "y": 104,
+      "w": 192,
+      "h": 22,
       "i": 22
      },
      "htmlContent": "",
@@ -2695,7 +3441,7 @@
      "config": {
       "show_legends": false,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 1,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -2740,7 +3486,8 @@
        "layout": null,
        "num_of_columns": 1,
        "group_by_y_axis": false
-      }
+      },
+      "table_pagination": false
      },
      "queryType": "sql",
      "queries": [
@@ -2756,46 +3503,101 @@
           "label": "Tool",
           "alias": "tool",
           "column": "tool",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "tool",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "Calls",
           "alias": "calls",
           "column": "calls",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "calls",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "Failed",
           "alias": "failed",
           "column": "failed",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "failed",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "Refused",
           "alias": "refused",
           "column": "refused",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "refused",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
-          "label": "P95 s",
+          "label": "p95 (s)",
           "alias": "p95_s",
           "column": "p95_s",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "p95_s",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [],
@@ -2821,8 +3623,8 @@
      "layout": {
       "x": 0,
       "y": 0,
-      "w": 48,
-      "h": 10,
+      "w": 192,
+      "h": 30,
       "i": 23
      },
      "htmlContent": "",
@@ -2837,7 +3639,7 @@
      "config": {
       "show_legends": true,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 0,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -2887,7 +3689,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", gen_ai_tool_name as \"x_axis_2\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", count(*) as \"y_axis_1\", gen_ai_tool_name as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -2895,39 +3697,75 @@
         "stream_type": "traces",
         "x": [
          {
-          "label": "X axis 1",
+          "label": "Time",
           "alias": "x_axis_1",
-          "column": "_timestamp",
+          "column": "x_axis_1",
+          "type": "build",
           "color": null,
+          "functionName": "histogram",
+          "sortBy": "ASC",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "_timestamp",
+             "streamAlias": null
+            }
+           },
+           {
+            "type": "histogramInterval"
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false,
-          "aggregationFunction": "histogram",
-          "sortBy": "ASC"
-         },
-         {
-          "label": "X axis 2",
-          "alias": "x_axis_2",
-          "column": "x_axis_2",
-          "color": null,
-          "isDerived": false,
-          "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [
          {
-          "label": "Y axis 1",
+          "label": "Calls",
           "alias": "y_axis_1",
           "column": "y_axis_1",
-          "color": "#5960b2",
+          "type": "build",
+          "color": null,
+          "functionName": "count",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "y_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
          }
         ],
         "z": [],
-        "breakdown": [],
+        "breakdown": [
+         {
+          "label": "Tool",
+          "alias": "breakdown_1",
+          "column": "breakdown_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "breakdown_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": []
+         }
+        ],
         "filter": {
          "filterType": "group",
          "logicalOperator": "AND",
@@ -2947,9 +3785,9 @@
      ],
      "layout": {
       "x": 0,
-      "y": 10,
-      "w": 16,
-      "h": 9,
+      "y": 30,
+      "w": 96,
+      "h": 20,
       "i": 24
      },
      "htmlContent": "",
@@ -2964,7 +3802,7 @@
      "config": {
       "show_legends": true,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 0,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -3014,7 +3852,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", gen_ai_tool_name as \"x_axis_2\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) AND span_status = 'ERROR' GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", count(*) as \"y_axis_1\", gen_ai_tool_name as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) AND span_status = 'ERROR' GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -3022,39 +3860,75 @@
         "stream_type": "traces",
         "x": [
          {
-          "label": "X axis 1",
+          "label": "Time",
           "alias": "x_axis_1",
-          "column": "_timestamp",
+          "column": "x_axis_1",
+          "type": "build",
           "color": null,
+          "functionName": "histogram",
+          "sortBy": "ASC",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "_timestamp",
+             "streamAlias": null
+            }
+           },
+           {
+            "type": "histogramInterval"
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false,
-          "aggregationFunction": "histogram",
-          "sortBy": "ASC"
-         },
-         {
-          "label": "X axis 2",
-          "alias": "x_axis_2",
-          "column": "x_axis_2",
-          "color": null,
-          "isDerived": false,
-          "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [
          {
-          "label": "Y axis 1",
+          "label": "Calls",
           "alias": "y_axis_1",
           "column": "y_axis_1",
-          "color": "#5960b2",
+          "type": "build",
+          "color": null,
+          "functionName": "count",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "y_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
          }
         ],
         "z": [],
-        "breakdown": [],
+        "breakdown": [
+         {
+          "label": "Tool",
+          "alias": "breakdown_1",
+          "column": "breakdown_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "breakdown_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": []
+         }
+        ],
         "filter": {
          "filterType": "group",
          "logicalOperator": "AND",
@@ -3073,10 +3947,10 @@
       }
      ],
      "layout": {
-      "x": 16,
-      "y": 10,
-      "w": 16,
-      "h": 9,
+      "x": 96,
+      "y": 30,
+      "w": 96,
+      "h": 20,
       "i": 25
      },
      "htmlContent": "",
@@ -3091,7 +3965,7 @@
      "config": {
       "show_legends": true,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 0,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -3141,7 +4015,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", gen_ai_tool_name as \"x_axis_2\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) AND CAST(matchmark_tool_refused AS VARCHAR) = 'true' GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", count(*) as \"y_axis_1\", gen_ai_tool_name as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) AND CAST(matchmark_tool_refused AS VARCHAR) = 'true' GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -3149,39 +4023,75 @@
         "stream_type": "traces",
         "x": [
          {
-          "label": "X axis 1",
+          "label": "Time",
           "alias": "x_axis_1",
-          "column": "_timestamp",
+          "column": "x_axis_1",
+          "type": "build",
           "color": null,
+          "functionName": "histogram",
+          "sortBy": "ASC",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "_timestamp",
+             "streamAlias": null
+            }
+           },
+           {
+            "type": "histogramInterval"
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false,
-          "aggregationFunction": "histogram",
-          "sortBy": "ASC"
-         },
-         {
-          "label": "X axis 2",
-          "alias": "x_axis_2",
-          "column": "x_axis_2",
-          "color": null,
-          "isDerived": false,
-          "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [
          {
-          "label": "Y axis 1",
+          "label": "Calls",
           "alias": "y_axis_1",
           "column": "y_axis_1",
-          "color": "#5960b2",
+          "type": "build",
+          "color": null,
+          "functionName": "count",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "y_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
          }
         ],
         "z": [],
-        "breakdown": [],
+        "breakdown": [
+         {
+          "label": "Tool",
+          "alias": "breakdown_1",
+          "column": "breakdown_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "breakdown_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": []
+         }
+        ],
         "filter": {
          "filterType": "group",
          "logicalOperator": "AND",
@@ -3200,10 +4110,10 @@
       }
      ],
      "layout": {
-      "x": 32,
-      "y": 10,
-      "w": 16,
-      "h": 9,
+      "x": 0,
+      "y": 50,
+      "w": 96,
+      "h": 20,
       "i": 26
      },
      "htmlContent": "",
@@ -3218,7 +4128,7 @@
      "config": {
       "show_legends": true,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 1,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -3226,7 +4136,7 @@
       "label_option": {
        "rotate": 0
       },
-      "show_symbol": false,
+      "show_symbol": true,
       "line_interpolation": "smooth",
       "legend_width": {
        "unit": "px"
@@ -3269,7 +4179,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", gen_ai_tool_name as \"x_axis_2\", approx_percentile_cont(duration, 0.95) as p95 FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", approx_percentile_cont(duration, 0.95) as \"y_axis_1\", gen_ai_tool_name as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -3277,39 +4187,74 @@
         "stream_type": "traces",
         "x": [
          {
-          "label": "X axis 1",
+          "label": "Time",
           "alias": "x_axis_1",
-          "column": "_timestamp",
+          "column": "x_axis_1",
+          "type": "build",
           "color": null,
+          "functionName": "histogram",
+          "sortBy": "ASC",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "_timestamp",
+             "streamAlias": null
+            }
+           },
+           {
+            "type": "histogramInterval"
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false,
-          "aggregationFunction": "histogram",
-          "sortBy": "ASC"
-         },
-         {
-          "label": "X axis 2",
-          "alias": "x_axis_2",
-          "column": "x_axis_2",
-          "color": null,
-          "isDerived": false,
-          "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [
          {
-          "label": "P95",
-          "alias": "p95",
-          "column": "p95",
-          "color": "#5960b2",
+          "label": "p95",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "y_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": false
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
          }
         ],
         "z": [],
-        "breakdown": [],
+        "breakdown": [
+         {
+          "label": "Tool",
+          "alias": "breakdown_1",
+          "column": "breakdown_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "breakdown_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": []
+         }
+        ],
         "filter": {
          "filterType": "group",
          "logicalOperator": "AND",
@@ -3328,10 +4273,10 @@
       }
      ],
      "layout": {
-      "x": 0,
-      "y": 19,
-      "w": 24,
-      "h": 9,
+      "x": 96,
+      "y": 50,
+      "w": 96,
+      "h": 20,
       "i": 27
      },
      "htmlContent": "",
@@ -3346,7 +4291,7 @@
      "config": {
       "show_legends": false,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 0,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -3391,7 +4336,8 @@
        "layout": null,
        "num_of_columns": 1,
        "group_by_y_axis": false
-      }
+      },
+      "table_pagination": false
      },
      "queryType": "sql",
      "queries": [
@@ -3407,37 +4353,81 @@
           "label": "Tool",
           "alias": "tool",
           "column": "tool",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "tool",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "Failed",
           "alias": "failed",
           "column": "failed",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "failed",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "Refused",
           "alias": "refused",
           "column": "refused",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "refused",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "Calls",
           "alias": "calls",
           "column": "calls",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "calls",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [],
@@ -3461,10 +4451,10 @@
       }
      ],
      "layout": {
-      "x": 24,
-      "y": 19,
-      "w": 24,
-      "h": 9,
+      "x": 0,
+      "y": 70,
+      "w": 192,
+      "h": 30,
       "i": 28
      },
      "htmlContent": "",
@@ -3485,7 +4475,7 @@
      "config": {
       "show_legends": false,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 0,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -3552,7 +4542,8 @@
        "layout": null,
        "num_of_columns": 1,
        "group_by_y_axis": false
-      }
+      },
+      "table_pagination": false
      },
      "queryType": "sql",
      "queries": [
@@ -3568,55 +4559,121 @@
           "label": "Time",
           "alias": "time",
           "column": "time",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "time",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "App",
           "alias": "app",
           "column": "app",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "app",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "Project",
           "alias": "project",
           "column": "project",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "project",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "Task",
           "alias": "task",
           "column": "task",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "task",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "Outcome",
           "alias": "outcome",
           "column": "outcome",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "outcome",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "Trace id",
           "alias": "trace_id",
           "column": "trace_id",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "trace_id",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [],
@@ -3642,8 +4699,8 @@
      "layout": {
       "x": 0,
       "y": 0,
-      "w": 48,
-      "h": 12,
+      "w": 192,
+      "h": 50,
       "i": 29
      },
      "htmlContent": "",
@@ -3658,7 +4715,7 @@
      "config": {
       "show_legends": false,
       "legends_position": null,
-      "decimals": 2,
+      "decimals": 0,
       "line_thickness": 1.5,
       "step_value": "0",
       "top_results_others": false,
@@ -3725,7 +4782,8 @@
        "layout": null,
        "num_of_columns": 1,
        "group_by_y_axis": false
-      }
+      },
+      "table_pagination": false
      },
      "queryType": "sql",
      "queries": [
@@ -3741,73 +4799,161 @@
           "label": "Time",
           "alias": "time",
           "column": "time",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "time",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "App",
           "alias": "app",
           "column": "app",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "app",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "Project",
           "alias": "project",
           "column": "project",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "project",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "Task",
           "alias": "task",
           "column": "task",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "task",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "Attempt",
           "alias": "attempt",
           "column": "attempt",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "attempt",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "Outcome",
           "alias": "outcome",
           "column": "outcome",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "outcome",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "Restorations",
           "alias": "restorations",
           "column": "restorations",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "restorations",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          },
          {
           "label": "Trace id",
           "alias": "trace_id",
           "column": "trace_id",
+          "type": "build",
           "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "trace_id",
+             "streamAlias": null
+            }
+           }
+          ],
           "isDerived": false,
           "havingConditions": [],
-          "treatAsNonTimestamp": true
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [],
@@ -3832,9 +4978,9 @@
      ],
      "layout": {
       "x": 0,
-      "y": 12,
-      "w": 48,
-      "h": 12,
+      "y": 50,
+      "w": 192,
+      "h": 50,
       "i": 30
      },
      "htmlContent": "",
