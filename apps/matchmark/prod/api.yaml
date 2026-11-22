@@ -113,7 +113,7 @@ spec:
             # traces to the `default` stream of the `default` organization
             # (platform/openobserve-collector). An address, not a secret.
             - name: MATCHMARK_TRACE_URL_TEMPLATE
-              value: https://o2.int.0xc0.cc/web/traces/trace-details?stream=default&trace_id={trace_id}&org_identifier=default
+              value: https://o2.int.0xc0.cc/web/traces/trace-details?stream=default&trace_id={trace_id}&from={start_time_unix_micro}&to={end_time_unix_micro}&org_identifier=default
             - name: OTEL_SERVICE_NAME
               value: matchmark-api
             - name: OTEL_RESOURCE_ATTRIBUTES

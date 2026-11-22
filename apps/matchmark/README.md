@@ -122,7 +122,11 @@ over WARP answers 404.
 - **Trace link**: `MATCHMARK_TRACE_URL_TEMPLATE`, OpenObserve's trace view
   (`https://o2.int.0xc0.cc`, WARP only) for the `default` stream of the
   `default` organization, where the collector writes traces, with one
-  `{trace_id}` where the API puts a task's trace id. A task's read, `mm
+  `{trace_id}` where the API puts a task's trace id, and `{start_time_unix_micro}`
+  and `{end_time_unix_micro}` for the task's time range in `from` and `to`:
+  OpenObserve's trace page looks only inside that range, in microseconds, and
+  with none it uses the last fifteen minutes, so an old task's link would
+  show no trace. A task's read, `mm
   status --task`, prints the link; absent, it shows only the id. Check: run a
   task, then open the link `mm status --task <id>` prints over WARP: it shows
   that task's trace.
