@@ -1083,8 +1083,8 @@
     {
      "id": "Panel_mm008",
      "type": "table",
-     "title": "Agent run time by stage",
-     "description": "invoke_agent spans, which carry matchmark_stage; the matchmark.attempt span does not.",
+     "title": "Stage time, the attempt and the QA",
+     "description": "matchmark.attempt and matchmark.qa spans by stage: how many, and p50 and p95 of their duration, in seconds.",
      "config": {
       "show_legends": false,
       "legends_position": null,
@@ -1139,13 +1139,33 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT CASE WHEN matchmark_stage IS NULL OR matchmark_stage = '' THEN '(none)' ELSE matchmark_stage END as \"stage\", count(*) as \"runs\", round(approx_percentile_cont(duration, 0.5) / 1000000.0, 1) as \"p50_s\", round(approx_percentile_cont(duration, 0.95) / 1000000.0, 1) as \"p95_s\" FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY stage ORDER BY runs DESC",
+       "query": "SELECT CASE WHEN operation_name = 'matchmark.qa' THEN 'qa' ELSE 'attempt' END as \"span\", CASE WHEN matchmark_stage IS NULL OR matchmark_stage = '' THEN '(none)' ELSE matchmark_stage END as \"stage\", count(*) as \"spans\", round(approx_percentile_cont(duration, 0.5) / 1000000.0, 1) as \"p50_s\", round(approx_percentile_cont(duration, 0.95) / 1000000.0, 1) as \"p95_s\" FROM \"default\" WHERE operation_name IN ('matchmark.attempt', 'matchmark.qa') AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY span, stage ORDER BY stage, span",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
         "stream": "default",
         "stream_type": "traces",
         "x": [
+         {
+          "label": "Span",
+          "alias": "span",
+          "column": "span",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "span",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
+         },
          {
           "label": "Stage",
           "alias": "stage",
@@ -1167,16 +1187,16 @@
           "showFieldAsJson": false
          },
          {
-          "label": "Runs",
-          "alias": "runs",
-          "column": "runs",
+          "label": "Spans",
+          "alias": "spans",
+          "column": "spans",
           "type": "build",
           "color": null,
           "args": [
            {
             "type": "field",
             "value": {
-             "field": "runs",
+             "field": "spans",
              "streamAlias": null
             }
            }
@@ -2123,8 +2143,8 @@
     {
      "id": "Panel_mm014",
      "type": "table",
-     "title": "Runs by agent",
-     "description": "invoke_agent spans, by matchmark_agent.",
+     "title": "Agents, for the range",
+     "description": "invoke_agent spans give the runs and the runs in error; chat spans give the calls (those that carry tokens) and the tokens. Cache read is the share of the input that came from the cache.",
      "config": {
       "show_legends": false,
       "legends_position": null,
@@ -2179,7 +2199,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT matchmark_agent as \"agent\", count(*) as \"runs\", sum(CASE WHEN span_status = 'ERROR' THEN 1 ELSE 0 END) as \"errors\" FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY agent ORDER BY runs DESC",
+       "query": "SELECT matchmark_agent as \"agent\", sum(CASE WHEN operation_name LIKE 'invoke_agent%' THEN 1 ELSE 0 END) as \"runs\", sum(CASE WHEN operation_name LIKE 'invoke_agent%' AND span_status = 'ERROR' THEN 1 ELSE 0 END) as \"errors\", sum(CASE WHEN operation_name LIKE 'chat%' AND gen_ai_usage_input_tokens > 0 THEN 1 ELSE 0 END) as \"calls\", sum(CASE WHEN operation_name LIKE 'chat%' THEN gen_ai_usage_input_tokens ELSE 0 END) as \"input_tokens\", sum(CASE WHEN operation_name LIKE 'chat%' THEN gen_ai_usage_output_tokens ELSE 0 END) as \"output_tokens\", sum(CASE WHEN operation_name LIKE 'chat%' THEN gen_ai_usage_cache_read_input_tokens ELSE 0 END) as \"cache_read_tokens\", sum(CASE WHEN operation_name LIKE 'chat%' THEN gen_ai_usage_cache_creation_input_tokens ELSE 0 END) as \"cache_creation_tokens\", round(100.0 * sum(CASE WHEN operation_name LIKE 'chat%' THEN gen_ai_usage_cache_read_input_tokens ELSE 0 END) / NULLIF(sum(CASE WHEN operation_name LIKE 'chat%' THEN gen_ai_usage_input_tokens ELSE 0 END), 0), 1) as \"cache_read_pct\" FROM \"default\" WHERE (operation_name LIKE 'invoke_agent%' OR operation_name LIKE 'chat%') AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY agent ORDER BY runs DESC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -2227,7 +2247,7 @@
           "showFieldAsJson": false
          },
          {
-          "label": "Errors",
+          "label": "Runs in error",
           "alias": "errors",
           "column": "errors",
           "type": "build",
@@ -2237,6 +2257,126 @@
             "type": "field",
             "value": {
              "field": "errors",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
+         },
+         {
+          "label": "Model calls",
+          "alias": "calls",
+          "column": "calls",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "calls",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
+         },
+         {
+          "label": "Input tokens",
+          "alias": "input_tokens",
+          "column": "input_tokens",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "input_tokens",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
+         },
+         {
+          "label": "Output tokens",
+          "alias": "output_tokens",
+          "column": "output_tokens",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "output_tokens",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
+         },
+         {
+          "label": "Cache read tokens",
+          "alias": "cache_read_tokens",
+          "column": "cache_read_tokens",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "cache_read_tokens",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
+         },
+         {
+          "label": "Cache creation tokens",
+          "alias": "cache_creation_tokens",
+          "column": "cache_creation_tokens",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "cache_creation_tokens",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
+         },
+         {
+          "label": "Input read from cache (%)",
+          "alias": "cache_read_pct",
+          "column": "cache_read_pct",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "cache_read_pct",
              "streamAlias": null
             }
            }
@@ -2766,7 +2906,7 @@
      "id": "Panel_mm018",
      "type": "stacked",
      "title": "Model calls, by model",
-     "description": "chat spans.",
+     "description": "chat spans that carry tokens: one response of the model can arrive as several spans, and only the first carries the usage.",
      "config": {
       "show_legends": true,
       "legends_position": null,
@@ -2820,7 +2960,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", count(*) as \"y_axis_1\", gen_ai_request_model as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", count(*) as \"y_axis_1\", gen_ai_request_model as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND gen_ai_usage_input_tokens > 0 AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -2915,9 +3055,9 @@
       }
      ],
      "layout": {
-      "x": 0,
+      "x": 96,
       "y": 64,
-      "w": 192,
+      "w": 96,
       "h": 20,
       "i": 18
      },
@@ -2928,8 +3068,8 @@
     {
      "id": "Panel_mm020",
      "type": "stacked",
-     "title": "Input tokens, uncached, by model",
-     "description": "chat spans. Only the uncached part of the input: the span carries no cache tokens (matchmark#201).",
+     "title": "Input tokens, by model",
+     "description": "chat spans: the whole input, the cached part included.",
      "config": {
       "show_legends": true,
       "legends_position": null,
@@ -2983,7 +3123,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", sum(gen_ai_usage_input_tokens) as \"y_axis_1\", gen_ai_request_model as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", sum(gen_ai_usage_input_tokens) as \"y_axis_1\", gen_ai_request_model as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -3018,7 +3158,7 @@
         ],
         "y": [
          {
-          "label": "Tokens",
+          "label": "Input tokens",
           "alias": "y_axis_1",
           "column": "y_axis_1",
           "type": "build",
@@ -3078,7 +3218,7 @@
      ],
      "layout": {
       "x": 0,
-      "y": 84,
+      "y": 124,
       "w": 96,
       "h": 20,
       "i": 20
@@ -3145,7 +3285,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", sum(gen_ai_usage_output_tokens) as \"y_axis_1\", gen_ai_request_model as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", sum(gen_ai_usage_output_tokens) as \"y_axis_1\", gen_ai_request_model as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -3240,7 +3380,7 @@
      ],
      "layout": {
       "x": 96,
-      "y": 84,
+      "y": 124,
       "w": 96,
       "h": 20,
       "i": 21
@@ -3253,7 +3393,7 @@
      "id": "Panel_mm022",
      "type": "table",
      "title": "Tokens by model, for the range",
-     "description": "chat spans: calls, uncached input tokens and output tokens.",
+     "description": "chat spans that carry tokens: calls, input tokens (the whole input) and output tokens.",
      "config": {
       "show_legends": false,
       "legends_position": null,
@@ -3308,7 +3448,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT gen_ai_request_model as \"model\", count(*) as \"calls\", sum(gen_ai_usage_input_tokens) as \"input_tokens\", sum(gen_ai_usage_output_tokens) as \"output_tokens\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY model ORDER BY output_tokens DESC",
+       "query": "SELECT gen_ai_request_model as \"model\", sum(CASE WHEN gen_ai_usage_input_tokens > 0 THEN 1 ELSE 0 END) as \"calls\", sum(gen_ai_usage_input_tokens) as \"input_tokens\", sum(gen_ai_usage_output_tokens) as \"output_tokens\", sum(gen_ai_usage_cache_read_input_tokens) as \"cache_read_tokens\", sum(gen_ai_usage_cache_creation_input_tokens) as \"cache_creation_tokens\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY model ORDER BY output_tokens DESC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -3336,7 +3476,7 @@
           "showFieldAsJson": false
          },
          {
-          "label": "Calls",
+          "label": "Model calls",
           "alias": "calls",
           "column": "calls",
           "type": "build",
@@ -3356,7 +3496,7 @@
           "showFieldAsJson": false
          },
          {
-          "label": "Input tokens (uncached)",
+          "label": "Input tokens",
           "alias": "input_tokens",
           "column": "input_tokens",
           "type": "build",
@@ -3394,6 +3534,46 @@
           "havingConditions": [],
           "treatAsNonTimestamp": true,
           "showFieldAsJson": false
+         },
+         {
+          "label": "Cache read tokens",
+          "alias": "cache_read_tokens",
+          "column": "cache_read_tokens",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "cache_read_tokens",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
+         },
+         {
+          "label": "Cache creation tokens",
+          "alias": "cache_creation_tokens",
+          "column": "cache_creation_tokens",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "cache_creation_tokens",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [],
@@ -3418,10 +3598,984 @@
      ],
      "layout": {
       "x": 0,
-      "y": 104,
+      "y": 164,
       "w": 192,
       "h": 22,
       "i": 22
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm031",
+     "type": "stacked",
+     "title": "Model calls, by agent",
+     "description": "chat spans that carry tokens, by the agent that made the call.",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 0,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", count(*) as \"y_axis_1\", matchmark_agent as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND gen_ai_usage_input_tokens > 0 AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "Time",
+          "alias": "x_axis_1",
+          "column": "x_axis_1",
+          "type": "build",
+          "color": null,
+          "functionName": "histogram",
+          "sortBy": "ASC",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "_timestamp",
+             "streamAlias": null
+            }
+           },
+           {
+            "type": "histogramInterval"
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
+         }
+        ],
+        "y": [
+         {
+          "label": "Calls",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "type": "build",
+          "color": null,
+          "functionName": "count",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "y_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
+         }
+        ],
+        "z": [],
+        "breakdown": [
+         {
+          "label": "Agent",
+          "alias": "breakdown_1",
+          "column": "breakdown_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "breakdown_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": []
+         }
+        ],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 0,
+      "y": 64,
+      "w": 96,
+      "h": 20,
+      "i": 31
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm032",
+     "type": "stacked",
+     "title": "Input tokens, by agent",
+     "description": "chat spans: the whole input, the cached part included.",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 0,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", sum(gen_ai_usage_input_tokens) as \"y_axis_1\", matchmark_agent as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "Time",
+          "alias": "x_axis_1",
+          "column": "x_axis_1",
+          "type": "build",
+          "color": null,
+          "functionName": "histogram",
+          "sortBy": "ASC",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "_timestamp",
+             "streamAlias": null
+            }
+           },
+           {
+            "type": "histogramInterval"
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
+         }
+        ],
+        "y": [
+         {
+          "label": "Input tokens",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "y_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
+         }
+        ],
+        "z": [],
+        "breakdown": [
+         {
+          "label": "Agent",
+          "alias": "breakdown_1",
+          "column": "breakdown_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "breakdown_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": []
+         }
+        ],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 0,
+      "y": 84,
+      "w": 96,
+      "h": 20,
+      "i": 32
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm033",
+     "type": "stacked",
+     "title": "Output tokens, by agent",
+     "description": "chat spans.",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 0,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", sum(gen_ai_usage_output_tokens) as \"y_axis_1\", matchmark_agent as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "Time",
+          "alias": "x_axis_1",
+          "column": "x_axis_1",
+          "type": "build",
+          "color": null,
+          "functionName": "histogram",
+          "sortBy": "ASC",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "_timestamp",
+             "streamAlias": null
+            }
+           },
+           {
+            "type": "histogramInterval"
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
+         }
+        ],
+        "y": [
+         {
+          "label": "Output tokens",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "y_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
+         }
+        ],
+        "z": [],
+        "breakdown": [
+         {
+          "label": "Agent",
+          "alias": "breakdown_1",
+          "column": "breakdown_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "breakdown_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": []
+         }
+        ],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 96,
+      "y": 84,
+      "w": 96,
+      "h": 20,
+      "i": 33
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm034",
+     "type": "stacked",
+     "title": "Cache read tokens, by agent",
+     "description": "chat spans: the part of the input read from the cache.",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 0,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", sum(gen_ai_usage_cache_read_input_tokens) as \"y_axis_1\", matchmark_agent as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "Time",
+          "alias": "x_axis_1",
+          "column": "x_axis_1",
+          "type": "build",
+          "color": null,
+          "functionName": "histogram",
+          "sortBy": "ASC",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "_timestamp",
+             "streamAlias": null
+            }
+           },
+           {
+            "type": "histogramInterval"
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
+         }
+        ],
+        "y": [
+         {
+          "label": "Cache read tokens",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "y_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
+         }
+        ],
+        "z": [],
+        "breakdown": [
+         {
+          "label": "Agent",
+          "alias": "breakdown_1",
+          "column": "breakdown_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "breakdown_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": []
+         }
+        ],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 0,
+      "y": 104,
+      "w": 96,
+      "h": 20,
+      "i": 34
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm035",
+     "type": "stacked",
+     "title": "Cache creation tokens, by agent",
+     "description": "chat spans: the part of the input written to the cache.",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 0,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", sum(gen_ai_usage_cache_creation_input_tokens) as \"y_axis_1\", matchmark_agent as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "Time",
+          "alias": "x_axis_1",
+          "column": "x_axis_1",
+          "type": "build",
+          "color": null,
+          "functionName": "histogram",
+          "sortBy": "ASC",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "_timestamp",
+             "streamAlias": null
+            }
+           },
+           {
+            "type": "histogramInterval"
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
+         }
+        ],
+        "y": [
+         {
+          "label": "Cache creation tokens",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "y_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
+         }
+        ],
+        "z": [],
+        "breakdown": [
+         {
+          "label": "Agent",
+          "alias": "breakdown_1",
+          "column": "breakdown_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "breakdown_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": []
+         }
+        ],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 96,
+      "y": 104,
+      "w": 96,
+      "h": 20,
+      "i": 35
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm036",
+     "type": "stacked",
+     "title": "Calls by finish reason",
+     "description": "chat spans that carry tokens, by how the response ended. A call that ended in text carries no finish reason: (none).",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 0,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", count(*) as \"y_axis_1\", CASE WHEN gen_ai_response_finish_reasons IS NULL OR gen_ai_response_finish_reasons = '' THEN '(none)' ELSE gen_ai_response_finish_reasons END as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND gen_ai_usage_input_tokens > 0 AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "Time",
+          "alias": "x_axis_1",
+          "column": "x_axis_1",
+          "type": "build",
+          "color": null,
+          "functionName": "histogram",
+          "sortBy": "ASC",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "_timestamp",
+             "streamAlias": null
+            }
+           },
+           {
+            "type": "histogramInterval"
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
+         }
+        ],
+        "y": [
+         {
+          "label": "Calls",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "type": "build",
+          "color": null,
+          "functionName": "count",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "y_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
+         }
+        ],
+        "z": [],
+        "breakdown": [
+         {
+          "label": "Finish reason",
+          "alias": "breakdown_1",
+          "column": "breakdown_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "breakdown_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": []
+         }
+        ],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 0,
+      "y": 144,
+      "w": 192,
+      "h": 20,
+      "i": 36
      },
      "htmlContent": "",
      "markdownContent": "",
@@ -3436,7 +4590,7 @@
     {
      "id": "Panel_mm023",
      "type": "table",
-     "title": "Calls by tool, for the range",
+     "title": "Calls by agent and tool, for the range",
      "description": "execute_tool spans: calls, failed (span_status ERROR), refused, and the p95 duration in seconds.",
      "config": {
       "show_legends": false,
@@ -3492,13 +4646,33 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT gen_ai_tool_name as \"tool\", count(*) as \"calls\", sum(CASE WHEN span_status = 'ERROR' THEN 1 ELSE 0 END) as \"failed\", sum(CASE WHEN CAST(matchmark_tool_refused AS VARCHAR) = 'true' THEN 1 ELSE 0 END) as \"refused\", round(approx_percentile_cont(duration, 0.95) / 1000000.0, 1) as \"p95_s\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY tool ORDER BY calls DESC",
+       "query": "SELECT matchmark_agent as \"agent\", gen_ai_tool_name as \"tool\", count(*) as \"calls\", sum(CASE WHEN span_status = 'ERROR' THEN 1 ELSE 0 END) as \"failed\", sum(CASE WHEN CAST(matchmark_tool_refused AS VARCHAR) = 'true' THEN 1 ELSE 0 END) as \"refused\", round(approx_percentile_cont(duration, 0.95) / 1000000.0, 1) as \"p95_s\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY agent, tool ORDER BY calls DESC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
         "stream": "default",
         "stream_type": "traces",
         "x": [
+         {
+          "label": "Agent",
+          "alias": "agent",
+          "column": "agent",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "agent",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
+         },
          {
           "label": "Tool",
           "alias": "tool",
@@ -3689,7 +4863,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", count(*) as \"y_axis_1\", gen_ai_tool_name as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", count(*) as \"y_axis_1\", gen_ai_tool_name as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -3852,7 +5026,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", count(*) as \"y_axis_1\", gen_ai_tool_name as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) AND span_status = 'ERROR' GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", count(*) as \"y_axis_1\", gen_ai_tool_name as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) AND span_status = 'ERROR' GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -4015,7 +5189,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", count(*) as \"y_axis_1\", gen_ai_tool_name as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) AND CAST(matchmark_tool_refused AS VARCHAR) = 'true' GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", count(*) as \"y_axis_1\", gen_ai_tool_name as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) AND CAST(matchmark_tool_refused AS VARCHAR) = 'true' GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -4179,7 +5353,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", approx_percentile_cont(duration, 0.95) as \"y_axis_1\", gen_ai_tool_name as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", approx_percentile_cont(duration, 0.95) as \"y_axis_1\", gen_ai_tool_name as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -4342,7 +5516,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT gen_ai_tool_name as \"tool\", sum(CASE WHEN span_status = 'ERROR' THEN 1 ELSE 0 END) as \"failed\", sum(CASE WHEN CAST(matchmark_tool_refused AS VARCHAR) = 'true' THEN 1 ELSE 0 END) as \"refused\", count(*) as \"calls\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY tool HAVING sum(CASE WHEN span_status = 'ERROR' THEN 1 ELSE 0 END) > 0 OR sum(CASE WHEN CAST(matchmark_tool_refused AS VARCHAR) = 'true' THEN 1 ELSE 0 END) > 0 ORDER BY failed + refused DESC LIMIT 20",
+       "query": "SELECT gen_ai_tool_name as \"tool\", sum(CASE WHEN span_status = 'ERROR' THEN 1 ELSE 0 END) as \"failed\", sum(CASE WHEN CAST(matchmark_tool_refused AS VARCHAR) = 'true' THEN 1 ELSE 0 END) as \"refused\", count(*) as \"calls\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY tool HAVING sum(CASE WHEN span_status = 'ERROR' THEN 1 ELSE 0 END) > 0 OR sum(CASE WHEN CAST(matchmark_tool_refused AS VARCHAR) = 'true' THEN 1 ELSE 0 END) > 0 ORDER BY failed + refused DESC LIMIT 20",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -4452,10 +5626,173 @@
      ],
      "layout": {
       "x": 0,
-      "y": 70,
+      "y": 90,
       "w": 192,
       "h": 30,
       "i": 28
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm037",
+     "type": "stacked",
+     "title": "Failed calls, by agent",
+     "description": "execute_tool spans that ended in error, by the agent that called the tool.",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 0,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", count(*) as \"y_axis_1\", matchmark_agent as \"breakdown_1\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND span_status = 'ERROR' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1 ASC",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "Time",
+          "alias": "x_axis_1",
+          "column": "x_axis_1",
+          "type": "build",
+          "color": null,
+          "functionName": "histogram",
+          "sortBy": "ASC",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "_timestamp",
+             "streamAlias": null
+            }
+           },
+           {
+            "type": "histogramInterval"
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
+         }
+        ],
+        "y": [
+         {
+          "label": "Calls",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "type": "build",
+          "color": null,
+          "functionName": "count",
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "y_axis_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false,
+          "showFieldAsJson": false
+         }
+        ],
+        "z": [],
+        "breakdown": [
+         {
+          "label": "Agent",
+          "alias": "breakdown_1",
+          "column": "breakdown_1",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "breakdown_1",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": []
+         }
+        ],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 0,
+      "y": 70,
+      "w": 192,
+      "h": 20,
+      "i": 37
      },
      "htmlContent": "",
      "markdownContent": "",
