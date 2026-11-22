@@ -1,0 +1,27 @@
+# GitHub Actions runners in the cluster, a pilot (workspace#279): README.md.
+#
+# Backups: no volumes beyond emptyDir.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# No `namespace:`: the component spans two, each resource names its own.
+resources:
+  - namespaces.yaml
+  - priority-class.yaml
+  - quota.yaml
+  - network-policy.yaml
+  - registrar.yaml
+  - proof.yaml
+configMapGenerator:
+  # With a hash in its name: a change to the script rolls the registrar.
+  - name: registrar-script
+    namespace: actions-runner-controller
+    files:
+      - registrar.py
+  # No hash suffix: a Job's pod template cannot change, so a renamed ConfigMap
+  # would fail the sync instead of leaving the finished Job alone.
+  - name: proof-script
+    namespace: actions-runners
+    files:
+      - proof.py
+    options:
+      disableNameSuffixHash: true
