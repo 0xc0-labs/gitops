@@ -130,6 +130,15 @@ spec:
             # CONNECT, and none goes direct. Set or absent, never empty.
             - name: MATCHMARK_GITHUB_PROXY_URL
               value: http://egress-proxy.matchmark-sandboxes.svc.cluster.local:3128
+            # The tracker's connection (README.md, The tracker): the key is a
+            # file, never a variable. No webhook secret: only `intake-api`
+            # holds one.
+            - name: MATCHMARK_TRACKER_ADDRESS
+              value: http://plane-api.plane.svc.cluster.local:8000
+            - name: MATCHMARK_TRACKER_WORKSPACE
+              value: "0xc0"
+            - name: MATCHMARK_TRACKER_API_KEY_FILE
+              value: /run/secrets/plane/api_key
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
             - name: OTEL_SERVICE_NAME
@@ -163,6 +172,9 @@ spec:
             - name: github-app-key
               mountPath: /run/secrets/github-app
               readOnly: true
+            - name: plane-api-key
+              mountPath: /run/secrets/plane
+              readOnly: true
       volumes:
         # Only the key: the two numbers reach the worker as variables.
         - name: github-app-key
@@ -172,6 +184,13 @@ spec:
             items:
               - key: private_key
                 path: private_key
+        - name: plane-api-key
+          secret:
+            secretName: matchmark-plane-vault
+            defaultMode: 288 # 0440
+            items:
+              - key: api_key
+                path: api_key
         # Each run's working files and the liveness file. Not backed up: it
         # holds nothing that outlives a pod.
         - name: tmp

@@ -122,7 +122,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: worker-proof-3
+  name: worker-proof-4
   namespace: matchmark
   annotations:
     argocd.argoproj.io/sync-wave: "2"
@@ -185,6 +185,12 @@ spec:
               value: /run/secrets/github-app/private_key
             - name: MATCHMARK_GITHUB_PROXY_URL
               value: http://egress-proxy.matchmark-sandboxes.svc.cluster.local:3128
+            - name: MATCHMARK_TRACKER_ADDRESS
+              value: http://plane-api.plane.svc.cluster.local:8000
+            - name: MATCHMARK_TRACKER_WORKSPACE
+              value: "0xc0"
+            - name: MATCHMARK_TRACKER_API_KEY_FILE
+              value: /run/secrets/plane/api_key
             - name: PYTHONDONTWRITEBYTECODE
               value: "1"
             # The proof installs `cryptography` (to sign the App's JWT)
@@ -211,6 +217,9 @@ spec:
             - name: github-app-key
               mountPath: /run/secrets/github-app
               readOnly: true
+            - name: plane-api-key
+              mountPath: /run/secrets/plane
+              readOnly: true
             - name: work
               mountPath: /work
             - name: tmp
@@ -226,6 +235,13 @@ spec:
             items:
               - key: private_key
                 path: private_key
+        - name: plane-api-key
+          secret:
+            secretName: matchmark-plane-vault
+            defaultMode: 288 # 0440
+            items:
+              - key: api_key
+                path: api_key
         - name: work
           emptyDir:
             sizeLimit: 128Mi

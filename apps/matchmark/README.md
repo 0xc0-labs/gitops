@@ -151,6 +151,7 @@ secret); nothing here holds a value:
 | `matchmark/sandbox` | `token_key` (32 characters or more) | `matchmark-sandbox`, into `MATCHMARK_SANDBOX_TOKEN_KEY` of the factory worker (The factory worker) |
 | `matchmark/artifacts` | `access_key_id`, `secret_access_key` | `matchmark-artifacts`: the artifact user's key pair, read by the worker and by the Job that creates the user (Artifacts) |
 | `matchmark/claude-subscription` | `oauth_token` | `claude-subscription`, into `CLAUDE_CODE_OAUTH_TOKEN` of the factory worker (The factory worker) |
+| `matchmark/plane` | `api_key` | `matchmark-plane`, mounted as a file by the API and the factory worker (The tracker) |
 
 ## The route to the provider
 
@@ -651,7 +652,7 @@ credential of its own and not the root one.
   when the user carries it), so a run after a half-finished one needs nothing
   removed by hand. It is not run again by a sync. To run it again (a rotated
   key pair, a changed policy), raise the number in its name.
-- **Proof**: `worker-proof-3`, a plain Job in wave 2, with the worker's
+- **Proof**: `worker-proof-4`, a plain Job in wave 2, with the worker's
   ServiceAccount and labels, so it has the worker's rights and network, and
   the secrets the worker reads (the App's key mounted as a file the same way).
   It prints one line per step and ends `all steps ok`. It prints nothing of
@@ -688,7 +689,48 @@ proof waits for the one `Sandbox` the quota allows, so it can run beside
 
 ```sh
 kubectl -n matchmark logs job/artifacts-setup-1 -c bucket   # lifecycle rule read back
-kubectl -n matchmark logs job/worker-proof-3                # all steps ok
+kubectl -n matchmark logs job/worker-proof-4                # all steps ok
+```
+
+## The tracker
+
+`network-policy-tracker.yaml`, `matchmark-plane` in `vault-secrets.yaml`, and
+the settings of `api.yaml` and `factory-worker.yaml`. The API and the factory
+worker reach Plane, the platform's tracker, as its service user, a member of
+the project `PLAY` (Playground) of the workspace `0xc0`. A task written there
+and moved to its ready state is found by the worker's poll and started, and
+its item follows the run; no webhook is needed for that.
+
+- **Settings**, on both: `MATCHMARK_TRACKER_ADDRESS` is
+  `http://plane-api.plane.svc.cluster.local:8000`, Plane's API inside the
+  cluster; `MATCHMARK_TRACKER_WORKSPACE` is `0xc0`;
+  `MATCHMARK_TRACKER_API_KEY_FILE` is `/run/secrets/plane/api_key`. The three
+  are set together or not at all (a half is an error in the code). The API
+  also has `MATCHMARK_TASK_APP=factory`, the application that runs tasks. No
+  webhook secret: only `intake-api` will hold one.
+- **Key**: `matchmark/plane`'s `api_key`, written by the operator, read by the
+  `VaultStaticSecret` `matchmark-plane` into `matchmark-plane-vault`. It is a
+  **file**, mounted read-only at `/run/secrets/plane/`, mode 0440 with the
+  pod's `fsGroup` (the API's has one for this), never a variable. Only the API,
+  the worker and the worker's proof Job mount it. To rotate it: create the new
+  key in Plane as the service user, write it with `vault`'s README, Writing or
+  rotating a secret, and revoke the old one; the secret refreshes within an
+  hour and restarts both Deployments.
+- **Network**: `tracker-egress` opens the API's and the worker's egress to
+  Plane's `plane-plane-api` pods on 8000, and `api-from-matchmark`, in
+  `apps/plane/prod/network-policy.yaml` (the other Application), admits those
+  two to them. Plane reaches nothing new.
+- **Proof**: `worker-proof-4` (Artifacts) ends with the steps `tracker key is
+  a file only its user and group read`, `tracker key is in no variable`,
+  `Plane's API accepts a connection` (it waits up to five minutes, as for the
+  proxy), `Plane answers the key` (`GET /api/v1/users/me/` is 200), `project
+  PLAY is in workspace 0xc0` and `project PLAY has every state the mapping
+  uses` (`Backlog`, `Todo`, `In Progress`, `In Review`, `Blocked`, `Done`,
+  `Cancelled`). It prints no key.
+
+```sh
+kubectl -n matchmark logs job/worker-proof-4 | grep -i -e plane -e tracker  # all ok
+kubectl -n matchmark logs deploy/factory-worker | grep -i tracker          # its poll, not "not configured"
 ```
 
 ## Checking

@@ -41,6 +41,11 @@ REPOSITORY = "0xc0-labs/matchmark-playground"
 # The rule that lets the worker into the proxy belongs to another Application,
 # which can sync after this Job starts.
 PROXY_WAIT = 300
+# Plane's Application can sync after this Job starts, as the proxy's can.
+TRACKER_WAIT = 300
+PROJECT = "PLAY"
+# The names the playground's mapping uses (matchmark-config).
+STATES = ("Backlog", "Todo", "In Progress", "In Review", "Blocked", "Done", "Cancelled")
 PERMISSIONS = {"metadata": "read", "contents": "write", "pull_requests": "write", "checks": "write"}
 
 failures = []
@@ -451,9 +456,66 @@ def github_proof():
         check("token revoked", status == 204, f"status {status}")
 
 
+def tracker_call(path, key):
+    """(status, parsed body) of a GET to Plane's API with the platform's key."""
+    request = urllib.request.Request(  # nosemgrep: python.lang.security.audit.insecure-transport.urllib.insecure-request-object.insecure-request-object -- Plane's API is plain HTTP on the pod network; the policies are the boundary
+        os.environ["MATCHMARK_TRACKER_ADDRESS"].rstrip("/") + path,
+        headers={"X-API-Key": key, "Accept": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:  # nosemgrep: python.lang.security.audit.insecure-transport.urllib.insecure-urlopen.insecure-urlopen, python.lang.security.audit.dynamic-urllib-use-detected -- same
+            return response.status, json.load(response)
+    except urllib.error.HTTPError as error:
+        return error.code, {}
+
+
+def results(body):
+    """Plane lists come as a bare array or as a page with `results`."""
+    return body if isinstance(body, list) else body.get("results", [])
+
+
+def tracker_proof():
+    key_path = os.environ["MATCHMARK_TRACKER_API_KEY_FILE"]
+    workspace = os.environ["MATCHMARK_TRACKER_WORKSPACE"]
+    address = urlsplit(os.environ["MATCHMARK_TRACKER_ADDRESS"])
+
+    mode = os.stat(key_path).st_mode & 0o777
+    check(
+        "tracker key is a file only its user and group read",
+        os.path.isfile(key_path) and mode & 0o007 == 0 and mode & 0o222 == 0,
+        f"mode {mode:04o}",
+    )
+    check("tracker key is in no variable", not any(name.endswith("API_KEY") for name in os.environ), "environment")
+    with open(key_path) as handle:
+        key = handle.read().strip()
+
+    port = address.port or 80
+    reachable = wait_for(lambda: accepts(address.hostname, port), TRACKER_WAIT)
+    check("Plane's API accepts a connection", bool(reachable), f"{address.hostname}:{port}, waited up to {TRACKER_WAIT}s")
+    if not reachable:
+        return
+
+    status, _ = tracker_call("/api/v1/users/me/", key)
+    check("Plane answers the key", status == 200, f"status {status}")
+    if status != 200:
+        return
+
+    status, body = tracker_call(f"/api/v1/workspaces/{workspace}/projects/", key)
+    project = next((item for item in results(body) if item.get("identifier") == PROJECT), None)
+    check(f"project {PROJECT} is in workspace {workspace}", status == 200 and project is not None, f"status {status}")
+    if project is None:
+        return
+
+    status, body = tracker_call(f"/api/v1/workspaces/{workspace}/projects/{project['id']}/states/", key)
+    names = {item.get("name") for item in results(body)}
+    missing = [name for name in STATES if name not in names]
+    check(f"project {PROJECT} has every state the mapping uses", status == 200 and not missing, f"status {status}, missing: {', '.join(missing) or 'none'}")
+
+
 run(sandboxes_proof)
 run(artifacts_proof)
 run(github_proof)
+run(tracker_proof)
 
 if failures:
     print(f"FAILED: {', '.join(failures)}", flush=True)

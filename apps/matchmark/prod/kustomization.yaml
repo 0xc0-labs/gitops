@@ -39,6 +39,7 @@ resources:
   - gateway-warp.yaml
   - factory-worker.yaml
   - network-policy-worker.yaml
+  - network-policy-tracker.yaml
   - network-policy-sandbox.yaml
   - network-policy-artifacts.yaml
   - artifacts.yaml
