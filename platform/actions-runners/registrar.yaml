@@ -65,11 +65,11 @@ spec:
           image: docker.io/library/python:3.13.15-alpine@sha256:79e7a9b9ff1cbceff819f856fb374477792a5967759d94df266de7b7b4120e6f
           command: [python3, -u, /opt/registrar/registrar.py]
           env:
-            # One while this is a pilot: one more heavy check at a time is
-            # what the worker's idle memory allows (workspace#279). 0 stops
-            # it (README.md, Stopping it).
+            # Zero: the pilot is being retired (gitops#590). A runner pod
+            # already up is replaced by nothing once idle for
+            # IDLE_TIMEOUT_SECONDS or finished, and its registration goes.
             - name: RUNNERS
-              value: "1"
+              value: "0"
             - name: RUNNER_NAMESPACE
               value: actions-runners
             # GitHub's runner image, the release the CI VMs run (infrastructure,
