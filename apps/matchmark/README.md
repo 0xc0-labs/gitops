@@ -543,7 +543,10 @@ GitHub's API, as the App `matchmark-bot` (GitHub App, below).
   of its own to any public address, and a direct connection fails.
 - **Probe and grace**: the liveness probe is the worker's own, `python -m
   matchmark_factory_worker probe`, which reads the liveness file under
-  `/tmp`; there is no readiness probe, it takes no traffic.
+  `/tmp`; there is no readiness probe, it takes no traffic. `minReadySeconds`
+  is 30, so the Deployment counts the pod available only after 30 s without a
+  restart and a worker that crashes at start never reads `1/1`; each rollout
+  takes that long more (`Recreate`), well inside the 600 s progress deadline.
   `terminationGracePeriodSeconds` is 60: the worker waits 30 s for the runs in
   flight, then cancels them and tells Temporal.
 - **Resources**: requests 100m and 512Mi, a memory limit of 2Gi, no CPU limit:

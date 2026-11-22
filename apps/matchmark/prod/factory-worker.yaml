@@ -22,6 +22,10 @@ spec:
   # A second pod beside the first would double that memory while it rolls.
   strategy:
     type: Recreate
+  # With no readiness probe a pod is Ready from the container's start, so a
+  # worker that dies at start read 1/1 between restarts (#600). 30 s is the
+  # liveness probe's initial delay: past it, a start that failed has shown.
+  minReadySeconds: 30
   selector:
     matchLabels:
       app.kubernetes.io/name: matchmark-factory-worker
