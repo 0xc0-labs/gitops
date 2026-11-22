@@ -65,7 +65,13 @@ folders are left alone, so the UI stays free for trying things.
 - **Matchmark**, written here as well, but SQL over the traces stream
   `default`, not metrics: the spans of the factory worker (tasks, attempts,
   waits, agent runs, model calls and tools), filtered by the `app` and
-  `project` variables.
+  `project` variables. Its input tokens are the uncached part only: a `chat`
+  span carries no cache tokens, so the whole input waits for `matchmark`
+  (0xc0-labs/matchmark#201). It has no cost panel: the stream's
+  `gen_ai_usage_cost` is derived by OpenObserve from the tokens the span
+  carries, which leaves out the cached input and comes out far too low. A
+  panel reads only fields the stream has: a query naming one it lacks is an
+  error, not an empty result.
 
 **Changing or adding one:** edit it in the UI in any folder but `0xc0`,
 export it (dashboard → settings → export JSON), save it here as

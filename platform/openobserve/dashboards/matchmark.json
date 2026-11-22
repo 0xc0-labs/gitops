@@ -438,7 +438,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT matchmark_task_attempts as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name = 'matchmark.task' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1 ORDER BY y_axis_1 DESC",
+       "query": "SELECT CAST(matchmark_task_attempts AS BIGINT) as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name = 'matchmark.task' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1 ORDER BY x_axis_1",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -554,7 +554,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT matchmark_task_restorations as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name = 'matchmark.task' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1 ORDER BY y_axis_1 DESC",
+       "query": "SELECT CAST(matchmark_task_restorations AS BIGINT) as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name = 'matchmark.task' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1 ORDER BY x_axis_1",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -925,7 +925,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT matchmark_stage as \"stage\", count(*) as \"runs\", round(approx_percentile_cont(duration, 0.5) / 1000000.0, 1) as \"p50_s\", round(approx_percentile_cont(duration, 0.95) / 1000000.0, 1) as \"p95_s\" FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY stage ORDER BY runs DESC",
+       "query": "SELECT CASE WHEN matchmark_stage IS NULL OR matchmark_stage = '' THEN '(none)' ELSE matchmark_stage END as \"stage\", count(*) as \"runs\", round(approx_percentile_cont(duration, 0.5) / 1000000.0, 1) as \"p50_s\", round(approx_percentile_cont(duration, 0.95) / 1000000.0, 1) as \"p95_s\" FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY stage ORDER BY runs DESC",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -2286,7 +2286,7 @@
      "layout": {
       "x": 0,
       "y": 17,
-      "w": 24,
+      "w": 48,
       "h": 9,
       "i": 18
      },
@@ -2295,126 +2295,10 @@
      "customChartContent": ""
     },
     {
-     "id": "Panel_mm019",
-     "type": "donut",
-     "title": "Calls by finish reason",
-     "description": "chat spans, by gen_ai_response_finish_reasons.",
-     "config": {
-      "show_legends": true,
-      "legends_position": null,
-      "decimals": 2,
-      "line_thickness": 1.5,
-      "step_value": "0",
-      "top_results_others": false,
-      "axis_border_show": false,
-      "label_option": {
-       "rotate": 0
-      },
-      "show_symbol": false,
-      "line_interpolation": "smooth",
-      "legend_width": {
-       "unit": "px"
-      },
-      "base_map": {
-       "type": "osm"
-      },
-      "map_type": {
-       "type": "world"
-      },
-      "map_view": {
-       "zoom": 1,
-       "lat": 0,
-       "lng": 0
-      },
-      "drilldown": [],
-      "mark_line": [],
-      "override_config": [],
-      "connect_nulls": false,
-      "no_value_replacement": "",
-      "wrap_table_cells": false,
-      "table_transpose": false,
-      "table_dynamic_columns": false,
-      "mappings": [],
-      "color": {
-       "mode": "palette-classic-by-series",
-       "fixedColor": [
-        "#53ca53"
-       ],
-       "seriesBy": "last",
-       "colorBySeries": []
-      },
-      "trellis": {
-       "layout": null,
-       "num_of_columns": 1,
-       "group_by_y_axis": false
-      }
-     },
-     "queryType": "sql",
-     "queries": [
-      {
-       "query": "SELECT gen_ai_response_finish_reasons as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY x_axis_1 ORDER BY y_axis_1 DESC",
-       "vrlFunctionQuery": "",
-       "customQuery": true,
-       "fields": {
-        "stream": "default",
-        "stream_type": "traces",
-        "x": [
-         {
-          "label": "X axis 1",
-          "alias": "x_axis_1",
-          "column": "x_axis_1",
-          "color": null,
-          "isDerived": false,
-          "havingConditions": [],
-          "treatAsNonTimestamp": true
-         }
-        ],
-        "y": [
-         {
-          "label": "Y axis 1",
-          "alias": "y_axis_1",
-          "column": "y_axis_1",
-          "color": "#5960b2",
-          "isDerived": false,
-          "havingConditions": [],
-          "treatAsNonTimestamp": false
-         }
-        ],
-        "z": [],
-        "breakdown": [],
-        "filter": {
-         "filterType": "group",
-         "logicalOperator": "AND",
-         "conditions": []
-        }
-       },
-       "config": {
-        "promql_legend": "",
-        "layer_type": "scatter",
-        "weight_fixed": 1,
-        "limit": 0,
-        "min": 0,
-        "max": 100,
-        "time_shift": []
-       }
-      }
-     ],
-     "layout": {
-      "x": 24,
-      "y": 17,
-      "w": 24,
-      "h": 9,
-      "i": 19
-     },
-     "htmlContent": "",
-     "markdownContent": "",
-     "customChartContent": ""
-    },
-    {
      "id": "Panel_mm020",
      "type": "stacked",
-     "title": "Input tokens, by model",
-     "description": "sum of gen_ai_usage_input_tokens on chat spans.",
+     "title": "Input tokens, uncached, by model",
+     "description": "chat spans. Only the uncached part of the input: the span carries no cache tokens (matchmark#201).",
      "config": {
       "show_legends": true,
       "legends_position": null,
@@ -2668,7 +2552,7 @@
      "id": "Panel_mm022",
      "type": "table",
      "title": "Tokens by model, for the range",
-     "description": "chat spans: calls, and input and output tokens.",
+     "description": "chat spans: calls, uncached input tokens and output tokens.",
      "config": {
       "show_legends": false,
       "legends_position": null,
@@ -2748,7 +2632,7 @@
           "treatAsNonTimestamp": true
          },
          {
-          "label": "Input tokens",
+          "label": "Input tokens, uncached",
           "alias": "input_tokens",
           "column": "input_tokens",
           "color": null,
@@ -3512,7 +3396,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT gen_ai_tool_name as \"tool\", sum(CASE WHEN span_status = 'ERROR' THEN 1 ELSE 0 END) as \"failed\", sum(CASE WHEN CAST(matchmark_tool_refused AS VARCHAR) = 'true' THEN 1 ELSE 0 END) as \"refused\", count(*) as \"calls\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) AND (span_status = 'ERROR' OR CAST(matchmark_tool_refused AS VARCHAR) = 'true') GROUP BY tool ORDER BY failed + refused DESC LIMIT 20",
+       "query": "SELECT gen_ai_tool_name as \"tool\", sum(CASE WHEN span_status = 'ERROR' THEN 1 ELSE 0 END) as \"failed\", sum(CASE WHEN CAST(matchmark_tool_refused AS VARCHAR) = 'true' THEN 1 ELSE 0 END) as \"refused\", count(*) as \"calls\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY tool HAVING sum(CASE WHEN span_status = 'ERROR' THEN 1 ELSE 0 END) > 0 OR sum(CASE WHEN CAST(matchmark_tool_refused AS VARCHAR) = 'true' THEN 1 ELSE 0 END) > 0 ORDER BY failed + refused DESC LIMIT 20",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -3597,7 +3481,7 @@
      "id": "Panel_mm029",
      "type": "table",
      "title": "Latest tasks that failed or escalated",
-     "description": "Newest first. The trace_id opens the trace.",
+     "description": "Newest first. The trace_id opens the trace. The task message joins once a span carries it.",
      "config": {
       "show_legends": false,
       "legends_position": null,
@@ -3673,7 +3557,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT _timestamp as \"time\", matchmark_app as \"app\", matchmark_project as \"project\", matchmark_task as \"task\", matchmark_task_outcome as \"outcome\", matchmark_task_message as \"message\", trace_id as \"trace_id\" FROM \"default\" WHERE operation_name = 'matchmark.task' AND matchmark_app IN ($app) AND matchmark_project IN ($project) AND matchmark_task_outcome IN ('failed', 'escalated') ORDER BY _timestamp DESC LIMIT 50",
+       "query": "SELECT _timestamp as \"time\", matchmark_app as \"app\", matchmark_project as \"project\", matchmark_task as \"task\", matchmark_task_outcome as \"outcome\", trace_id as \"trace_id\" FROM \"default\" WHERE operation_name = 'matchmark.task' AND matchmark_app IN ($app) AND matchmark_project IN ($project) AND matchmark_task_outcome IN ('failed', 'escalated') ORDER BY _timestamp DESC LIMIT 50",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -3720,15 +3604,6 @@
           "label": "Outcome",
           "alias": "outcome",
           "column": "outcome",
-          "color": null,
-          "isDerived": false,
-          "havingConditions": [],
-          "treatAsNonTimestamp": true
-         },
-         {
-          "label": "Message",
-          "alias": "message",
-          "column": "message",
           "color": null,
           "isDerived": false,
           "havingConditions": [],
@@ -3855,7 +3730,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT _timestamp as \"time\", matchmark_app as \"app\", matchmark_project as \"project\", matchmark_task as \"task\", matchmark_attempt as \"attempt\", matchmark_attempt_outcome as \"outcome\", matchmark_attempt_limit as \"limit\", matchmark_attempt_restorations as \"restorations\", trace_id as \"trace_id\" FROM \"default\" WHERE operation_name = 'matchmark.attempt' AND matchmark_app IN ($app) AND matchmark_project IN ($project) AND matchmark_attempt_outcome <> 'finished' ORDER BY _timestamp DESC LIMIT 50",
+       "query": "SELECT _timestamp as \"time\", matchmark_app as \"app\", matchmark_project as \"project\", matchmark_task as \"task\", CAST(matchmark_attempt AS BIGINT) as \"attempt\", matchmark_attempt_outcome as \"outcome\", matchmark_attempt_restorations as \"restorations\", trace_id as \"trace_id\" FROM \"default\" WHERE operation_name = 'matchmark.attempt' AND matchmark_app IN ($app) AND matchmark_project IN ($project) AND matchmark_attempt_outcome <> 'finished' ORDER BY _timestamp DESC LIMIT 50",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -3911,15 +3786,6 @@
           "label": "Outcome",
           "alias": "outcome",
           "column": "outcome",
-          "color": null,
-          "isDerived": false,
-          "havingConditions": [],
-          "treatAsNonTimestamp": true
-         },
-         {
-          "label": "Limit",
-          "alias": "limit",
-          "column": "limit",
           "color": null,
           "isDerived": false,
           "havingConditions": [],
