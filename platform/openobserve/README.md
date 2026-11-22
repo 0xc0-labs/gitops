@@ -140,6 +140,66 @@ kubectl get --raw "/api/v1/nodes/$(kubectl -n openobserve get pod openobserve-0 
         | {usedBytes, capacityBytes, inodesUsed, inodes}'
 ```
 
+## Memory of a search
+
+OpenObserve was killed for memory (`OOMKilled`, limit 3Gi) on 2026-11-22 at
+13:59 UTC, after a burst of searches over the traces stream: a 30-day trace
+lookup, then the 36 queries of the Matchmark dashboard over 7 days, with the
+Traces page open (#572). The session that wrote this could not query the
+cluster, so what grew is read from v1.0.1's source, not measured:
+
+- `ZO_MEMORY_CACHE_DATAFUSION_MAX_SIZE` is not a shared cap. Every search
+  builds its own DataFusion runtime (`create_runtime_env`) with a memory pool
+  of that size, so searches add up: 256 MB each before this change.
+- Nothing in this edition limits how many searches run at once. Work groups
+  and the query queue are enterprise features, and `ZO_QUERY_THREAD_NUM` sets
+  the threads that read files, not the searches admitted. A dashboard tab
+  sends all its panels at once.
+- The pool bounds what DataFusion tracks, not what a query reads and decodes
+  around it, so a search can use more than its pool.
+- Three caches took a default share of the limit that the caps above do not
+  cover: the file statistics cache (5%, 153 MB; now 64), the inverted index
+  footer cache (5%, 153 MB) and the bloom footer cache (1%, 32 MB).
+
+The bounds, in MB, against the 3,072 MB limit:
+
+| | MB |
+|---|---|
+| Memtable (`ZO_MEM_TABLE_MAX_SIZE`) | 512 |
+| File cache (`ZO_MEMORY_CACHE_MAX_SIZE`) | 256 |
+| File statistics cache | 64 |
+| Footer caches, at their defaults | 185 |
+| The process itself, measured at 1.3 GiB with every target in | ~1,300 |
+| **Without searches** | **~2,300** |
+| Left for searches | ~750 |
+
+At 128 MB a pool, five or six heavy searches fit; before, two or three. That
+is a bound on a heavy search, not on the count: a dozen panels still ask for
+more than is left, and the pool of one that goes past its 128 MB makes that
+query fail instead of the process. The limit is the real fix, and 3Gi is no
+longer enough: a week of traces, Temporal's and Matchmark's data and the
+dashboards are past what the 2026-10-01 measure covered. Proposed: **4Gi**
+(`limits.memory`), which leaves about 1,750 MB for searches, thirteen pools.
+Whether the nodes have 1 GiB free for it was not checked from here; that is
+the operator's to say before the change. Not applied in this change, and
+the VM's memory is not part of it.
+
+`ZO_MEMORY_CIRCUIT_BREAKER_ENABLED` (reject past a ratio of the limit) exists
+and is documented in one line. It is not set: which requests it rejects, and
+whether ingestion is among them, is not in the source read here.
+
+Matchmark's dashboard opens on one day, not seven, so a tab asks for a seventh
+of the data. The traces stream also became lighter from 2026-11-22 (#561); a
+week of it is lighter from 2026-11-29.
+
+To check after the sync, without repeating the burst: in the `OpenObserve`
+dashboard, watch the container's working set and `zo_*` memory while one
+person opens the Matchmark dashboard over one day, then over 7 days, a tab at
+a time; the working set should stay under ~2,700 MB, and a panel that is too
+large should show an error, not a restart. `kubectl -n openobserve get pod
+openobserve-0 -o jsonpath='{.status.containerStatuses[0].lastState}'` shows
+whether a kill happened.
+
 ## A frozen stream
 
 When a log stream passes `ZO_SCHEMA_MAX_FIELDS_TO_ENABLE_UDS` fields (1000
