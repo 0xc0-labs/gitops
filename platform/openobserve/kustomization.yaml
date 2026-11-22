@@ -52,6 +52,7 @@ configMapGenerator:
       - dashboards/kubernetes-nodes-pressure.json
       - dashboards/kubernetes-nodes.json
       - dashboards/longhorn.json
+      - dashboards/matchmark.json
       - dashboards/openobserve.json
       - dashboards/traces-by-service.json
       - dashboards/traces-overall.json

@@ -62,6 +62,10 @@ folders are left alone, so the UI stays free for trying things.
   CrowdSec, etcd and OpenObserve itself. PromQL over what the collector
   scrapes; every query was checked against OpenObserve before it was
   committed.
+- **Matchmark**, written here as well, but SQL over the traces stream
+  `default`, not metrics: the spans of the factory worker (tasks, attempts,
+  waits, agent runs, model calls and tools), filtered by the `app` and
+  `project` variables.
 
 **Changing or adding one:** edit it in the UI in any folder but `0xc0`,
 export it (dashboard → settings → export JSON), save it here as
@@ -70,7 +74,7 @@ in `kustomization.yaml`, and open a PR. The title is its key: renaming it is a
 delete and a create.
 
 The ConfigMap holds every dashboard, and a ConfigMap's limit is 1 MiB: about
-700 KiB today, most of it the cluster overview. Past roughly 900 KiB, split
+775 KiB today, most of it the cluster overview. Past roughly 900 KiB, split
 the files into a second ConfigMap mounted next to the first.
 
 ## Retention and size

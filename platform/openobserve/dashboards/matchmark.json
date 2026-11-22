@@ -1,0 +1,4034 @@
+{
+ "version": 8,
+ "title": "Matchmark",
+ "description": "Matchmark's runs, from the traces stream: tasks and how they ended, where they waited, what the agents and models used, which tools failed, and the tasks that did not end well.",
+ "role": "",
+ "owner": "",
+ "tabs": [
+  {
+   "tabId": "tasks",
+   "name": "Tasks",
+   "panels": [
+    {
+     "id": "Panel_mm001",
+     "type": "stacked",
+     "title": "Tasks ended by outcome",
+     "description": "matchmark.task spans, by matchmark_task_outcome. A task's span is emitted when it ends: a task still running is not here.",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", matchmark_task_outcome as \"x_axis_2\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name = 'matchmark.task' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "X axis 1",
+          "alias": "x_axis_1",
+          "column": "_timestamp",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false,
+          "aggregationFunction": "histogram",
+          "sortBy": "ASC"
+         },
+         {
+          "label": "X axis 2",
+          "alias": "x_axis_2",
+          "column": "x_axis_2",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [
+         {
+          "label": "Y axis 1",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "color": "#5960b2",
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false
+         }
+        ],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 0,
+      "y": 0,
+      "w": 24,
+      "h": 9,
+      "i": 1
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm002",
+     "type": "donut",
+     "title": "Tasks by outcome, for the range",
+     "description": "The same, as totals.",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT matchmark_task_outcome as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name = 'matchmark.task' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1 ORDER BY y_axis_1 DESC",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "X axis 1",
+          "alias": "x_axis_1",
+          "column": "x_axis_1",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [
+         {
+          "label": "Y axis 1",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "color": "#5960b2",
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false
+         }
+        ],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 24,
+      "y": 0,
+      "w": 24,
+      "h": 9,
+      "i": 2
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm003",
+     "type": "line",
+     "title": "Task duration, p50 and p95",
+     "description": "From the task's start to its end.",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      },
+      "unit": "microseconds"
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", approx_percentile_cont(duration, 0.5) as p50, approx_percentile_cont(duration, 0.95) as p95 FROM \"default\" WHERE operation_name = 'matchmark.task' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1 ORDER BY x_axis_1",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "X axis 1",
+          "alias": "x_axis_1",
+          "column": "_timestamp",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false,
+          "aggregationFunction": "histogram",
+          "sortBy": "ASC"
+         }
+        ],
+        "y": [
+         {
+          "label": "P50",
+          "alias": "p50",
+          "column": "p50",
+          "color": "#5960b2",
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false
+         },
+         {
+          "label": "P95",
+          "alias": "p95",
+          "column": "p95",
+          "color": "#5960b2",
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false
+         }
+        ],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 0,
+      "y": 9,
+      "w": 24,
+      "h": 9,
+      "i": 3
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm004",
+     "type": "bar",
+     "title": "Attempts per task",
+     "description": "How many tasks needed 1, 2, 3 attempts (matchmark_task_attempts).",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT matchmark_task_attempts as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name = 'matchmark.task' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1 ORDER BY y_axis_1 DESC",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "X axis 1",
+          "alias": "x_axis_1",
+          "column": "x_axis_1",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [
+         {
+          "label": "Y axis 1",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "color": "#5960b2",
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false
+         }
+        ],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 24,
+      "y": 9,
+      "w": 12,
+      "h": 9,
+      "i": 4
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm005",
+     "type": "bar",
+     "title": "Restorations per task",
+     "description": "How many tasks were restored 0, 1, 2 times (matchmark_task_restorations).",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT matchmark_task_restorations as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name = 'matchmark.task' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1 ORDER BY y_axis_1 DESC",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "X axis 1",
+          "alias": "x_axis_1",
+          "column": "x_axis_1",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [
+         {
+          "label": "Y axis 1",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "color": "#5960b2",
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false
+         }
+        ],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 36,
+      "y": 9,
+      "w": 12,
+      "h": 9,
+      "i": 5
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm006",
+     "type": "stacked",
+     "title": "Attempts ended by outcome",
+     "description": "matchmark.attempt spans, by matchmark_attempt_outcome.",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", matchmark_attempt_outcome as \"x_axis_2\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name = 'matchmark.attempt' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "X axis 1",
+          "alias": "x_axis_1",
+          "column": "_timestamp",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false,
+          "aggregationFunction": "histogram",
+          "sortBy": "ASC"
+         },
+         {
+          "label": "X axis 2",
+          "alias": "x_axis_2",
+          "column": "x_axis_2",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [
+         {
+          "label": "Y axis 1",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "color": "#5960b2",
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false
+         }
+        ],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 0,
+      "y": 18,
+      "w": 24,
+      "h": 9,
+      "i": 6
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm007",
+     "type": "line",
+     "title": "Attempt duration, p50 and p95",
+     "description": "matchmark.attempt spans: from the attempt's start to its end, every sandbox of it included.",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      },
+      "unit": "microseconds"
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", approx_percentile_cont(duration, 0.5) as p50, approx_percentile_cont(duration, 0.95) as p95 FROM \"default\" WHERE operation_name = 'matchmark.attempt' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1 ORDER BY x_axis_1",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "X axis 1",
+          "alias": "x_axis_1",
+          "column": "_timestamp",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false,
+          "aggregationFunction": "histogram",
+          "sortBy": "ASC"
+         }
+        ],
+        "y": [
+         {
+          "label": "P50",
+          "alias": "p50",
+          "column": "p50",
+          "color": "#5960b2",
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false
+         },
+         {
+          "label": "P95",
+          "alias": "p95",
+          "column": "p95",
+          "color": "#5960b2",
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false
+         }
+        ],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 24,
+      "y": 18,
+      "w": 24,
+      "h": 9,
+      "i": 7
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm008",
+     "type": "table",
+     "title": "Agent run time by stage",
+     "description": "invoke_agent spans, which carry matchmark_stage; the matchmark.attempt span does not.",
+     "config": {
+      "show_legends": false,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT matchmark_stage as \"stage\", count(*) as \"runs\", round(approx_percentile_cont(duration, 0.5) / 1000000.0, 1) as \"p50_s\", round(approx_percentile_cont(duration, 0.95) / 1000000.0, 1) as \"p95_s\" FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY stage ORDER BY runs DESC",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "Stage",
+          "alias": "stage",
+          "column": "stage",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Runs",
+          "alias": "runs",
+          "column": "runs",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "P50 s",
+          "alias": "p50_s",
+          "column": "p50_s",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "P95 s",
+          "alias": "p95_s",
+          "column": "p95_s",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 0,
+      "y": 27,
+      "w": 48,
+      "h": 8,
+      "i": 8
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    }
+   ]
+  },
+  {
+   "tabId": "waits",
+   "name": "Waits",
+   "panels": [
+    {
+     "id": "Panel_mm009",
+     "type": "stacked",
+     "title": "Waits by stage",
+     "description": "matchmark.wait spans, by matchmark_wait_stage: sandbox_queue, ci, person.",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", matchmark_wait_stage as \"x_axis_2\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name = 'matchmark.wait' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "X axis 1",
+          "alias": "x_axis_1",
+          "column": "_timestamp",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false,
+          "aggregationFunction": "histogram",
+          "sortBy": "ASC"
+         },
+         {
+          "label": "X axis 2",
+          "alias": "x_axis_2",
+          "column": "x_axis_2",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [
+         {
+          "label": "Y axis 1",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "color": "#5960b2",
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false
+         }
+        ],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 0,
+      "y": 0,
+      "w": 16,
+      "h": 9,
+      "i": 9
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm010",
+     "type": "stacked",
+     "title": "Time waited, by stage",
+     "description": "The sum of the waits' duration in each interval.",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      },
+      "unit": "microseconds"
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", matchmark_wait_stage as \"x_axis_2\", sum(duration) as \"y_axis_1\" FROM \"default\" WHERE operation_name = 'matchmark.wait' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "X axis 1",
+          "alias": "x_axis_1",
+          "column": "_timestamp",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false,
+          "aggregationFunction": "histogram",
+          "sortBy": "ASC"
+         },
+         {
+          "label": "X axis 2",
+          "alias": "x_axis_2",
+          "column": "x_axis_2",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [
+         {
+          "label": "Y axis 1",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "color": "#5960b2",
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false
+         }
+        ],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 16,
+      "y": 0,
+      "w": 16,
+      "h": 9,
+      "i": 10
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm011",
+     "type": "table",
+     "title": "Waits, for the range",
+     "description": "Per stage: how many, total time and percentiles, in seconds.",
+     "config": {
+      "show_legends": false,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT matchmark_wait_stage as \"stage\", count(*) as \"waits\", round(sum(duration) / 1000000.0, 1) as \"total_s\", round(approx_percentile_cont(duration, 0.5) / 1000000.0, 1) as \"p50_s\", round(approx_percentile_cont(duration, 0.95) / 1000000.0, 1) as \"p95_s\" FROM \"default\" WHERE operation_name = 'matchmark.wait' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY stage ORDER BY total_s DESC",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "Stage",
+          "alias": "stage",
+          "column": "stage",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Waits",
+          "alias": "waits",
+          "column": "waits",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Total s",
+          "alias": "total_s",
+          "column": "total_s",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "P50 s",
+          "alias": "p50_s",
+          "column": "p50_s",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "P95 s",
+          "alias": "p95_s",
+          "column": "p95_s",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 32,
+      "y": 0,
+      "w": 16,
+      "h": 9,
+      "i": 11
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm012",
+     "type": "line",
+     "title": "Wait p50, by stage",
+     "description": "",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      },
+      "unit": "microseconds"
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", matchmark_wait_stage as \"x_axis_2\", approx_percentile_cont(duration, 0.5) as p50 FROM \"default\" WHERE operation_name = 'matchmark.wait' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "X axis 1",
+          "alias": "x_axis_1",
+          "column": "_timestamp",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false,
+          "aggregationFunction": "histogram",
+          "sortBy": "ASC"
+         },
+         {
+          "label": "X axis 2",
+          "alias": "x_axis_2",
+          "column": "x_axis_2",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [
+         {
+          "label": "P50",
+          "alias": "p50",
+          "column": "p50",
+          "color": "#5960b2",
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false
+         }
+        ],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 0,
+      "y": 9,
+      "w": 24,
+      "h": 9,
+      "i": 12
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm013",
+     "type": "line",
+     "title": "Wait p95, by stage",
+     "description": "",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      },
+      "unit": "microseconds"
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", matchmark_wait_stage as \"x_axis_2\", approx_percentile_cont(duration, 0.95) as p95 FROM \"default\" WHERE operation_name = 'matchmark.wait' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "X axis 1",
+          "alias": "x_axis_1",
+          "column": "_timestamp",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false,
+          "aggregationFunction": "histogram",
+          "sortBy": "ASC"
+         },
+         {
+          "label": "X axis 2",
+          "alias": "x_axis_2",
+          "column": "x_axis_2",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [
+         {
+          "label": "P95",
+          "alias": "p95",
+          "column": "p95",
+          "color": "#5960b2",
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false
+         }
+        ],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 24,
+      "y": 9,
+      "w": 24,
+      "h": 9,
+      "i": 13
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    }
+   ]
+  },
+  {
+   "tabId": "agents",
+   "name": "Agents and models",
+   "panels": [
+    {
+     "id": "Panel_mm014",
+     "type": "table",
+     "title": "Runs by agent",
+     "description": "invoke_agent spans, by matchmark_agent.",
+     "config": {
+      "show_legends": false,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT matchmark_agent as \"agent\", count(*) as \"runs\", sum(CASE WHEN span_status = 'ERROR' THEN 1 ELSE 0 END) as \"errors\" FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY agent ORDER BY runs DESC",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "Agent",
+          "alias": "agent",
+          "column": "agent",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Runs",
+          "alias": "runs",
+          "column": "runs",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Errors",
+          "alias": "errors",
+          "column": "errors",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 0,
+      "y": 0,
+      "w": 24,
+      "h": 8,
+      "i": 14
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm015",
+     "type": "table",
+     "title": "Runs by model",
+     "description": "invoke_agent spans, by gen_ai_request_model: the model the task asks for.",
+     "config": {
+      "show_legends": false,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT gen_ai_request_model as \"model\", count(*) as \"runs\", sum(CASE WHEN span_status = 'ERROR' THEN 1 ELSE 0 END) as \"errors\" FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY model ORDER BY runs DESC",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "Model",
+          "alias": "model",
+          "column": "model",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Runs",
+          "alias": "runs",
+          "column": "runs",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Errors",
+          "alias": "errors",
+          "column": "errors",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 24,
+      "y": 0,
+      "w": 24,
+      "h": 8,
+      "i": 15
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm016",
+     "type": "stacked",
+     "title": "Runs by agent",
+     "description": "invoke_agent spans over time.",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", matchmark_agent as \"x_axis_2\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "X axis 1",
+          "alias": "x_axis_1",
+          "column": "_timestamp",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false,
+          "aggregationFunction": "histogram",
+          "sortBy": "ASC"
+         },
+         {
+          "label": "X axis 2",
+          "alias": "x_axis_2",
+          "column": "x_axis_2",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [
+         {
+          "label": "Y axis 1",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "color": "#5960b2",
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false
+         }
+        ],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 0,
+      "y": 8,
+      "w": 24,
+      "h": 9,
+      "i": 16
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm017",
+     "type": "stacked",
+     "title": "Runs in error, by agent",
+     "description": "invoke_agent spans with span_status ERROR.",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", matchmark_agent as \"x_axis_2\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project) AND span_status = 'ERROR' GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "X axis 1",
+          "alias": "x_axis_1",
+          "column": "_timestamp",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false,
+          "aggregationFunction": "histogram",
+          "sortBy": "ASC"
+         },
+         {
+          "label": "X axis 2",
+          "alias": "x_axis_2",
+          "column": "x_axis_2",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [
+         {
+          "label": "Y axis 1",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "color": "#5960b2",
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false
+         }
+        ],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 24,
+      "y": 8,
+      "w": 24,
+      "h": 9,
+      "i": 17
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm018",
+     "type": "stacked",
+     "title": "Model calls, by model",
+     "description": "chat spans.",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", gen_ai_request_model as \"x_axis_2\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "X axis 1",
+          "alias": "x_axis_1",
+          "column": "_timestamp",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false,
+          "aggregationFunction": "histogram",
+          "sortBy": "ASC"
+         },
+         {
+          "label": "X axis 2",
+          "alias": "x_axis_2",
+          "column": "x_axis_2",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [
+         {
+          "label": "Y axis 1",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "color": "#5960b2",
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false
+         }
+        ],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 0,
+      "y": 17,
+      "w": 24,
+      "h": 9,
+      "i": 18
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm019",
+     "type": "donut",
+     "title": "Calls by finish reason",
+     "description": "chat spans, by gen_ai_response_finish_reasons.",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT gen_ai_response_finish_reasons as \"x_axis_1\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY x_axis_1 ORDER BY y_axis_1 DESC",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "X axis 1",
+          "alias": "x_axis_1",
+          "column": "x_axis_1",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [
+         {
+          "label": "Y axis 1",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "color": "#5960b2",
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false
+         }
+        ],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 24,
+      "y": 17,
+      "w": 24,
+      "h": 9,
+      "i": 19
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm020",
+     "type": "stacked",
+     "title": "Input tokens, by model",
+     "description": "sum of gen_ai_usage_input_tokens on chat spans.",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", gen_ai_request_model as \"x_axis_2\", sum(gen_ai_usage_input_tokens) as \"y_axis_1\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "X axis 1",
+          "alias": "x_axis_1",
+          "column": "_timestamp",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false,
+          "aggregationFunction": "histogram",
+          "sortBy": "ASC"
+         },
+         {
+          "label": "X axis 2",
+          "alias": "x_axis_2",
+          "column": "x_axis_2",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [
+         {
+          "label": "Y axis 1",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "color": "#5960b2",
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false
+         }
+        ],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 0,
+      "y": 26,
+      "w": 24,
+      "h": 9,
+      "i": 20
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm021",
+     "type": "stacked",
+     "title": "Output tokens, by model",
+     "description": "sum of gen_ai_usage_output_tokens on chat spans.",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", gen_ai_request_model as \"x_axis_2\", sum(gen_ai_usage_output_tokens) as \"y_axis_1\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "X axis 1",
+          "alias": "x_axis_1",
+          "column": "_timestamp",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false,
+          "aggregationFunction": "histogram",
+          "sortBy": "ASC"
+         },
+         {
+          "label": "X axis 2",
+          "alias": "x_axis_2",
+          "column": "x_axis_2",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [
+         {
+          "label": "Y axis 1",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "color": "#5960b2",
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false
+         }
+        ],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 24,
+      "y": 26,
+      "w": 24,
+      "h": 9,
+      "i": 21
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm022",
+     "type": "table",
+     "title": "Tokens by model, for the range",
+     "description": "chat spans: calls, and input and output tokens.",
+     "config": {
+      "show_legends": false,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT gen_ai_request_model as \"model\", count(*) as \"calls\", sum(gen_ai_usage_input_tokens) as \"input_tokens\", sum(gen_ai_usage_output_tokens) as \"output_tokens\" FROM \"default\" WHERE operation_name LIKE 'chat%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY model ORDER BY output_tokens DESC",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "Model",
+          "alias": "model",
+          "column": "model",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Calls",
+          "alias": "calls",
+          "column": "calls",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Input tokens",
+          "alias": "input_tokens",
+          "column": "input_tokens",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Output tokens",
+          "alias": "output_tokens",
+          "column": "output_tokens",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 0,
+      "y": 35,
+      "w": 48,
+      "h": 8,
+      "i": 22
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    }
+   ]
+  },
+  {
+   "tabId": "tools",
+   "name": "Tools",
+   "panels": [
+    {
+     "id": "Panel_mm023",
+     "type": "table",
+     "title": "Calls by tool, for the range",
+     "description": "execute_tool spans: calls, failed (span_status ERROR), refused, and the p95 duration in seconds.",
+     "config": {
+      "show_legends": false,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT gen_ai_tool_name as \"tool\", count(*) as \"calls\", sum(CASE WHEN span_status = 'ERROR' THEN 1 ELSE 0 END) as \"failed\", sum(CASE WHEN CAST(matchmark_tool_refused AS VARCHAR) = 'true' THEN 1 ELSE 0 END) as \"refused\", round(approx_percentile_cont(duration, 0.95) / 1000000.0, 1) as \"p95_s\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY tool ORDER BY calls DESC",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "Tool",
+          "alias": "tool",
+          "column": "tool",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Calls",
+          "alias": "calls",
+          "column": "calls",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Failed",
+          "alias": "failed",
+          "column": "failed",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Refused",
+          "alias": "refused",
+          "column": "refused",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "P95 s",
+          "alias": "p95_s",
+          "column": "p95_s",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 0,
+      "y": 0,
+      "w": 48,
+      "h": 10,
+      "i": 23
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm024",
+     "type": "stacked",
+     "title": "Calls, by tool",
+     "description": "execute_tool spans over time.",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", gen_ai_tool_name as \"x_axis_2\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "X axis 1",
+          "alias": "x_axis_1",
+          "column": "_timestamp",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false,
+          "aggregationFunction": "histogram",
+          "sortBy": "ASC"
+         },
+         {
+          "label": "X axis 2",
+          "alias": "x_axis_2",
+          "column": "x_axis_2",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [
+         {
+          "label": "Y axis 1",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "color": "#5960b2",
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false
+         }
+        ],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 0,
+      "y": 10,
+      "w": 16,
+      "h": 9,
+      "i": 24
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm025",
+     "type": "stacked",
+     "title": "Failed calls, by tool",
+     "description": "span_status ERROR.",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", gen_ai_tool_name as \"x_axis_2\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) AND span_status = 'ERROR' GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "X axis 1",
+          "alias": "x_axis_1",
+          "column": "_timestamp",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false,
+          "aggregationFunction": "histogram",
+          "sortBy": "ASC"
+         },
+         {
+          "label": "X axis 2",
+          "alias": "x_axis_2",
+          "column": "x_axis_2",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [
+         {
+          "label": "Y axis 1",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "color": "#5960b2",
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false
+         }
+        ],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 16,
+      "y": 10,
+      "w": 16,
+      "h": 9,
+      "i": 25
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm026",
+     "type": "stacked",
+     "title": "Refused calls, by tool",
+     "description": "matchmark_tool_refused.",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", gen_ai_tool_name as \"x_axis_2\", count(*) as \"y_axis_1\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) AND CAST(matchmark_tool_refused AS VARCHAR) = 'true' GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "X axis 1",
+          "alias": "x_axis_1",
+          "column": "_timestamp",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false,
+          "aggregationFunction": "histogram",
+          "sortBy": "ASC"
+         },
+         {
+          "label": "X axis 2",
+          "alias": "x_axis_2",
+          "column": "x_axis_2",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [
+         {
+          "label": "Y axis 1",
+          "alias": "y_axis_1",
+          "column": "y_axis_1",
+          "color": "#5960b2",
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false
+         }
+        ],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 32,
+      "y": 10,
+      "w": 16,
+      "h": 9,
+      "i": 26
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm027",
+     "type": "line",
+     "title": "Tool duration p95, by tool",
+     "description": "",
+     "config": {
+      "show_legends": true,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      },
+      "unit": "microseconds"
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT histogram(_timestamp) as \"x_axis_1\", gen_ai_tool_name as \"x_axis_2\", approx_percentile_cont(duration, 0.95) as p95 FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "X axis 1",
+          "alias": "x_axis_1",
+          "column": "_timestamp",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false,
+          "aggregationFunction": "histogram",
+          "sortBy": "ASC"
+         },
+         {
+          "label": "X axis 2",
+          "alias": "x_axis_2",
+          "column": "x_axis_2",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [
+         {
+          "label": "P95",
+          "alias": "p95",
+          "column": "p95",
+          "color": "#5960b2",
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": false
+         }
+        ],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 0,
+      "y": 19,
+      "w": 24,
+      "h": 9,
+      "i": 27
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm028",
+     "type": "table",
+     "title": "Tools with the most failures and refusals",
+     "description": "Failed plus refused, most first; a tool with none is not listed.",
+     "config": {
+      "show_legends": false,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT gen_ai_tool_name as \"tool\", sum(CASE WHEN span_status = 'ERROR' THEN 1 ELSE 0 END) as \"failed\", sum(CASE WHEN CAST(matchmark_tool_refused AS VARCHAR) = 'true' THEN 1 ELSE 0 END) as \"refused\", count(*) as \"calls\" FROM \"default\" WHERE operation_name LIKE 'execute_tool%' AND trace_id IN (SELECT trace_id FROM \"default\" WHERE operation_name LIKE 'invoke_agent%' AND matchmark_app IN ($app) AND matchmark_project IN ($project)) AND (span_status = 'ERROR' OR CAST(matchmark_tool_refused AS VARCHAR) = 'true') GROUP BY tool ORDER BY failed + refused DESC LIMIT 20",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "Tool",
+          "alias": "tool",
+          "column": "tool",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Failed",
+          "alias": "failed",
+          "column": "failed",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Refused",
+          "alias": "refused",
+          "column": "refused",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Calls",
+          "alias": "calls",
+          "column": "calls",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 24,
+      "y": 19,
+      "w": 24,
+      "h": 9,
+      "i": 28
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    }
+   ]
+  },
+  {
+   "tabId": "failures",
+   "name": "Failures",
+   "panels": [
+    {
+     "id": "Panel_mm029",
+     "type": "table",
+     "title": "Latest tasks that failed or escalated",
+     "description": "Newest first. The trace_id opens the trace.",
+     "config": {
+      "show_legends": false,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [
+       {
+        "name": "trace",
+        "type": "byUrl",
+        "targetBlank": true,
+        "findBy": "name",
+        "data": {
+         "url": "/web/traces/trace-details?stream=default&trace_id=${row.field[\"trace_id\"]}&org_identifier=default",
+         "folder": "",
+         "dashboard": "",
+         "tab": "",
+         "passAllVariables": false,
+         "variables": [
+          {
+           "name": "",
+           "value": ""
+          }
+         ],
+         "logsMode": "auto",
+         "logsQuery": ""
+        }
+       }
+      ],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT _timestamp as \"time\", matchmark_app as \"app\", matchmark_project as \"project\", matchmark_task as \"task\", matchmark_task_outcome as \"outcome\", matchmark_task_message as \"message\", trace_id as \"trace_id\" FROM \"default\" WHERE operation_name = 'matchmark.task' AND matchmark_app IN ($app) AND matchmark_project IN ($project) AND matchmark_task_outcome IN ('failed', 'escalated') ORDER BY _timestamp DESC LIMIT 50",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "Time",
+          "alias": "time",
+          "column": "time",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "App",
+          "alias": "app",
+          "column": "app",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Project",
+          "alias": "project",
+          "column": "project",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Task",
+          "alias": "task",
+          "column": "task",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Outcome",
+          "alias": "outcome",
+          "column": "outcome",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Message",
+          "alias": "message",
+          "column": "message",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Trace id",
+          "alias": "trace_id",
+          "column": "trace_id",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 0,
+      "y": 0,
+      "w": 48,
+      "h": 12,
+      "i": 29
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    },
+    {
+     "id": "Panel_mm030",
+     "type": "table",
+     "title": "Latest attempts that did not finish",
+     "description": "matchmark.attempt spans whose outcome is not finished, newest first.",
+     "config": {
+      "show_legends": false,
+      "legends_position": null,
+      "decimals": 2,
+      "line_thickness": 1.5,
+      "step_value": "0",
+      "top_results_others": false,
+      "axis_border_show": false,
+      "label_option": {
+       "rotate": 0
+      },
+      "show_symbol": false,
+      "line_interpolation": "smooth",
+      "legend_width": {
+       "unit": "px"
+      },
+      "base_map": {
+       "type": "osm"
+      },
+      "map_type": {
+       "type": "world"
+      },
+      "map_view": {
+       "zoom": 1,
+       "lat": 0,
+       "lng": 0
+      },
+      "drilldown": [
+       {
+        "name": "trace",
+        "type": "byUrl",
+        "targetBlank": true,
+        "findBy": "name",
+        "data": {
+         "url": "/web/traces/trace-details?stream=default&trace_id=${row.field[\"trace_id\"]}&org_identifier=default",
+         "folder": "",
+         "dashboard": "",
+         "tab": "",
+         "passAllVariables": false,
+         "variables": [
+          {
+           "name": "",
+           "value": ""
+          }
+         ],
+         "logsMode": "auto",
+         "logsQuery": ""
+        }
+       }
+      ],
+      "mark_line": [],
+      "override_config": [],
+      "connect_nulls": false,
+      "no_value_replacement": "",
+      "wrap_table_cells": false,
+      "table_transpose": false,
+      "table_dynamic_columns": false,
+      "mappings": [],
+      "color": {
+       "mode": "palette-classic-by-series",
+       "fixedColor": [
+        "#53ca53"
+       ],
+       "seriesBy": "last",
+       "colorBySeries": []
+      },
+      "trellis": {
+       "layout": null,
+       "num_of_columns": 1,
+       "group_by_y_axis": false
+      }
+     },
+     "queryType": "sql",
+     "queries": [
+      {
+       "query": "SELECT _timestamp as \"time\", matchmark_app as \"app\", matchmark_project as \"project\", matchmark_task as \"task\", matchmark_attempt as \"attempt\", matchmark_attempt_outcome as \"outcome\", matchmark_attempt_limit as \"limit\", matchmark_attempt_restorations as \"restorations\", trace_id as \"trace_id\" FROM \"default\" WHERE operation_name = 'matchmark.attempt' AND matchmark_app IN ($app) AND matchmark_project IN ($project) AND matchmark_attempt_outcome <> 'finished' ORDER BY _timestamp DESC LIMIT 50",
+       "vrlFunctionQuery": "",
+       "customQuery": true,
+       "fields": {
+        "stream": "default",
+        "stream_type": "traces",
+        "x": [
+         {
+          "label": "Time",
+          "alias": "time",
+          "column": "time",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "App",
+          "alias": "app",
+          "column": "app",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Project",
+          "alias": "project",
+          "column": "project",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Task",
+          "alias": "task",
+          "column": "task",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Attempt",
+          "alias": "attempt",
+          "column": "attempt",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Outcome",
+          "alias": "outcome",
+          "column": "outcome",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Limit",
+          "alias": "limit",
+          "column": "limit",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Restorations",
+          "alias": "restorations",
+          "column": "restorations",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         },
+         {
+          "label": "Trace id",
+          "alias": "trace_id",
+          "column": "trace_id",
+          "color": null,
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true
+         }
+        ],
+        "y": [],
+        "z": [],
+        "breakdown": [],
+        "filter": {
+         "filterType": "group",
+         "logicalOperator": "AND",
+         "conditions": []
+        }
+       },
+       "config": {
+        "promql_legend": "",
+        "layer_type": "scatter",
+        "weight_fixed": 1,
+        "limit": 0,
+        "min": 0,
+        "max": 100,
+        "time_shift": []
+       }
+      }
+     ],
+     "layout": {
+      "x": 0,
+      "y": 12,
+      "w": 48,
+      "h": 12,
+      "i": 30
+     },
+     "htmlContent": "",
+     "markdownContent": "",
+     "customChartContent": ""
+    }
+   ]
+  }
+ ],
+ "variables": {
+  "list": [
+   {
+    "type": "query_values",
+    "name": "app",
+    "label": "App",
+    "query_data": {
+     "stream_type": "traces",
+     "stream": "default",
+     "field": "matchmark_app",
+     "max_record_size": 100,
+     "filter": []
+    },
+    "value": "",
+    "options": [],
+    "multiSelect": true,
+    "hideOnDashboard": false,
+    "selectAllValueForMultiSelect": "all",
+    "customMultiSelectValue": [],
+    "escapeSingleQuotes": false,
+    "scope": "global",
+    "tabs": [],
+    "panels": []
+   },
+   {
+    "type": "query_values",
+    "name": "project",
+    "label": "Project",
+    "query_data": {
+     "stream_type": "traces",
+     "stream": "default",
+     "field": "matchmark_project",
+     "max_record_size": 100,
+     "filter": []
+    },
+    "value": "",
+    "options": [],
+    "multiSelect": true,
+    "hideOnDashboard": false,
+    "selectAllValueForMultiSelect": "all",
+    "customMultiSelectValue": [],
+    "escapeSingleQuotes": false,
+    "scope": "global",
+    "tabs": [],
+    "panels": []
+   }
+  ],
+  "showDynamicFilters": true
+ },
+ "defaultDatetimeDuration": {
+  "type": "relative",
+  "relativeTimePeriod": "7d"
+ }
+}
