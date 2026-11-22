@@ -86,12 +86,10 @@ server:
             maxConns: 4
             maxIdleConns: 4
             maxConnLifetime: 1h
+    # `namespaces.yaml` creates and updates them instead: the chart's Job
+    # never updates one.
     namespaces:
-      create: true
-      useHelmHooks: false
-      namespace:
-        - name: factory
-          retention: 7d
+      create: false
   frontend:
     containerSecurityContext: *containerSecurity
     resources:

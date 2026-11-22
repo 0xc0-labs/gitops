@@ -18,6 +18,7 @@ resources:
   - vault-secrets.yaml
   - ui-route.yaml
   - network-policy.yaml
+  - namespaces.yaml
 images:
   - name: temporalio/server
     newTag: 1.32.2
