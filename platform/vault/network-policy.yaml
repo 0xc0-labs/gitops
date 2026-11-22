@@ -63,6 +63,14 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/name: matchmark-api
+        # The runners' registrar signs the runner App's JWT in Transit
+        # (platform/actions-runners).
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: actions-runner-controller
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: actions-runner-registrar
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: vault

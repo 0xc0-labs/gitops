@@ -1,0 +1,17 @@
+# Two runner pods at most: the running one and its replacement while the
+# registrar clears a finished one (README.md, The runner pod). The memory
+# limit equals the sandboxes' quota (apps/matchmark-sandboxes).
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: runners
+  namespace: actions-runners
+spec:
+  hard:
+    pods: "2"
+    requests.cpu: "2"
+    requests.memory: 4Gi
+    limits.cpu: "8"
+    limits.memory: 8Gi
+    requests.ephemeral-storage: 4Gi
+    limits.ephemeral-storage: 20Gi

@@ -1,0 +1,18 @@
+# No pruning: deleting a namespace deletes everything in it.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: actions-runner-controller
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: actions-runners
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
