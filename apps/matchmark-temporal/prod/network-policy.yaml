@@ -43,8 +43,8 @@ spec:
             matchExpressions: *server
       ports: *internode
 ---
-# The frontend's gRPC port: the UI, the Job that creates the Temporal
-# namespace, and the API and the factory worker of `apps/matchmark/prod/`
+# The frontend's gRPC port: the UI, the Job that creates and updates the
+# Temporal namespaces, and the API and the factory worker of `apps/matchmark/prod/`
 # (their egress is in `apps/matchmark/prod/network-policy-worker.yaml`). The
 # UI's Service port 8080 and the frontend's 7233 are the pods'.
 apiVersion: networking.k8s.io/v1

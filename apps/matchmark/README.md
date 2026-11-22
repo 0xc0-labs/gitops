@@ -386,7 +386,8 @@ UI 2.56.4) from `https://go.temporal.io/helm-charts`, in the namespace
 `matchmark`. Four
 server Deployments (`temporal-frontend`, `-history`, `-matching`, `-worker`),
 the UI (`temporal-web`), and two Jobs: the schema and the creation of the
-Temporal namespace `factory` (retention 7 days). The stores are two
+Temporal namespaces (`factory`, 30 days, and `platform`, 1 day:
+[`matchmark-temporal`](../matchmark-temporal/README.md#namespaces)). The stores are two
 databases on the shared PostgreSQL, `matchmark-temporal` and
 `matchmark-temporal-visibility`, with a role each (`platform/postgres`);
 their passwords come from Vault (`matchmark/temporal-database`,
@@ -412,7 +413,10 @@ are false, so both Jobs are plain Jobs named after the chart's version
 (`temporal-schema-1-8-0-1`): a chart bump makes new ones. Never a
 sync-wave in `schema.jobAnnotations`: the namespace Job takes the same
 annotations and needs the frontend up. `skipTests` drops the test Pod, never
-`skipHooks`.
+`skipHooks`. The one hook is `temporal-namespaces`
+(`apps/matchmark-temporal/prod/namespaces.yaml`), in PostSync: it runs
+after the Application is healthy, so the frontend and the Secrets exist, and
+the chart's namespace Job is off.
 
 **Pools.** The chart leaves a pool without an upper bound, and Temporal's
 sample (20, four services, two stores) reaches 160 connections; the shared
@@ -448,8 +452,8 @@ request.
 the server's and the admin tools' together, and they must match. The new
 schema Job runs beside the new pods, which fail their schema-version check
 and restart until it is done. A schema only moves forward; a binary can be
-rolled back. Changing the retention of `factory` later is
-`temporal operator namespace update`: the Job never updates one.
+rolled back. Changing the retention of a namespace is a line in
+`apps/matchmark-temporal/prod/namespaces.yaml`: the next sync updates it.
 
 ## The factory worker
 
@@ -801,7 +805,7 @@ kubectl -n matchmark logs deploy/intake-api | grep -i connector               # 
 ```sh
 kubectl -n matchmark get jobs -l app.kubernetes.io/name=temporal   # both Complete
 kubectl -n matchmark get deploy -l app.kubernetes.io/name=temporal # five available
-curl https://temporal.matchmark.int.0xc0.cc/api/v1/namespaces      # over WARP: lists factory
+curl https://temporal.matchmark.int.0xc0.cc/api/v1/namespaces      # over WARP: lists factory and platform
 kubectl -n matchmark get pods                 # controller and proxy Running
 kubectl get gatewayclass agentgateway         # Accepted
 kubectl -n matchmark get gateway gateway      # Programmed
