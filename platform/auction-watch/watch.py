@@ -312,6 +312,8 @@ class Record:
         """What a feed read shows: new offers, price changes, offers gone."""
         stamp = iso(now)
         with self.db:
+            # Every offer is gone unless this read shows it: the upserts bring back the rest.
+            self.db.execute("UPDATE offers SET gone=1 WHERE gone=0")
             for o in offers:
                 self.db.execute(
                     "INSERT INTO offers (id, kind, ecc, specials, first_seen, last_seen, first_price, min_price, last_price, offer)"
@@ -320,8 +322,6 @@ class Record:
                     " min_price=min(min_price, excluded.min_price), gone=0",
                     (o["id"], kind_of(o), int(o["ecc"]), json.dumps(o["specials"]), stamp, stamp,
                      o["price"], o["price"], o["price"], json.dumps(o.get("raw"), separators=(",", ":"))))
-            ids = [o["id"] for o in offers]
-            self.db.execute(f"UPDATE offers SET gone=1 WHERE gone=0 AND id NOT IN ({','.join('?' * len(ids))})", ids)
             self.db.execute("DELETE FROM offers WHERE gone=1 AND last_seen<?", (iso(now - RETENTION_DAYS * 86400),))
 
     def touch(self, now):
