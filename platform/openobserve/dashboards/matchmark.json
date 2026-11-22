@@ -5808,7 +5808,7 @@
      "id": "Panel_mm029",
      "type": "table",
      "title": "Latest tasks that failed or escalated",
-     "description": "Newest first. The trace_id opens the trace. The task message joins once a span carries it.",
+     "description": "Newest first. The trace_id opens the trace. The task message joins once a span carries it. The last two columns are the time range the trace page needs to find it.",
      "config": {
       "show_legends": false,
       "legends_position": null,
@@ -5843,7 +5843,7 @@
         "targetBlank": true,
         "findBy": "name",
         "data": {
-         "url": "/web/traces/trace-details?stream=default&trace_id=${row.field[\"trace_id\"]}&org_identifier=default",
+         "url": "/web/traces/trace-details?stream=default&trace_id=${row.field[\"trace_id\"]}&from=${row.field[\"trace_from\"]}&to=${row.field[\"trace_to\"]}&org_identifier=default",
          "folder": "",
          "dashboard": "",
          "tab": "",
@@ -5885,7 +5885,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT _timestamp as \"time\", matchmark_app as \"app\", matchmark_project as \"project\", matchmark_task as \"task\", matchmark_task_outcome as \"outcome\", trace_id as \"trace_id\" FROM \"default\" WHERE operation_name = 'matchmark.task' AND matchmark_app IN ($app) AND matchmark_project IN ($project) AND matchmark_task_outcome IN ('failed', 'escalated') ORDER BY _timestamp DESC LIMIT 50",
+       "query": "SELECT _timestamp as \"time\", matchmark_app as \"app\", matchmark_project as \"project\", matchmark_task as \"task\", matchmark_task_outcome as \"outcome\", trace_id as \"trace_id\", _timestamp - 3600000000 as \"trace_from\", _timestamp + 86400000000 as \"trace_to\" FROM \"default\" WHERE operation_name = 'matchmark.task' AND matchmark_app IN ($app) AND matchmark_project IN ($project) AND matchmark_task_outcome IN ('failed', 'escalated') ORDER BY _timestamp DESC LIMIT 50",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -6011,6 +6011,46 @@
           "havingConditions": [],
           "treatAsNonTimestamp": true,
           "showFieldAsJson": false
+         },
+         {
+          "label": "Trace range from (µs, an hour before)",
+          "alias": "trace_from",
+          "column": "trace_from",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "trace_from",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
+         },
+         {
+          "label": "Trace range to (µs, a day after)",
+          "alias": "trace_to",
+          "column": "trace_to",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "trace_to",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
          }
         ],
         "y": [],
@@ -6048,7 +6088,7 @@
      "id": "Panel_mm030",
      "type": "table",
      "title": "Latest attempts that did not finish",
-     "description": "matchmark.attempt spans whose outcome is not finished, newest first.",
+     "description": "matchmark.attempt spans whose outcome is not finished, newest first. The last two columns are the time range the trace page needs to find it.",
      "config": {
       "show_legends": false,
       "legends_position": null,
@@ -6083,7 +6123,7 @@
         "targetBlank": true,
         "findBy": "name",
         "data": {
-         "url": "/web/traces/trace-details?stream=default&trace_id=${row.field[\"trace_id\"]}&org_identifier=default",
+         "url": "/web/traces/trace-details?stream=default&trace_id=${row.field[\"trace_id\"]}&from=${row.field[\"trace_from\"]}&to=${row.field[\"trace_to\"]}&org_identifier=default",
          "folder": "",
          "dashboard": "",
          "tab": "",
@@ -6125,7 +6165,7 @@
      "queryType": "sql",
      "queries": [
       {
-       "query": "SELECT _timestamp as \"time\", matchmark_app as \"app\", matchmark_project as \"project\", matchmark_task as \"task\", CAST(matchmark_attempt AS BIGINT) as \"attempt\", matchmark_attempt_outcome as \"outcome\", matchmark_attempt_restorations as \"restorations\", trace_id as \"trace_id\" FROM \"default\" WHERE operation_name = 'matchmark.attempt' AND matchmark_app IN ($app) AND matchmark_project IN ($project) AND matchmark_attempt_outcome <> 'finished' ORDER BY _timestamp DESC LIMIT 50",
+       "query": "SELECT _timestamp as \"time\", matchmark_app as \"app\", matchmark_project as \"project\", matchmark_task as \"task\", CAST(matchmark_attempt AS BIGINT) as \"attempt\", matchmark_attempt_outcome as \"outcome\", matchmark_attempt_restorations as \"restorations\", trace_id as \"trace_id\", _timestamp - 3600000000 as \"trace_from\", _timestamp + 86400000000 as \"trace_to\" FROM \"default\" WHERE operation_name = 'matchmark.attempt' AND matchmark_app IN ($app) AND matchmark_project IN ($project) AND matchmark_attempt_outcome <> 'finished' ORDER BY _timestamp DESC LIMIT 50",
        "vrlFunctionQuery": "",
        "customQuery": true,
        "fields": {
@@ -6283,6 +6323,46 @@
             "type": "field",
             "value": {
              "field": "trace_id",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
+         },
+         {
+          "label": "Trace range from (µs, an hour before)",
+          "alias": "trace_from",
+          "column": "trace_from",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "trace_from",
+             "streamAlias": null
+            }
+           }
+          ],
+          "isDerived": false,
+          "havingConditions": [],
+          "treatAsNonTimestamp": true,
+          "showFieldAsJson": false
+         },
+         {
+          "label": "Trace range to (µs, a day after)",
+          "alias": "trace_to",
+          "column": "trace_to",
+          "type": "build",
+          "color": null,
+          "args": [
+           {
+            "type": "field",
+            "value": {
+             "field": "trace_to",
              "streamAlias": null
             }
            }
