@@ -20,6 +20,7 @@ resources:
   - vault-secrets.yaml
   - ui.yaml
   - recurring-jobs.yaml
+  - trim-openobserve.yaml
 patches:
   # Argo CD would run this pre-delete hook, uninstalling Longhorn, whenever
   # the Application is deleted.

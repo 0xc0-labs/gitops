@@ -5,44 +5,77 @@ Block storage for the cluster's volumes, three replicas each, on the data disks
 
 ## Recurring trims
 
-`recurring-jobs.yaml` holds two `filesystem-trim` jobs. A trim hands a
-volume's freed blocks back to Longhorn; without it a replica holds every block
-ever written.
+A trim hands a volume's freed blocks back to Longhorn; without it a replica
+holds every block ever written.
 
-| Job | Group | Runs | Volumes |
+| Job | Kind | Runs | Volumes |
 |---|---|---|---|
-| `filesystem-trim` | `default` | every six hours, at :17 | every volume with no recurring job of its own |
-| `filesystem-trim-openobserve` | `openobserve` | every hour, at :47 | OpenObserve's |
+| `filesystem-trim` (`recurring-jobs.yaml`) | Longhorn `RecurringJob`, group `default` | every six hours, at :17 | every volume with no recurring job of its own |
+| `filesystem-trim-openobserve` (`trim-openobserve.yaml`) | `CronJob` | every hour, at :47 | OpenObserve's |
 
-### A trim that times out
+### A trim that outlasts the recurring job
 
-Seen on 2026-11-21 (#521): `FailedFilesystemTrim` on OpenObserve's volume,
-`Post "http://longhorn-backend:9500/v1/volumes/<pv>?action=trimFilesystem":
-context deadline exceeded (Client.Timeout exceeded while awaiting headers)`,
-and, on one run, the whole job timed out.
+Seen on 2026-11-21 (#521) and again on 2026-11-22 (#575):
+`FailedFilesystemTrim` on OpenObserve's volume, `Post
+"http://longhorn-backend:9500/v1/volumes/<pv>?action=trimFilesystem": context
+deadline exceeded (Client.Timeout exceeded while awaiting headers)`. Every
+other volume trims in about five seconds; OpenObserve's (50 GiB, written all
+day) takes longer than a minute even when trimmed hourly (#522).
 
-The recurring job calls that endpoint with a client that waits one minute, and
-the wait is not configurable ([longhorn/longhorn#6868][l-6868]; the same
-error is open again in [#14526][l-14526]). The trim itself goes on in the node, where
-Longhorn lets `fstrim` run for an hour (longhorn-manager#2982), so a retry
-finds it done or shorter.
-OpenObserve writes all the time and its volume held about 34 GB: six hours of
-freed blocks took longer than the minute. Every other volume trims in about
-five seconds. The job also runs one volume at a time, so the slow one most likely
-holds the run's pod past its deadline (the 00:17 run, whose pod is gone, could
-not be read).
+What Longhorn 1.13.0 does, from its source (`longhorn-manager` v1.13.0):
 
-The fix is not a longer wait, which Longhorn does not offer, but a smaller
-trim: OpenObserve's volume has a job of its own, every hour, at an hour away
-from the others.
+- **The wait is fixed.** The recurring job's API client is built with
+  `HTTPClientTimout = 1 * time.Minute`, a constant in
+  [`app/recurringjob/constant.go`][l-const]; no setting, `RecurringJob` field
+  or environment variable changes it ([longhorn/longhorn#6868][l-6868], open
+  again in [#14526][l-14526]).
+- **The trim goes on after the client gives up.** The manager's `trimFilesystem`
+  handler runs `fstrim` on the volume's node with a one-hour limit, and takes
+  no request context ([`util.TrimFilesystem`][l-util]); the manager serves with
+  `http.ListenAndServe` and a proxy with no timeout of their own, so a client
+  that waits longer is not cut off, and one that leaves (the `502` in the
+  manager's log) leaves `fstrim` running. The space is reclaimed anyway: the
+  job's red mark is the client's, not the trim's. The job's retries are what
+  hurt: each starts another `fstrim` beside the first, and answers `500`.
+- **What the docs offer** ([Trim Filesystem][l-doc]): the UI button, `fstrim`
+  by hand, a `RecurringJob`, and the `discard` mount option, which the page
+  itself says to use with caution, since it triggers snapshot removal often
+  and interrupts operations such as backup creation. It is a StorageClass
+  `mountOptions` entry, applied when a volume is provisioned: OpenObserve's
+  claim cannot change (a StatefulSet's `volumeClaimTemplates`), so it would
+  mean replacing the volume and its data.
 
-### Putting a volume in the group
+Chosen: a `CronJob` of ours that calls the same action and waits for the
+answer (`curl --max-time 3700`, a little over the node's hour), and replaces
+the volume's `RecurringJob`. It has no service account token, nothing in
+Vault, and no credential at all: Longhorn's API takes none. Its
+NetworkPolicy, `trim-openobserve-to-manager`, opens the manager's port 9500
+to its pod alone. Not retried inside a run (`backoffLimit: 0`) and never two at
+once (`concurrencyPolicy: Forbid`): the next hour's run is the retry. What it
+does not do is the recurring job's last step, purging snapshots a trim marked
+as removed, which only happens when *Remove Snapshots During Filesystem Trim*
+or the volume's `unmapMarkSnapChainRemoved` asks for it; OpenObserve's volume
+is `ignored` and the setting off.
 
-A volume takes the `default` group only while it has none of its own. The
-group of another is set by the claim, which Longhorn syncs to the volume when
-the claim says it is the source. OpenObserve's claim is made by the
-StatefulSet's `volumeClaimTemplates`, which cannot change once it exists, so
-the existing claim gets its labels by hand, once:
+The job names the volume (`pvc-96a82cef-…`). A replaced volume has a new name,
+and the job answers `404` until it is changed here.
+
+### Replacing the recurring job
+
+Argo CD prunes nothing in this component, so the merge does not delete the old
+`RecurringJob`; the operator does, once, after the sync:
+
+```sh
+kubectl -n longhorn-system delete recurringjob filesystem-trim-openobserve
+```
+
+The claim keeps its `recurring-job-group.longhorn.io/openobserve` label (and
+`recurring-job.longhorn.io/source`), on purpose. A volume takes the `default`
+group only while it has no group of its own, so the label keeps the six-hourly
+job away from it, and the group no longer holds a job. Removing the label
+would give the volume back to the default job, which fails on it again. A
+claim created later (the volume restored or replaced) needs the same two
+labels, set by hand because the StatefulSet's claim template cannot change:
 
 ```sh
 kubectl -n openobserve label pvc data-openobserve-0 \
@@ -50,15 +83,30 @@ kubectl -n openobserve label pvc data-openobserve-0 \
   recurring-job-group.longhorn.io/openobserve=enabled
 ```
 
-Within a few minutes the volume carries `recurring-job-group.longhorn.io/openobserve`
-and no longer `.../default`:
+### Telling that it works
+
+Read-only, from the cluster:
 
 ```sh
-kubectl -n longhorn-system get volume -l recurring-job-group.longhorn.io/openobserve=enabled
+# The job's result: every hour a Job that Completed, none Failed.
+kubectl -n longhorn-system get job -l app.kubernetes.io/name=filesystem-trim-openobserve
+kubectl -n longhorn-system logs job/<job>   # "trimFilesystem answered HTTP 200 after Ns"
+
+# The old job is gone and nothing else trims this volume.
+kubectl -n longhorn-system get recurringjob
+kubectl -n longhorn-system get events --field-selector reason=FailedFilesystemTrim
+
+# The volume's size: actual (Longhorn's count) against what the filesystem uses.
+kubectl -n longhorn-system get volume pvc-96a82cef-3be6-4ad2-afba-b8172b092c73 \
+  -o jsonpath='{.status.actualSize}{"\n"}'
 ```
 
-A claim created later (the volume restored or replaced) needs the same two
-labels. Until it has them, the default job trims it, as before.
+Read `actualSize` before the first run and after it: after a trim it falls
+toward the filesystem's used space (OpenObserve's own figure, in its README,
+Retention and size), and on the Longhorn dashboard of OpenObserve
+`longhorn_volume_actual_size_bytes` should stop climbing past it between
+runs. The first run after the change may be the slowest, and its pod may
+outlive a minute: that is the point.
 
 ### Seeing a failure
 
@@ -74,5 +122,8 @@ labels. Until it has them, the default job trims it, as before.
 - No alert covers any of it: OpenObserve has none (its README, Alerts), and
   none is built here.
 
+[l-const]: https://github.com/longhorn/longhorn-manager/blob/v1.13.0/app/recurringjob/constant.go
+[l-util]: https://github.com/longhorn/longhorn-manager/blob/v1.13.0/util/util.go
+[l-doc]: https://longhorn.io/docs/1.13.0/nodes-and-volumes/volumes/trim-filesystem/
 [l-6868]: https://github.com/longhorn/longhorn/issues/6868
 [l-14526]: https://github.com/longhorn/longhorn/issues/14526
