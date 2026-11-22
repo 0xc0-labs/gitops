@@ -1,0 +1,20 @@
+# Mails the operator the Hetzner auction offers that meet his limits
+# (README.md).
+#
+# Backups: no volumes. Its state is a ConfigMap the job writes, and losing it
+# costs one mail.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: auction-watch
+resources:
+  - namespace.yaml
+  - network-policy.yaml
+  - vault-secrets.yaml
+  - cronjob.yaml
+configMapGenerator:
+  # With a hash in its name: a change to the script or the rules reaches the
+  # next pass's pod.
+  - name: auction-watch-script
+    files:
+      - watch.py
+      - rules.json

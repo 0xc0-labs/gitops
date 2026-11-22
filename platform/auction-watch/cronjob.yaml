@@ -1,0 +1,125 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: auction-watch
+  namespace: auction-watch
+automountServiceAccountToken: false
+---
+# The state is a ConfigMap that is in no manifest here: the job creates it on
+# its first pass, so Argo CD neither compares, self-heals nor prunes it. A
+# create cannot be limited to a name, the rest can.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: auction-watch-state
+  namespace: auction-watch
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["create"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["auction-watch-state"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: auction-watch-state
+  namespace: auction-watch
+subjects:
+  - kind: ServiceAccount
+    name: auction-watch
+    namespace: auction-watch
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: auction-watch-state
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: auction-watch
+  namespace: auction-watch
+spec:
+  schedule: "* * * * *"
+  # A pass that outlives its minute would read the state the next one writes.
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 30
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # The next minute is the retry.
+      backoffLimit: 0
+      activeDeadlineSeconds: 50
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: auction-watch
+        spec:
+          restartPolicy: Never
+          serviceAccountName: auction-watch
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: watch
+              image: docker.io/library/python:3.13.15-alpine@sha256:79e7a9b9ff1cbceff819f856fb374477792a5967759d94df266de7b7b4120e6f
+              command: [python3, -u, /opt/auction-watch/watch.py]
+              env:
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: RESEND_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: auction-watch-mail
+                      key: api_key
+                - name: MAIL_TO
+                  valueFrom:
+                    secretKeyRef:
+                      name: auction-watch-mail
+                      key: to
+                - name: PYTHONDONTWRITEBYTECODE
+                  value: "1"
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: [ALL]
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  memory: 64Mi
+              volumeMounts:
+                - name: script
+                  mountPath: /opt/auction-watch
+                  readOnly: true
+                # The Kubernetes API's token and CA, rotated by the kubelet.
+                - name: kube
+                  mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+                  readOnly: true
+          volumes:
+            - name: script
+              configMap:
+                name: auction-watch-script
+            - name: kube
+              projected:
+                sources:
+                  - serviceAccountToken:
+                      path: token
+                      expirationSeconds: 3600
+                  - configMap:
+                      name: kube-root-ca.crt
+                      items:
+                        - key: ca.crt
+                          path: ca.crt
