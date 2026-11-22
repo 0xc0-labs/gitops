@@ -42,7 +42,10 @@ spec:
           # Some CRDs are too large for client-side apply's annotation.
           - ServerSideApply=true
         # Retrying, not sync waves, orders components that need another's CRDs.
+        # A retry takes the latest revision, so a rollback replaces the failing
+        # sync instead of waiting behind it (#597).
         retry:
+          refresh: true
           limit: 10
           backoff:
             duration: 30s
