@@ -1,0 +1,30 @@
+# The API and the factory worker reach Plane's API (README.md, The tracker).
+# Plane's side is `apps/plane/prod/network-policy.yaml` (`api-from-matchmark`),
+# the other Application. The rule names the pod's port: a Service's port is
+# translated to the pod's before a policy applies.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tracker-egress
+  namespace: matchmark
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values:
+          - matchmark-api
+          - matchmark-factory-worker
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: plane
+          podSelector:
+            matchLabels:
+              app.name: plane-plane-api
+      ports:
+        - protocol: TCP
+          port: 8000

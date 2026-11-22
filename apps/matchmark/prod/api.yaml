@@ -45,6 +45,9 @@ spec:
         runAsNonRoot: true
         runAsUser: 10001
         runAsGroup: 10001
+        # A Secret's files belong to root: the group is how the user reads the
+        # Plane key (mode 0440, below, as decimal 288).
+        fsGroup: 10001
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -87,6 +90,18 @@ spec:
             # deployment (matchmark's docs/platform/workspaces.md).
             - name: MATCHMARK_HARNESS
               value: claude_agent_sdk
+            # The application that runs tasks.
+            - name: MATCHMARK_TASK_APP
+              value: factory
+            # The tracker's connection (README.md, The tracker): the key is a
+            # file, never a variable. No webhook secret: only `intake-api`
+            # holds one.
+            - name: MATCHMARK_TRACKER_ADDRESS
+              value: http://plane-api.plane.svc.cluster.local:8000
+            - name: MATCHMARK_TRACKER_WORKSPACE
+              value: "0xc0"
+            - name: MATCHMARK_TRACKER_API_KEY_FILE
+              value: /run/secrets/plane/api_key
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
             # OpenObserve's trace view for one trace: the collector writes
@@ -129,10 +144,20 @@ spec:
             - name: vault-token
               mountPath: /var/run/secrets/vault
               readOnly: true
+            - name: plane-api-key
+              mountPath: /run/secrets/plane
+              readOnly: true
       volumes:
         - name: tmp
           emptyDir:
             sizeLimit: 64Mi
+        - name: plane-api-key
+          secret:
+            secretName: matchmark-plane-vault
+            defaultMode: 288 # 0440
+            items:
+              - key: api_key
+                path: api_key
         - name: vault-token
           projected:
             sources:
