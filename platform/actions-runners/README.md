@@ -23,6 +23,11 @@ lives in the cluster**: the App's key never leaves Vault, and a token lives
 in the registrar's memory for one pass. GitHub's Actions Runner Controller is
 not used because it must hold the App's key itself.
 
+It owns only the pods it created: those with the label
+`app.kubernetes.io/managed-by: actions-runner-registrar` and the name prefix
+`cluster-runner-`. Any other pod in `actions-runners`, the proof's included,
+is neither counted nor deleted.
+
 It also deletes a pod that finished, one idle for `IDLE_TIMEOUT_SECONDS`
 (an hour) with no job, and removes from GitHub a runner whose pod is gone.
 It logs what it does (its logs reach OpenObserve like any pod's) and never a
@@ -85,17 +90,18 @@ Default deny in both namespaces (`network-policy.yaml`).
 
 ### The proof
 
-`runner-network-proof-1` is a plain Job with the runner's label and shape. It
+`runner-network-proof-2` is a plain Job with the runner's label and shape. It
 checks that the API server (by name and by address), Vault, PostgreSQL, the
 node's kubelet and SSH, both VIPs, an address in `10.0.0.0/8` and the metadata
 address do not answer, and that `https://api.github.com` does.
 
 ```sh
-kubectl -n actions-runners logs job/runner-network-proof-1
+kubectl -n actions-runners logs job/runner-network-proof-2
 ```
 
-It must print `every step passed`. A Job's pod template cannot change: to run
-it again, raise the number in its name (`-1` to `-2`) and the sync prunes the
+It must print one line a step and `every step passed`; the Job, and so its pod
+and log, are kept for a day (`ttlSecondsAfterFinished`). A Job's pod template cannot change: to run
+it again, raise the number in its name (`-2` to `-3`) and the sync prunes the
 old one.
 
 ## Stopping it

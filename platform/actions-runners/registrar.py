@@ -43,7 +43,9 @@ KUBE_DIR = "/var/run/secrets/kubernetes.io/serviceaccount"
 VAULT_TOKEN_FILE = "/var/run/secrets/vault/token"
 HEALTH_FILE = "/tmp/alive"
 PREFIX = "cluster-runner-"
-POD_LABEL = "app.kubernetes.io/name=actions-runner"
+# The runners' label alone also matches the proof Job's pod, which carries it
+# for the network policy: the registrar's own mark is what makes a pod its.
+POD_LABELS = "app.kubernetes.io/name=actions-runner,app.kubernetes.io/managed-by=actions-runner-registrar"
 
 for url in (VAULT_ADDR, GITHUB_API, KUBE_API):
     if not url.startswith(("http://", "https://")):
@@ -164,8 +166,16 @@ def runner_pod(name, jit_config):
                 {"name": "tmp", "emptyDir": {"sizeLimit": "1Gi"}}]}}
 
 
+def owned(pod):
+    metadata = pod["metadata"]
+    return (metadata.get("labels", {}).get("app.kubernetes.io/managed-by") == "actions-runner-registrar"
+            and metadata["name"].startswith(PREFIX))
+
+
 def list_pods():
-    return kube("GET", f"/api/v1/namespaces/{NAMESPACE}/pods?labelSelector={POD_LABEL}")["items"]
+    # The selector narrows the list; `owned` is the rule, checked again here.
+    items = kube("GET", f"/api/v1/namespaces/{NAMESPACE}/pods?labelSelector={POD_LABELS}")["items"]
+    return [pod for pod in items if owned(pod)]
 
 
 def delete_pod(name, why):

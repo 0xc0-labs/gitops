@@ -6,10 +6,11 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: runner-network-proof-1
+  name: runner-network-proof-2
   namespace: actions-runners
 spec:
   backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
   template:
     metadata:
       labels:
