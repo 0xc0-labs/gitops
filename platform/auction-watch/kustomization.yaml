@@ -1,8 +1,10 @@
-# Mails the operator the Hetzner auction offers that meet his limits
-# (README.md).
+# Mails the operator the Hetzner auction offers that meet his limits or are far
+# under their usual price (README.md).
 #
-# Backups: no volumes. Its state is a ConfigMap the job writes, and losing it
-# costs one mail.
+# Backups: the record volume (deployment.yaml) is PBS's nightly backup of the
+# RKE2 VMs. It is worth the history gathered since the seed: losing it costs
+# the weeks of prices this pod recorded, and the next start loads the seed
+# again, so the baselines fall back to the radar's three months.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: auction-watch
@@ -10,11 +12,14 @@ resources:
   - namespace.yaml
   - network-policy.yaml
   - vault-secrets.yaml
-  - cronjob.yaml
+  - deployment.yaml
 configMapGenerator:
-  # With a hash in its name: a change to the script or the rules reaches the
-  # next pass's pod.
+  # With a hash in its name: a change to the script or the rules rolls the pod.
   - name: auction-watch-script
     files:
       - watch.py
       - rules.json
+  # Apart from the script: a new seed is rare. Its 270 KB are binaryData.
+  - name: auction-watch-seed
+    files:
+      - seed.jsonl.gz
