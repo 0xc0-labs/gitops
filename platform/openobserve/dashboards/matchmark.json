@@ -5041,6 +5041,6 @@
  },
  "defaultDatetimeDuration": {
   "type": "relative",
-  "relativeTimePeriod": "7d"
+  "relativeTimePeriod": "1d"
  }
 }

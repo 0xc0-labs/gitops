@@ -20,7 +20,9 @@ config:
   ZO_PROMETHEUS_ENABLED: "true"
   # In MB, to stay inside its memory limit.
   ZO_MEMORY_CACHE_MAX_SIZE: "256"
-  ZO_MEMORY_CACHE_DATAFUSION_MAX_SIZE: "256"
+  # Per search, not shared: each query builds a pool of this size, and nothing
+  # in this edition caps how many run at once (README, Memory of a search).
+  ZO_MEMORY_CACHE_DATAFUSION_MAX_SIZE: "128"
   # Past the memtable cap every write gets a 503. Rotate well under it: with
   # both at 512, the active memtable filled the cap before it ever rotated.
   ZO_MEM_TABLE_MAX_SIZE: "512"
@@ -29,6 +31,13 @@ config:
   # The chart's 150 froze _rumdata and moved its new fields into _all; 1000 is
   # OpenObserve's own default (#333, README, A frozen stream).
   ZO_SCHEMA_MAX_FIELDS_TO_ENABLE_UDS: "1000"
+
+# The chart's ConfigMap lists its keys one by one and drops any other, so a
+# setting it does not know goes here. Global, in MB; its default is 5% of the
+# limit, and none of the caps above covers it.
+extraEnv:
+  - name: ZO_DATAFUSION_FILE_STAT_CACHE_MAX_SIZE
+    value: "64"
 
 persistence:
   enabled: true
