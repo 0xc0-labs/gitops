@@ -124,9 +124,9 @@ def duration(seconds):
 
 
 def drives(offer):
-    parts = [f"{len(offer[kind])} x {kind.upper() if kind != 'hdd' else 'HDD'} {offer[kind][0]} GB"
-             for kind in ("nvme", "sata", "hdd") if offer[kind]]
-    parts = [p.replace("SATA", "SATA SSD") for p in parts]
+    labels = {"nvme": "NVME", "sata": "SATA SSD", "hdd": "HDD"}
+    parts = [f"{sizes.count(size)} x {labels[kind]} {size} GB"
+             for kind in ("nvme", "sata", "hdd") for sizes in [offer[kind]] for size in sorted(set(sizes))]
     return ", ".join(parts) or "none listed"
 
 
@@ -361,6 +361,10 @@ def self_test():
     text = build_mail([(_offer(7, 64, [512, 512], 55), ["a rule"])], [])[1]
     for needle in ("Offer 7", "55 EUR", "a rule", "1h", "64 GB", "not ECC", "2 x NVME 512 GB", "FSN1-DC1", AUCTION_PAGE, "id 7"):
         assert needle in text, needle
+    mixed = _offer(8, 64, [512], 55)
+    mixed["sata"], mixed["hdd"] = [512, 1000, 512], [4000, 4000]
+    assert drives(mixed) == "1 x NVME 512 GB, 2 x SATA SSD 512 GB, 1 x SATA SSD 1000 GB, 2 x HDD 4000 GB"
+    assert drives(_offer(9, 64, [], 55)) == "none listed"
     assert build_mail([], []) is None
     up = up_notice([_offer(1, 64, [512], 65)], rules)
     assert "holds 1 offers" in up and "5 EUR over the limit" in up and "no offer of that shape" in up
