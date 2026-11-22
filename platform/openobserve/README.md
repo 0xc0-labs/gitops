@@ -97,6 +97,13 @@ the compactor had finished:
 - Metrics are 98% of what comes in (about 40 GB a day before compression)
   and, with their index streams, 96% of what is stored: 347 MB a day, plus
   173 MB of index. Logs and traces store about 9 MB a day each.
+- The traces stream holds what someone reads: Traefik's, Argo CD's, the
+  sites' and Matchmark's spans, and the Temporal server's spans only inside a
+  trace the API or the worker started. Its polls and persistence reads, three
+  quarters of the stream in the week to 2026-11-22 (about 2.4 million of 3.2
+  million spans), are not recorded: the sampler is set at the source
+  (`apps/matchmark-temporal`, Server tracing). The 9 MB a day above was
+  measured before Temporal existed.
 - The inodes follow the number of streams, not their bytes. Each of the
   ~1,500 metrics and index streams gets a directory and a file per hour, so
   a new metric name costs about 48 inodes a day, however small it is.
