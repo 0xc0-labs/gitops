@@ -47,6 +47,10 @@ resources:
   - artifacts.yaml
   - runner-proof.yaml
   - runner-sandbox-proof.yaml
+  - tracker-mcp.yaml
+  - network-policy-tracker-mcp.yaml
+  - tracker-mcp-route.yaml
+  - tracker-mcp-proof.yaml
 images:
   - name: cr.agentgateway.dev/controller
     newTag: v1.7.0
@@ -54,27 +58,31 @@ images:
   # The API's and the stand-in's pins, one tag: the application's release job
   # moves both (README.md, The API).
   - name: ghcr.io/0xc0-labs/matchmark-api
-    newTag: v0.50.0
-    digest: sha256:92ee49593e063c17de11f3dab900aa3a40a478a1074b25a5cb10449642e1152a
+    newTag: v0.52.0
+    digest: sha256:31465459fad4fbf5af97e25f66aa38154fa37eca6bf6645c55dd08784f482b09
   - name: ghcr.io/0xc0-labs/matchmark-stand-in-provider
-    newTag: v0.50.0
-    digest: sha256:d1712d474738e9835ed61703e40c7e464ea038569535dcf7e2530f2b42de5eff
-  # Built from the release's commit, v0.38.8 (d416e8e): the release job does
-  # not list it yet, so this pin is moved by hand until it does.
+    newTag: v0.52.0
+    digest: sha256:cccee893233b64fc8ab19f6e82c7e4d256fda40aac60fa59a9bce1d21af55814
   - name: ghcr.io/0xc0-labs/matchmark-intake-api
-    newTag: v0.50.0
-    digest: sha256:135b77589e34daf74d96de243babfc72d1c5bda2d6892924057e5215475500c0
+    newTag: v0.52.0
+    digest: sha256:970775aac6c09fc3f722fb87a0f4266ce72b050622f7080b5ae9c1076e851edf
   - name: ghcr.io/0xc0-labs/matchmark-factory-worker
-    newTag: v0.50.0
-    digest: sha256:ac95fcd9f5afff47bd1ccfb986e328e599a398f4eb95c649c5912487ed3a2096
+    newTag: v0.52.0
+    digest: sha256:841a5c0118f2a7e05f419f9b6474ab7de79f9a1832c0643f517597cdd55967ce
+  # The tracker tools' server, one tag with the others: the release job lists
+  # it in its extra images, and refuses to go on without this entry
+  # (README.md, tracker-mcp).
+  - name: ghcr.io/0xc0-labs/matchmark-tracker-mcp
+    newTag: v0.52.0
+    digest: sha256:8e70f37cee2acf39799dd18b124b3d5dbd3ebe37c523ff7dd4e928b04a1f9c87
   # The runner's pin: the proof's init container carries it, and the worker's
   # MATCHMARK_RUNNER_IMAGE, and the sandbox proof's, are copied from there
   # (replacements, below). v0.31.0
   # was built from the commit of this digest; the registry carries that tag for
   # the runner from the first release that lists it. A pull goes by the digest.
   - name: ghcr.io/0xc0-labs/matchmark-runner
-    newTag: v0.50.0
-    digest: sha256:18d9a9b78928a1f3863b4766a8599443b0858e950f2e3e96989169f1e81e68a1
+    newTag: v0.52.0
+    digest: sha256:de3ee51559f2571d24891ba36d6c058a90acc401a56696162ad30171342e46af
 configMapGenerator:
   # No hash suffix: a Job's pod template cannot change, so a renamed ConfigMap
   # would fail the sync instead of leaving the finished Jobs alone.
@@ -94,9 +102,15 @@ configMapGenerator:
       - runner-proof/sandbox-proof.py
     options:
       disableNameSuffixHash: true
+  # Same reason as `artifacts`: the proof Job's template cannot change.
+  - name: tracker-mcp-proof
+    files:
+      - tracker-mcp-proof/proof.py
+    options:
+      disableNameSuffixHash: true
   - name: release
     literals:
-      - APP_VERSION=v0.50.0
+      - APP_VERSION=v0.52.0
 replacements:
   # `images:` rewrites container images only, so the worker's setting takes the
   # rendered `<name>:<tag>@sha256:<digest>` of the proof's init container:
@@ -130,6 +144,14 @@ replacements:
         options:
           delimiter: "-"
           index: 2
+      - select:
+          kind: Job
+          name: tracker-mcp-proof-version
+        fieldPaths:
+          - metadata.name
+        options:
+          delimiter: "-"
+          index: 3
       - select:
           kind: Job
           name: runner-proof-version-r3

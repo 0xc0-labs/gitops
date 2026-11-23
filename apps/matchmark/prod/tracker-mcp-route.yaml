@@ -1,0 +1,104 @@
+# The route from Matchmark's gateway to the `tracker` tools' MCP server, and the
+# policy that opens it to a valid agent token and, per tool, to the grants the
+# token carries (README.md, tracker-mcp).
+#
+# The backend's one target is the server's Service, over streamable HTTP, which
+# serves `/mcp`. The path an agent calls, `/mcp/tracker`, is the route's alone:
+# the gateway speaks MCP on it and opens its own connection to the target's
+# `path`, so no rewrite is needed.
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: tracker-mcp
+  namespace: matchmark
+spec:
+  mcp:
+    # The server keeps no session (`stateless_http`), so the gateway keeps none
+    # for it either, and a request needs no `initialize` before it.
+    sessionRouting: Stateless
+    # One target: the tools keep the names the agent's allow-list has
+    # (`mcp__tracker__get_item`), with no target prefix.
+    prefixMode: Never
+    targets:
+      - name: tracker
+        static:
+          host: tracker-mcp.matchmark.svc.cluster.local
+          port: 80
+          path: /mcp
+          protocol: StreamableHTTP
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: tracker-mcp
+  namespace: matchmark
+spec:
+  parentRefs:
+    - name: gateway
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /mcp/tracker
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: tracker-mcp
+---
+# The token, as on the model route (`agent-token`, gateway-route.yaml): the
+# platform's issuer and audience, the tenant a Require, and the expiry checked
+# by the authentication. The agent's token is in `Authorization`, which this
+# route has no other use for, and the gateway passes it on to the server, which
+# hands it to the API: the API judges every call again (matchmark's
+# docs/architecture/tracker-tools.md, Where the scope is enforced).
+#
+# The grants are one Allow over the tool's name and the token's `grants` claim,
+# in the same policy as the authentication: a policy that reads `jwt` without
+# `jwtAuthentication` beside it denies every call while reporting Accepted. A
+# tool no rule allows is left out of `tools/list` and refused on `tools/call`.
+# The write tools also need the run's item: with none, they are not offered,
+# and the API would answer `no_item`.
+#
+# Whether the gateway reads a claim in an MCP rule is untested (README.md,
+# tracker-mcp, and the proof). If it does not, the one rule is replaced by none
+# and the API alone refuses what is not granted.
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: tracker-mcp-token
+  namespace: matchmark
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: tracker-mcp
+  traffic:
+    jwtAuthentication:
+      mode: Strict
+      providers:
+        - issuer: https://api.matchmark.int.0xc0.cc
+          audiences:
+            - matchmark-gateway
+          jwks:
+            remote:
+              backendRef:
+                name: api
+                port: 80
+              jwksPath: .well-known/jwks.json
+    authorization:
+      action: Require
+      policy:
+        matchExpressions:
+          - has(jwt.tenant) && jwt.tenant == "default"
+  backend:
+    mcp:
+      authorization:
+        action: Allow
+        policy:
+          matchExpressions:
+            - >-
+              has(jwt.grants) && (
+              ("tracker-read" in jwt.grants &&
+              mcp.tool.name in ["get_item", "get_comments", "get_related"]) ||
+              ("tracker-write" in jwt.grants && has(jwt.item) &&
+              mcp.tool.name in ["comment", "ask_person", "create_subitem"]))

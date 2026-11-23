@@ -8,7 +8,8 @@ admits routes of its own namespace only. The proxy is one Deployment the
 controller creates for that Gateway; its Service is `ClusterIP`. There is no
 route to a provider's API for the product's agents: the only one goes to a
 stand-in (The route to the provider). `/claude` reaches Anthropic's for the
-agents that will run on the Claude Agent SDK (The subscription route). Agents call the gateway from inside the cluster, and it is not
+agents that will run on the Claude Agent SDK (The subscription route), and
+`/mcp/tracker` reaches the `tracker` tools' server (tracker-mcp). Agents call the gateway from inside the cluster, and it is not
 reachable from outside. Only the API is, over WARP.
 
 ## Why this application has a project of its own
@@ -746,6 +747,90 @@ kubectl -n matchmark logs job/worker-proof-4 | grep -i -e plane -e tracker  # al
 kubectl -n matchmark logs deploy/factory-worker | grep -i tracker          # its poll, not "not configured"
 ```
 
+## tracker-mcp
+
+`tracker-mcp.yaml`, `network-policy-tracker-mcp.yaml`, `tracker-mcp-route.yaml`,
+`tracker-mcp-proof.yaml` and `tracker-mcp-proof/proof.py`. The MCP server that
+gives an agent the `tracker` tools (`0xc0-labs/matchmark`,
+`services/tracker-mcp/README.md`; the design is its
+`docs/architecture/tracker-tools.md`): `get_item`, `get_comments`,
+`get_related`, `comment`, `ask_person` and `create_subitem`. It holds no key,
+no secret and no Vault role, and mounts no ServiceAccount token: it passes the
+agent's token on to the API, which judges every call.
+
+- **Pin**: `ghcr.io/0xc0-labs/matchmark-tracker-mcp` in the `images:` of
+  `prod/kustomization.yaml`, one tag with the others. The application's release
+  lists it in its `extra-images`, so its release job moves this entry in the
+  promotion PR with the rest: that is what keeps the promotions running, and
+  without the entry the job's `pin` step fails (The API, Pin).
+- **The server**: a `Deployment` and a `Service` `tracker-mcp`, one replica, on
+  port 8000 (the Service's 80). Its settings are three and none is a secret:
+  `MATCHMARK_TRACKER_MCP_API_ADDRESS` (the API's Service), `..._API_TIMEOUT_SECONDS`
+  (15, above the API's own 10 seconds of waiting for the tracker's limiter) and
+  `..._PORT`. Probes on `/healthz`; the same pod security context as
+  `intake-api`, a read-only root and `/tmp`; 25m and 96Mi requested, 192Mi
+  limit, for one process with no state. It keeps no data: no volume, no
+  backup. Logs, metrics and traces go to the collector, service name
+  `matchmark-tracker-mcp`.
+- **The route**: `HTTPRoute` `tracker-mcp` sends the path prefix `/mcp/tracker`
+  of the gateway's listener to the `AgentgatewayBackend` `tracker-mcp`, whose
+  one target, `tracker`, is the Service, over streamable HTTP, with `path:
+  /mcp`, which is what the server serves. There is no rewrite: the gateway
+  speaks MCP on the route's path and opens its own connection to the target's
+  path. The backend is `Stateless` (the server keeps no session) and
+  `prefixMode: Never`, so a tool keeps its name (`mcp__tracker__get_item` in a
+  client). The route is not on the WARP route: only agents in the cluster reach
+  it.
+- **The policy** `tracker-mcp-token`: the same chain as `agent-token`
+  (issuer, audience `matchmark-gateway`, the JWKS from the Service `api`,
+  `jwt.tenant == "default"` as a `Require`, expiry by the authentication), with
+  the agent's token in `Authorization`; and the grants, as one `Allow` in
+  `backend.mcp.authorization` over `mcp.tool.name` and the token's `grants`
+  claim: `tracker-read` opens `get_item`, `get_comments` and `get_related`;
+  `tracker-write` opens `comment`, `ask_person` and `create_subitem`, and
+  only for a token with an `item`. A tool no rule allows is left out of
+  `tools/list` and refused on `tools/call`.
+- **What the gateway does with a grant: untested until a token with one
+  exists.** The proof (below) can only issue a token with no grants, since a
+  grant comes from an agent's definition and none names `tracker-read` yet
+  (`matchmark-config`). With such a token, an empty `tools/list` means the
+  gateway reads the claim (or denies every tool, which no token without a
+  grant can tell apart); a full one means the gateway checks the token alone
+  and the API refuses what is not granted. The first run of an agent with a
+  grant settles it. If the rule denies what it should allow, the fix is to
+  delete the `backend` block: the API is the authority either way.
+- **Network**: `tracker-mcp-ingress` admits the gateway's proxy on 8000 and
+  nothing else; `tracker-mcp-egress` opens the API's 8000 and the collector's
+  4318; `proxy-to-tracker-mcp` opens the proxy's way to the server's 8000;
+  `api-ingress` also admits `tracker-mcp`. DNS is the namespace's `dns`. The
+  sandboxes need no new rule: they already reach the proxy's 8080
+  (`sandbox-to-proxy`), and the route is on that listener.
+- **The proof**: a `Job` `tracker-mcp-proof-<APP_VERSION>`, one per deployed
+  version, in sync wave 1, running `proof.py` with the API's image and the
+  gateway proof's label, so it takes that proof's network. It fails unless:
+  (1) the API issues a token; (2, 3) `tools/list` with no token, and with a
+  token that is not ours, answer 401; (4) `initialize` with the token answers
+  the server's name; (5) `tools/list` with the token answers a list; (7) a
+  `tools/call` of `get_item` with a token that has no grant is refused, by the
+  gateway or, as a tool error, by the API. It prints what the gateway listed
+  (6) and who refused (7) without failing on either. It runs in the matchmark
+  namespace, not from a sandbox: the token is issued with the service token,
+  which only this namespace has. A read that succeeds needs a token with
+  `tracker-read` and an item the tracker knows, so it waits for the first agent
+  that has them.
+
+```sh
+kubectl -n matchmark get pod -l app.kubernetes.io/name=matchmark-tracker-mcp   # Ready
+kubectl -n matchmark get agentgatewaybackend tracker-mcp                       # Accepted
+kubectl -n matchmark get agentgatewaypolicy tracker-mcp-token                  # Accepted, Attached
+kubectl -n matchmark logs job/tracker-mcp-proof-<version>                      # steps 1-7, 6 and 7 as observed
+kubectl -n matchmark logs deploy/gateway | grep mcp/tracker                    # the access log, with the claims
+```
+
+If the first pull is refused (`ImagePullBackOff`, denied), the cluster's pull
+credential has no access yet to the private package `matchmark-tracker-mcp`:
+the operator grants it in the package's settings on GitHub.
+
 ## intake-api
 
 `intake-api.yaml`, `network-policy-intake.yaml`, `matchmark-intake-api` in
@@ -760,8 +845,8 @@ worker reaches it, inside the cluster, at
 
 - **Pin**: `ghcr.io/0xc0-labs/matchmark-intake-api` in the `images:` of
   `prod/kustomization.yaml`, with the API's tag and the digest of the image
-  built from that release's commit. The application's release does not list it
-  in its `extra-images` yet, so until it does the pin is moved by hand.
+  built from that release's commit. The application's release lists it in its
+  `extra-images`, so its release job moves the pin with the others.
 - **Settings**: `MATCHMARK_INTAKE_API_ADDRESS` is the API's Service,
   `MATCHMARK_INTAKE_API_TOKEN_FILE` the token's file, and
   `MATCHMARK_INTAKE_API_CONNECTORS` is empty: it starts, says in its log that

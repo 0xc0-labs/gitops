@@ -1,0 +1,109 @@
+# The `tracker` tools' MCP server (README.md, tracker-mcp). It holds no secret:
+# it passes the agent's token on to the API, which judges every call. The image
+# is the kustomization's pin, never a tag here. It keeps nothing: no volume but
+# /tmp, so there is no backup to declare.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tracker-mcp
+  namespace: matchmark
+automountServiceAccountToken: false
+---
+# Cluster-internal only: the gateway's proxy is the one caller
+# (network-policy-tracker-mcp.yaml). Port 80 is translated to the pod's 8000
+# before a policy applies.
+apiVersion: v1
+kind: Service
+metadata:
+  name: tracker-mcp
+  namespace: matchmark
+spec:
+  selector:
+    app.kubernetes.io/name: matchmark-tracker-mcp
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tracker-mcp
+  namespace: matchmark
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: matchmark-tracker-mcp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: matchmark-tracker-mcp
+    spec:
+      serviceAccountName: tracker-mcp
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      imagePullSecrets:
+        - name: ghcr-pull-vault
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: tracker-mcp
+          image: ghcr.io/0xc0-labs/matchmark-tracker-mcp
+          envFrom:
+            - configMapRef:
+                name: release
+          env:
+            - name: MATCHMARK_TRACKER_MCP_API_ADDRESS
+              value: http://api.matchmark.svc.cluster.local
+            # Above the API's own wait for Plane's limiter (10 s, which it
+            # answers `rate_limited`), so a call that waits is answered by the
+            # API and not cut short here.
+            - name: MATCHMARK_TRACKER_MCP_API_TIMEOUT_SECONDS
+              value: "15"
+            - name: MATCHMARK_TRACKER_MCP_PORT
+              value: "8000"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
+            - name: OTEL_SERVICE_NAME
+              value: matchmark-tracker-mcp
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: service.version=$(APP_VERSION),deployment.environment=prod
+          ports:
+            - name: http
+              containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 20
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          # A thin proxy: one process, no state, one outbound call per tool
+          # call. The memory is the intake door's plus the MCP framework's.
+          resources:
+            requests:
+              cpu: 25m
+              memory: 96Mi
+            limits:
+              memory: 192Mi
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 16Mi
