@@ -795,14 +795,15 @@ agent's token on to the API, which judges every call.
   `tracker-write` opens `comment`, `ask_person` and `create_subitem`, and
   only for a token with an `item`. A tool no rule allows is left out of
   `tools/list` and refused on `tools/call`.
-- **What the gateway does with a grant: untested until a token with one
-  exists.** The proof (below) can only issue a token with no grants, since a
-  grant comes from an agent's definition and none names `tracker-read` yet
-  (`matchmark-config`). With such a token, an empty `tools/list` means the
-  gateway reads the claim (or denies every tool, which no token without a
-  grant can tell apart); a full one means the gateway checks the token alone
-  and the API refuses what is not granted. The first run of an agent with a
-  grant settles it. If the rule denies what it should allow, the fix is to
+- **What the gateway does with a grant**, as seen on 2026-11-23
+  (`0xc0-labs/workspace#282`): a run's token with no grant is listed no tool
+  and its `tools/call` is refused by the gateway; a token with `tracker-read`
+  and `tracker-write` is listed its tools and reaches the API (`get_item`,
+  `get_comments` and `ask_person` answered 200). So the gateway reads the
+  claim. The proof can only issue a token with no grants, since a grant comes
+  from an agent's definition: to such a token, a gateway that denies every
+  tool looks the same as one that reads the claim, and only an agent's run
+  shows the difference. If the rule denies what it should allow, the fix is to
   delete the `backend` block: the API is the authority either way.
 - **Network**: `tracker-mcp-ingress` admits the gateway's proxy on 8000 and
   nothing else; `tracker-mcp-egress` opens the API's 8000 and the collector's
@@ -815,10 +816,10 @@ agent's token on to the API, which judges every call.
   gateway proof's label, so it takes that proof's network. It fails unless:
   (1) the API issues a token; (2, 3) `tools/list` with no token, and with a
   token that is not ours, answer 401; (4) `initialize` with the token answers
-  the server's name; (5) `tools/list` with the token answers a list; (7) a
-  `tools/call` of `get_item` with a token that has no grant is refused, by the
-  gateway or, as a tool error, by the API. It prints what the gateway listed
-  (6) and who refused (7) without failing on either. It runs in the matchmark
+  the server's name; (5) `tools/list` with the token answers a list; (6) that list is empty for a
+  token with no grant; (7) a `tools/call` of `get_item` with such a token is
+  refused by the gateway: not by the server for want of a token, not by the API
+  as a tool error. It runs in the matchmark
   namespace, not from a sandbox: the token is issued with the service token,
   which only this namespace has. A read that succeeds needs a token with
   `tracker-read` and an item the tracker knows, so it waits for the first agent
@@ -828,7 +829,7 @@ agent's token on to the API, which judges every call.
 kubectl -n matchmark get pod -l app.kubernetes.io/name=matchmark-tracker-mcp   # Ready
 kubectl -n matchmark get agentgatewaybackend tracker-mcp                       # Accepted
 kubectl -n matchmark get agentgatewaypolicy tracker-mcp-token                  # Accepted, Attached
-kubectl -n matchmark logs job/tracker-mcp-proof-<version>                      # steps 1-7, 6 and 7 as observed
+kubectl -n matchmark logs job/tracker-mcp-proof-<version>                      # steps 1-7
 kubectl -n matchmark logs deploy/gateway | grep mcp/tracker                    # the access log, with the claims
 ```
 
