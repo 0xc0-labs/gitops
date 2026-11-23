@@ -40,10 +40,15 @@ minutes.
 | `name` | what the mail calls the rule |
 | `min_ram_gb` | the least RAM, in GB |
 | `nvme_required` | `true` when at least one NVMe drive is needed |
-| `max_price_eur` | the price must be under it: `Prices.monthly.EUR` as the feed gives it (a month, in EUR, as the feed shows it), and the mail says so |
+| `max_price_eur` | the price must be under it: `Prices.monthly.EUR` as the feed gives it (a month, in EUR, **without VAT**), and the mail says so |
 
 Today: 64 GB or more with NVMe under 60 EUR, and 128 GB or more with NVMe under
-100 EUR.
+100 EUR, both without VAT.
+
+**VAT**, `vat_pct`: `21` (Spain's). The feed's prices are without VAT (an offer
+mailed at 58 EUR showed 70 EUR at Hetzner's checkout, 2026-11-23), so the mail
+adds the price with it. The limits and the history rule stay on the price
+without VAT.
 
 **History**, `history`:
 
@@ -98,11 +103,13 @@ tries other rules and `--first-pass` adds the "is up" section.
   mailed at this price is not mailed again; one that left the feed is
   forgotten, and mailed again if it comes back.
 - The subject names the machine, not the count (a subject with "offer(s) match"
-  went to spam): `auction-watch: <CPU>, <RAM> GB RAM, <price> EUR`, the cheapest
-  match's, and ` and N more` when there are others. The body's first line says
-  the same.
-- Each offer: the rules it met (both, in one entry, when it meets a limit and
-  the history rule), the price and when it next drops, the CPU, the RAM and
+  went to spam): `auction-watch: <CPU>, <RAM> GB RAM, <price> EUR without VAT`,
+  the cheapest match's, and ` and N more` when there are others. The body's
+  first line says the same, and that the limits are without VAT too.
+- Each offer: its price without VAT, with VAT (`vat_pct`), and the same with the
+  IPv4 address, which the feed prices apart (`IPPrices.monthly.EUR`; the mail
+  says so when the feed gives none); the rules it met (both, in one entry, when
+  it meets a limit and the history rule), when it next drops, the CPU, the RAM and
   whether it is ECC, the drives, the datacenter, the specials, and a link that
   opens it: `https://www.hetzner.com/sb/?freetext=<id>`, which the auction
   page reads to show that one offer with its Order button.
@@ -168,9 +175,51 @@ kubectl -n auction-watch exec deploy/auction-watch -- python3 /opt/auction-watch
 kubectl -n auction-watch exec deploy/auction-watch -- python3 /opt/auction-watch/watch.py --offer 3117247
 ```
 
+```sh
+kubectl -n auction-watch exec deploy/auction-watch -- python3 /opt/auction-watch/watch.py --history "Ryzen 7 7700" --by week
+kubectl -n auction-watch exec deploy/auction-watch -- python3 /opt/auction-watch/watch.py --history --groups
+kubectl -n auction-watch exec deploy/auction-watch -- python3 /opt/auction-watch/watch.py --lifetimes
+```
+
 `--kinds` prints each kind with a baseline: the baseline, how many offers it
 comes from and the cheapest live offer of that kind now. `--offer` prints one
 offer's record and its kind's baseline.
+
+Every view starts with the days the record covers and how many of its offers
+came from the seed.
+
+`--history [TEXT] [--by month|week]` prints, for each kind whose name holds
+`TEXT` (every kind of 64 or 128 GB without it), a line a period with the median
+of the price its offers went for (their last price), the lowest, and how many
+offers that is; by month unless told, a week being named by its Monday. The ten
+kinds with the most offers are printed, and the output says how many there are.
+`--history --groups` does the same for four groups: 64 GB and 128 GB, each with
+and without NVMe. On the seed:
+
+```
+$ python3 watch.py --history --groups
+the record covers 91 days, 2026-08-24 to 2026-11-22; 18422 of its 18422 offers came from the seed
+by month: the median and the lowest price the offers went for (their last price), from the offers that went; 4 of 4 groups
+
+64 GB with NVMe: 7826 offers
+month	median_eur	lowest_eur	offers
+2026-08	83.5	46	454
+2026-09	91	43	2012
+2026-10	100	37	3109
+2026-11	107	37	2251
+```
+
+`--lifetimes [TEXT]` prints how long offers stayed in the feed, from first to
+last sighting, for the offers this pod saw appear: the seed's rows are not
+counted (they were sampled every five minutes), nor the offers of the pod's
+first read (they were there before it began). One line a group: how many went,
+the time half and three quarters of them went within, the slowest, how many
+went in under two minutes, and how many are still live. The groups are the price
+it went for (under 50 EUR, 50 to 60, 60 to 100, 100 or more), how far under its
+kind's usual price it was (the baseline of today), and each of the operator's
+limits (by price and shape; the datacenter filters are not applied). The feed
+changes once a minute, so a time under two minutes is one or two reads and
+nothing finer is known.
 
 To copy the file out, a consistent snapshot, not the live file with its log:
 

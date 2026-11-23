@@ -14,13 +14,19 @@ carry an HTTP status, not a response.
                                              against the seeded record
     python watch.py --kinds                  each kind with a baseline
     python watch.py --offer ID               one offer's record
+    python watch.py --history [TEXT] [--by month|week] [--groups]
+                                             the prices offers went for, a period at a time
+    python watch.py --lifetimes [TEXT]       how long offers stayed in the feed
     python watch.py --snapshot FILE          a consistent copy of the record
 """
 
+import calendar
 import contextlib
+import datetime
 import gzip
 import io
 import json
+import math
 import os
 import sqlite3
 import statistics
@@ -46,6 +52,10 @@ POLL_SECONDS = max(MIN_POLL_SECONDS, float(os.environ.get("AUCTION_WATCH_POLL_SE
 ALERT_AFTER_S = 15 * 60
 # What a gone offer's row is kept for.
 RETENTION_DAYS = 400
+# How many kinds `--history` prints: the ones with the most offers.
+HISTORY_KINDS = 10
+# An offer that went in less than this was there for one read of the feed or two.
+QUICK_SECONDS = 120
 HERE = os.path.dirname(os.path.abspath(__file__))
 RULES_FILE = os.path.join(HERE, "rules.json")
 SEED_FILE = os.environ.get("AUCTION_WATCH_SEED", os.path.join(HERE, "seed.jsonl.gz"))
@@ -72,6 +82,14 @@ def iso(epoch):
 
 # --- Pure: the feed, the rules, what to mail --------------------------------
 
+def _ip_price(raw):
+    """What the IPv4 address costs a month, apart from the price, or None when the feed does not say."""
+    try:
+        return float(raw["IPPrices"]["monthly"]["EUR"])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
 def parse_offers(feed):
     """The offers of a feed as flat dicts. Anything unexpected is a FeedError."""
     try:
@@ -89,6 +107,7 @@ def parse_offers(feed):
                 "hdd": [int(size) for size in storage["hdd"]],
                 "gpu": "GPU" in specials,
                 "price": float(raw["Prices"]["monthly"]["EUR"]),
+                "ip_price": _ip_price(raw),
                 "datacenter": str(raw["Details"]["Datacenter"]["Name"]),
                 "specials": specials,
                 "next_drop_s": raw.get("Timer", {}).get("ReduceNext"),
@@ -100,7 +119,7 @@ def parse_offers(feed):
 
 
 def parse_rules(rules):
-    """{"limits": [...], "history": {...}, "filters": {...}}, checked."""
+    """{"limits": [...], "history": {...}, "filters": {...}, "vat_pct": n}, checked."""
     try:
         limits = [{"name": str(r["name"]), "min_ram_gb": float(r["min_ram_gb"]),
                    "nvme_required": bool(r["nvme_required"]), "max_price_eur": float(r["max_price_eur"])}
@@ -112,7 +131,10 @@ def parse_rules(rules):
             raise ValueError("history out of range")
         f = rules["filters"]
         filters = {"datacenter_prefixes": [str(p) for p in f["datacenter_prefixes"]], "skip_hdd_only": bool(f["skip_hdd_only"])}
-        return {"limits": limits, "history": history, "filters": filters}
+        vat_pct = float(rules["vat_pct"])
+        if not 0 <= vat_pct < 100:
+            raise ValueError("vat_pct out of range")
+        return {"limits": limits, "history": history, "filters": filters, "vat_pct": vat_pct}
     except (KeyError, TypeError, ValueError) as e:
         raise ValueError(f"rules file: {type(e).__name__}: {e}") from None
 
@@ -188,7 +210,11 @@ def plan(found, offers, mailed):
 
 
 def eur(value):
-    return f"{value:g} EUR"
+    return f"{round(value, 2):g} EUR"
+
+
+def eur_cents(value):
+    return f"{round(value + 1e-9, 2):.2f} EUR"
 
 
 def duration(seconds):
@@ -207,9 +233,17 @@ def drives(offer):
     return ", ".join(parts) or "none listed"
 
 
-def describe(offer, met, hit):
+def describe(offer, met, hit, vat_pct):
+    """The feed's prices are without VAT: the mail also gives what the checkout shows."""
+    with_vat = 1 + vat_pct / 100
+    ip = offer["ip_price"]
+    ip_line = ("  With the IPv4 address: its price is not in the feed" if ip is None else
+               f"  With the IPv4 address ({eur(ip)} without VAT): {eur(offer['price'] + ip)} without VAT, "
+               f"{eur_cents((offer['price'] + ip) * with_vat)} with VAT")
     lines = [
-        f"Offer {offer['id']}: {eur(offer['price'])} a month (Prices.monthly.EUR, as the feed gives it)",
+        f"Offer {offer['id']}: {eur(offer['price'])} a month without VAT (Prices.monthly.EUR, as the feed gives it)",
+        f"  With {vat_pct:g}% VAT: {eur_cents(offer['price'] * with_vat)}",
+        ip_line,
         f"  Rule met: {', '.join(met)}",
     ]
     if hit:
@@ -246,17 +280,18 @@ def machine_line(to_mail):
     """The cheapest match as a machine and a price: an advert's subject went to spam (2026-11-23)."""
     best = min((o for o, _, _ in to_mail), key=lambda o: o["price"])
     more = f" and {len(to_mail) - 1} more" if len(to_mail) > 1 else ""
-    return f"{best['cpu']}, {best['ram_gb']:g} GB RAM, {eur(best['price'])}{more}"
+    return f"{best['cpu']}, {best['ram_gb']:g} GB RAM, {eur(best['price'])} without VAT{more}"
 
 
-def build_mail(to_mail, notices):
+def build_mail(to_mail, notices, vat_pct):
     """One mail from the notices of the pass and the offers to report, or None."""
     if not to_mail and not notices:
         return None
     body = list(notices)
     if to_mail:
-        body.append(f"{machine_line(to_mail)}. Prices are Prices.monthly.EUR.")
-        body.extend(describe(o, met, hit) for o, met, hit in to_mail)
+        body.append(f"{machine_line(to_mail)}. Prices are Prices.monthly.EUR, without VAT, and so are the limits; "
+                    f"the checkout adds {vat_pct:g}%.")
+        body.extend(describe(o, met, hit, vat_pct) for o, met, hit in to_mail)
     cheapest = machine_line(to_mail) if to_mail else ""
     lead = notices[0].splitlines()[0].rstrip(".") if notices else "auction-watch"
     subject = f"{lead}: {cheapest}" if notices and cheapest else lead if notices else f"{lead}: {cheapest}"
@@ -489,7 +524,7 @@ def run_pass(record, rules, mail, now=None):
             summary["met"] = sum(1 for o in offers if allowed(o, rules["filters"]) and any(meets(o, r) for r in rules["limits"]))
             summary["history"] = sum(1 for _, _, hit in found if hit)
             to_mail, state["mailed"] = plan(found, offers, state["mailed"])
-        message = build_mail(to_mail, notices)
+        message = build_mail(to_mail, notices, rules["vat_pct"])
         if message:
             mail(*message)
         summary["mailed"] = len(to_mail)
@@ -519,9 +554,20 @@ def loop(record, rules, mail):
 
 # --- Looking at the record ---------------------------------------------------
 
+def coverage(record):
+    """The first line of every view: how far back the record goes, and how much of it is the seed's."""
+    first, last, total, seed = record.db.execute(
+        "SELECT min(first_seen), max(last_seen), count(*), coalesce(sum(seed), 0) FROM offers").fetchone()
+    if not total:
+        return "the record is empty"
+    days = (datetime.date.fromisoformat(last[:10]) - datetime.date.fromisoformat(first[:10])).days + 1
+    return f"the record covers {days} days, {first[:10]} to {last[:10]}; {seed} of its {total} offers came from the seed"
+
+
 def show_kinds(record, now):
     live = dict(record.db.execute("SELECT kind, min(last_price) FROM offers WHERE gone=0 GROUP BY kind"))
     rows = sorted(record.baselines(now).items(), key=lambda kv: (-kv[1][1], kv[0]))
+    print(coverage(record))
     print(f"{len(rows)} kinds with a baseline (the median last price of the offers of the kind that went in the last "
           f"{record.history['window_days']} days, from at least {record.history['min_offers']})")
     print("baseline_eur\toffers\tcheapest_now_eur\tkind")
@@ -546,11 +592,139 @@ def show_offer(record, offer_id, now):
     return 0
 
 
+def kind_shape(kind):
+    """(RAM in GB, has NVMe) from a kind's name: CPU|RAM|nvme|sata|hdd|gpu, read from the right."""
+    _, ram, nvme, *_ = kind.rsplit("|", 5)
+    return float(ram[:-2]), nvme != "nvme:"
+
+
+def period_of(stamp, by):
+    """The month of a time, `2026-11`, or the Monday of its week."""
+    if by == "month":
+        return stamp[:7]
+    day = datetime.date.fromisoformat(stamp[:10])
+    return (day - datetime.timedelta(days=day.weekday())).isoformat()
+
+
+def show_history(record, text, by, groups):
+    """What offers went for, by period: the median of their last price, the lowest, and how many.
+    By kind (those holding `text`, else every kind of a watched RAM) or by four groups."""
+    rams = record.history["ram_gb"]
+    if groups:
+        names = {(ram, nvme): f"{ram:g} GB {'with' if nvme else 'without'} NVMe" for ram in rams for nvme in (True, False)}
+        wanted = lambda kind: names.get(kind_shape(kind))
+    else:
+        wanted = lambda kind: kind if (text.casefold() in kind.casefold() if text else kind_shape(kind)[0] in rams) else None
+    series = {name: {} for name in names.values()} if groups else {}
+    for kind, price, seen in record.db.execute("SELECT kind, last_price, last_seen FROM offers WHERE gone=1"):
+        if (name := wanted(kind)) is not None:
+            series.setdefault(name, {}).setdefault(period_of(seen, by), []).append(price)
+    print(coverage(record))
+    if not any(series.values()):
+        print("no offer went in a kind that matches")
+        return 1
+    ranked = list(series.items()) if groups else sorted(series.items(), key=lambda kv: (-sum(len(p) for p in kv[1].values()), kv[0]))
+    shown = ranked if groups else ranked[:HISTORY_KINDS]
+    what = "groups" if groups else "kinds"
+    print(f"by {by}: the median and the lowest price the offers went for (their last price), from the offers that went; "
+          f"{len(shown)} of {len(ranked)} {what}" + ("" if len(shown) == len(ranked) else f", the {len(shown)} with the most offers"))
+    for name, periods in shown:
+        print(f"\n{name}: {sum(len(p) for p in periods.values())} offers")
+        print(f"{'month' if by == 'month' else 'week_from'}\tmedian_eur\tlowest_eur\toffers")
+        for period in sorted(periods):
+            prices = periods[period]
+            print(f"{period}\t{statistics.median(prices):g}\t{min(prices):g}\t{len(prices)}")
+    return 0
+
+
+def span(seconds):
+    return f"{int(seconds)}s" if seconds < QUICK_SECONDS else duration(seconds)
+
+
+def nearest_rank(sorted_values, fraction):
+    return sorted_values[math.ceil(fraction * len(sorted_values)) - 1]
+
+
+def lifetime_line(label, rows):
+    went = sorted(r["life"] for r in rows if r["gone"])
+    live = sum(1 for r in rows if not r["gone"])
+    if not went:
+        return f"{label}\t0\t-\t-\t-\t-\t{live}"
+    return (f"{label}\t{len(went)}\t{span(nearest_rank(went, 0.5))}\t{span(nearest_rank(went, 0.75))}\t{span(went[-1])}"
+            f"\t{sum(1 for w in went if w < QUICK_SECONDS)}\t{live}")
+
+
+def epoch(stamp):
+    return calendar.timegm(time.strptime(stamp, "%Y-%m-%dT%H:%M:%SZ"))
+
+
+def show_lifetimes(record, limits, text, now):
+    """How long offers stayed in the feed, from the rows this pod saw appear. A seed
+    row has no sighting of its own (the seed was sampled every five minutes), and the
+    offers of the pod's first read were there before it began: neither counts."""
+    rows = record.db.execute(
+        "SELECT kind, first_seen, last_seen, last_price, gone FROM offers"
+        " WHERE seed=0 AND (pod_first_seen IS NULL OR first_seen=pod_first_seen)").fetchall()
+    began = min((r[1] for r in rows), default=None)
+    seen = [r for r in rows if r[1] != began and text.casefold() in r[0].casefold()]
+    baselines = record.baselines(now)
+
+    def under(kind, price):
+        base = baselines.get(kind)
+        return None if base is None else (1 - price / base[0]) * 100
+
+    offers = [{"kind": k, "price": price, "gone": bool(gone), "life": epoch(last) - epoch(first), "under": under(k, price)}
+              for k, first, last, price, gone in seen]
+    print(coverage(record))
+    print(f"lifetimes of {len(offers)} offers this pod saw appear" + (f" in a kind holding '{text}'" if text else "")
+          + "; the offers of its first read and the seed's rows are not counted")
+    print(f"time in the feed, from first to last sighting: the feed changes once a minute, so a time under "
+          f"{QUICK_SECONDS}s is one or two reads")
+    header = "went\thalf_within\tthree_quarters_within\tslowest\tunder_2min\tstill_live"
+    bands = [("under 50 EUR", lambda o: o["price"] < 50), ("50 to 60 EUR", lambda o: 50 <= o["price"] < 60),
+             ("60 to 100 EUR", lambda o: 60 <= o["price"] < 100), ("100 EUR or more", lambda o: o["price"] >= 100)]
+    depth = [("20% or more under its usual price", lambda o: o["under"] is not None and o["under"] >= 20),
+             ("10 to 20% under", lambda o: o["under"] is not None and 10 <= o["under"] < 20),
+             ("under 10% under, or over", lambda o: o["under"] is not None and o["under"] < 10),
+             ("no baseline for its kind", lambda o: o["under"] is None)]
+
+    def within(rule):
+        def test(o):
+            ram, nvme = kind_shape(o["kind"])
+            return ram >= rule["min_ram_gb"] and (not rule["nvme_required"] or nvme) and o["price"] < rule["max_price_eur"]
+        return test
+    sections = [("by price band (the price it went for)", bands),
+                ("by how far under its kind's usual price (the baseline of today)", depth),
+                ("by the operator's limits (price and shape; the datacenter filters are not applied)",
+                 [(rule["name"], within(rule)) for rule in limits])]
+    for title, groups in sections:
+        print(f"\n{title}\n{'group'}\t{header}")
+        for label, test in groups:
+            print(lifetime_line(label, [o for o in offers if test(o)]))
+    return 0
+
+
+def parse_history_args(args):
+    """(text, by, groups) from the words after --history, or None when they do not parse."""
+    text, by, groups, rest = "", "month", False, list(args)
+    while rest:
+        word = rest.pop(0)
+        if word == "--groups":
+            groups = True
+        elif word == "--by" and rest and rest[0] in ("month", "week"):
+            by = rest.pop(0)
+        elif not word.startswith("--") and not text:
+            text = word
+        else:
+            return None
+    return None if groups and text else (text, by, groups)
+
+
 # --- Self-test and dry run ---------------------------------------------------
 
 def _offer(id_, ram, nvme, price, cpu="CPU", gpu=False):
     return {"id": id_, "cpu": cpu, "ram_gb": ram, "ecc": False, "nvme": nvme, "sata": [], "hdd": [], "gpu": gpu,
-            "price": price, "datacenter": "FSN1-DC1", "specials": [], "next_drop_s": 3600, "raw": {"Id": id_}}
+            "price": price, "ip_price": 1.7, "datacenter": "FSN1-DC1", "specials": [], "next_drop_s": 3600, "raw": {"Id": id_}}
 
 
 def _seed_file(path, rows):
@@ -558,6 +732,92 @@ def _seed_file(path, rows):
         for id_, kind, first, last, low, price in rows:
             f.write(json.dumps({"id": id_, "kind": kind, "ecc": False, "first": first, "last": last,
                                 "first_price": price, "low": low, "price": price}) + "\n")
+
+
+def _lines(function, *args):
+    with contextlib.redirect_stdout(io.StringIO()) as out:
+        status = function(*args)
+    return status, out.getvalue().splitlines()
+
+
+def self_test_views(tmp, history, limits):
+    """--history and --lifetimes, on a record of known months, weeks and lifetimes."""
+    now, day = 1_800_000_000, 86400
+    k64, k64n, k128, k32 = (kind_of(_offer(0, ram, nvme, 0)) for ram, nvme in ((64, [512]), (64, []), (128, [512]), (32, [512])))
+    assert kind_shape(k64) == (64, True) and kind_shape(k64n) == (64, False) and kind_shape(k128) == (128, True)
+    assert kind_shape(kind_of(_offer(0, 64, [512], 0, cpu="A|B"))) == (64, True)
+    assert period_of("2026-11-23T10:00:00Z", "month") == "2026-11" and period_of("2026-11-23T10:00:00Z", "week") == "2026-11-23"
+    assert period_of("2026-11-29T23:59:59Z", "week") == "2026-11-23" and period_of("2026-11-30T00:00:00Z", "week") == "2026-11-30"
+    seed = os.path.join(tmp, "views-seed.jsonl.gz")
+    rows = [(1, k64, "2026-09-01T00:00:00Z", "2026-09-10T00:00:00Z", 40, 50), (2, k64, "2026-09-01T00:00:00Z", "2026-09-20T00:00:00Z", 60, 70),
+            (3, k64, "2026-09-01T00:00:00Z", "2026-10-02T00:00:00Z", 80, 90), (4, k64n, "2026-09-01T00:00:00Z", "2026-10-03T00:00:00Z", 30, 30),
+            (5, k128, "2026-09-01T00:00:00Z", "2026-10-03T00:00:00Z", 90, 99), (6, k32, "2026-09-01T00:00:00Z", "2026-10-03T00:00:00Z", 10, 10)]
+    _seed_file(seed, rows)
+    store = Record(os.path.join(tmp, "views.db"), history, seed)
+
+    status, lines = _lines(show_history, store, "", "month", False)
+    assert status == 0 and lines[0] == "the record covers 33 days, 2026-09-01 to 2026-10-03; 6 of its 6 offers came from the seed", lines[0]
+    assert "3 of 3 kinds" in lines[1]                                               # the 32 GB kind's RAM is not watched
+    assert lines[3] == f"{k64}: 3 offers" and lines[5] == "2026-09\t60\t50\t2" and lines[6] == "2026-10\t90\t90\t1", lines
+    assert all(k32 not in line for line in lines)
+    _, lines = _lines(show_history, store, "", "week", False)
+    assert "week_from\tmedian_eur\tlowest_eur\toffers" in lines and "2026-09-07\t50\t50\t1" in lines and "2026-09-14\t70\t70\t1" in lines
+    assert "2026-09-28\t90\t90\t1" in lines                                      # 2026-10-02 is in the week of 2026-09-28
+    _, lines = _lines(show_history, store, "nvme:512", "month", False)             # TEXT holds any RAM, the 32 GB kind too
+    assert any(k32 in line for line in lines) and all(k64n not in line for line in lines)
+    assert _lines(show_history, store, "no such kind", "month", False)[0] == 1
+    _, lines = _lines(show_history, store, "", "month", True)
+    assert "4 of 4 groups" in lines[1] and "64 GB with NVMe: 3 offers" in lines and "64 GB without NVMe: 1 offers" in lines
+    assert "128 GB with NVMe: 1 offers" in lines and "128 GB without NVMe: 0 offers" in lines and all("32 GB" not in line for line in lines)
+    assert "2026-09\t60\t50\t2" in lines
+    assert parse_history_args([]) == ("", "month", False) and parse_history_args(["X", "--by", "week"]) == ("X", "week", False)
+    assert parse_history_args(["--groups", "--by", "month"]) == ("", "month", True)
+    assert parse_history_args(["--by", "year"]) is None and parse_history_args(["--groups", "X"]) is None
+    assert parse_history_args(["A", "B"]) is None and parse_history_args(["--nope"]) is None
+    many = Record(os.path.join(tmp, "many.db"), history)
+    for n in range(HISTORY_KINDS + 3):
+        many.observe([_offer(n, 64, [512], 50, cpu=f"CPU{n:02d}")], now + n * 60 - 1)
+    many.observe([], now + 3600)
+    _, lines = _lines(show_history, many, "", "month", False)
+    assert f"{HISTORY_KINDS} of {HISTORY_KINDS + 3} kinds, the {HISTORY_KINDS} with the most offers" in lines[1]
+    assert sum(1 for line in lines if line.endswith(": 1 offers")) == HISTORY_KINDS
+    assert _lines(show_history, Record(os.path.join(tmp, "empty.db"), history), "", "month", False) == (1, ["the record is empty", "no offer went in a kind that matches"])
+
+    # Lifetimes: 900 is of the first read (left out); 901 stays two minutes, 902 one read, 903 is live.
+    life = Record(os.path.join(tmp, "life.db"), history, seed)
+    o900, o901, o902, o903 = _offer(900, 64, [512], 99), _offer(901, 64, [512], 45), _offer(902, 64, [512], 55), _offer(903, 64, [512], 70)
+    life.observe([o900], now)
+    life.observe([o900, o901, o902, o903], now + 60)
+    life.observe([o900, o901, o903], now + 120)
+    life.touch(now + 180)
+    life.observe([o900, o903], now + 240)
+    status, lines = _lines(show_lifetimes, life, limits, "", now + 300)
+    assert status == 0 and lines[0].startswith("the record covers ") and "6 of its 10 offers came from the seed" in lines[0], lines[0]
+    assert "lifetimes of 3 offers" in lines[1] and "the feed changes once a minute" in lines[2]
+    column = lambda label: next(line.split("\t")[1:] for line in lines if line.startswith(label + "\t"))
+    assert column("under 50 EUR") == ["1", "2m", "2m", "2m", "0", "0"]
+    assert column("50 to 60 EUR") == ["1", "0s", "0s", "0s", "1", "0"]
+    assert column("60 to 100 EUR") == ["0", "-", "-", "-", "-", "1"]
+    assert column("100 EUR or more") == ["0", "-", "-", "-", "-", "0"]
+    assert column(limits[0]["name"]) == ["2", "0s", "2m", "2m", "1", "0"]
+    assert column(limits[1]["name"]) == ["0", "-", "-", "-", "-", "0"]
+    assert column("no baseline for its kind") == ["2", "0s", "2m", "2m", "1", "1"]
+    # A kind with a baseline: its offers are measured against it.
+    base_kind = kind_of(_offer(0, 64, [512], 0))
+    _seed_file(seed, [(2000 + i, base_kind, iso(now - 50 * day), iso(now - 40 * day), 100, 100) for i in range(10)])
+    based = Record(os.path.join(tmp, "based.db"), history, seed)
+    based.observe([o900], now)
+    based.observe([o900, o901, o902], now + 60)
+    based.observe([o900], now + 120)
+    _, lines = _lines(show_lifetimes, based, limits, "", now + 300)
+    assert column("20% or more under its usual price") == ["2", "0s", "0s", "0s", "2", "0"]      # 45 and 55 against 100
+    assert column("no baseline for its kind") == ["0", "-", "-", "-", "-", "0"]
+    _, lines = _lines(show_lifetimes, based, limits, "no such kind", now + 300)
+    assert "lifetimes of 0 offers" in lines[1] and column("under 50 EUR") == ["0", "-", "-", "-", "-", "0"]
+    assert nearest_rank([1, 2, 3, 4], 0.5) == 2 and nearest_rank([1, 2, 3, 4], 0.75) == 3 and nearest_rank([7], 0.75) == 7
+    assert span(119) == "119s" and span(120) == "2m" and span(3700) == "1h 1m"
+    for store_ in (store, many, life, based):
+        store_.db.close()
 
 
 def self_test():
@@ -569,6 +829,14 @@ def self_test():
     assert (r64["min_ram_gb"], r64["nvme_required"], r64["max_price_eur"]) == (64, True, 60)
     assert (r128["min_ram_gb"], r128["nvme_required"], r128["max_price_eur"]) == (128, True, 100)
     assert history == {"ram_gb": [64.0, 128.0], "under_pct": 20.0, "window_days": 90, "min_offers": 10}
+    assert rules["vat_pct"] == 21
+    for bad_vat in (-1, 100, "x"):
+        try:
+            parse_rules({**json.load(open(RULES_FILE)), "vat_pct": bad_vat})
+            raise AssertionError("accepted")
+        except ValueError:
+            pass
+    vat = rules["vat_pct"]
     filters = rules["filters"]
     assert filters == {"datacenter_prefixes": ["FSN", "NBG"], "skip_hdd_only": True}
 
@@ -703,19 +971,26 @@ def self_test():
     assert [o["id"] for o, _, _ in to_mail] == [1]          # and mailed again if it comes back
 
     # The mail says what the operator needs to decide.
-    text = build_mail(found[:1], [])[1]
-    for needle in ("Offer 1", "55 EUR", r64["name"], pct_name, "35% under the usual 84.5 EUR", "10 such offers",
+    text = build_mail(found[:1], [], vat)[1]
+    for needle in ("Offer 1", "55 EUR a month without VAT", "Prices are Prices.monthly.EUR, without VAT, and so are the limits",
+                   "With 21% VAT: 66.55 EUR", "With the IPv4 address (1.7 EUR without VAT): 56.7 EUR without VAT, 68.61 EUR with VAT",
+                   r64["name"], pct_name, "35% under the usual 84.5 EUR", "10 such offers",
                    "2026-09-01 to 2026-11-20", "1h", "64 GB", "not ECC", "1 x NVME 512 GB", "FSN1-DC1", AUCTION_PAGE + "?freetext=1"):
         assert needle in text, needle
-    assert "History:" not in build_mail(found[2:], [])[1]
+    assert "History:" not in build_mail(found[2:], [], vat)[1]
+    no_ip = _offer(7, 64, [512], 55)
+    no_ip["ip_price"] = None
+    assert "IPv4 address: its price is not in the feed" in build_mail([(no_ip, ["rule"], None)], [], vat)[1]
+    ip_feed = {"IPPrices": {"monthly": {"EUR": 1.7}}}
+    assert _ip_price(ip_feed) == 1.7 and _ip_price({}) is None and _ip_price({"IPPrices": {"monthly": {"EUR": "x"}}}) is None
     mixed = _offer(8, 64, [512], 55)
     mixed["sata"], mixed["hdd"] = [512, 1000, 512], [4000, 4000]
     assert drives(mixed) == "1 x NVME 512 GB, 2 x SATA SSD 512 GB, 1 x SATA SSD 1000 GB, 2 x HDD 4000 GB"
     assert drives(_offer(9, 64, [], 55)) == "none listed"
-    assert build_mail([], []) is None
-    subject, text = build_mail(found, [])
-    assert subject == "auction-watch: CPU, 64 GB RAM, 55 EUR and 2 more" and "offer" not in subject
-    assert text.startswith("CPU, 64 GB RAM, 55 EUR and 2 more. ")
+    assert build_mail([], [], vat) is None
+    subject, text = build_mail(found, [], vat)
+    assert subject == "auction-watch: CPU, 64 GB RAM, 55 EUR without VAT and 2 more" and "offer" not in subject
+    assert text.startswith("CPU, 64 GB RAM, 55 EUR without VAT and 2 more. ")
     up = up_notice([_offer(1, 64, [512], 65)], rules["limits"])
     assert "holds 1 offers" in up and "5 EUR over the limit" in up and "no offer of that shape" in up
 
@@ -778,7 +1053,7 @@ def self_test():
         sent.clear()
         good["server"][0]["Prices"]["monthly"]["EUR"] = 70       # over the limit, 22% under 90
         result = run_pass(store2, rules, mail, now)
-        assert result["history"] == 1 and result["met"] == 0 and result["mailed"] == 1 and sent[0] == "auction-watch: c, 64 GB RAM, 70 EUR"
+        assert result["history"] == 1 and result["met"] == 0 and result["mailed"] == 1 and sent[0] == "auction-watch: c, 64 GB RAM, 70 EUR without VAT"
         run_pass(store2, rules, mail, now + 60)
         assert len(sent) == 1
         good["server"][0]["Prices"]["monthly"]["EUR"] = 69
@@ -817,6 +1092,9 @@ def self_test():
             assert show_offer(store2, 1, now) == 0 and show_offer(store2, 100, now) == 0 and show_offer(store2, 5, now) == 1
         assert "90\t10\t69\t" in shown.getvalue() and "not seen by this record (seed)" in shown.getvalue()
         assert "pod_first_seen: " in shown.getvalue() and "first_seen: " in shown.getvalue()
+        assert shown.getvalue().startswith("the record covers ")
+
+        self_test_views(tmp, history, rules["limits"])
 
         # A record written before the fix: its seed rows the pod saw are put right at the next start, once.
         old = os.path.join(tmp, "old.db")
@@ -853,7 +1131,7 @@ def dry_run(feed_path, rules_path, first_pass):
     print(f"{len(offers)} offers: {sum(1 for o in offers if any(meets(o, r) for r in rules['limits']))} meet a limit, "
           f"{sum(1 for _, _, h in found if h)} are far under their usual price, {len(to_mail)} would be mailed", file=sys.stderr)
     notices = [up_notice([o for o in offers if allowed(o, rules["filters"])], rules["limits"])] if first_pass else []
-    message = build_mail(to_mail, notices)
+    message = build_mail(to_mail, notices, rules["vat_pct"])
     if message is None:
         print("no mail: no offer matches")
         return
@@ -876,6 +1154,10 @@ def main():
         return 0
     if args[:1] == ["--offer"] and len(args) == 2:
         return show_offer(Record(DB_FILE, rules["history"]), int(args[1]), time.time())
+    if args[:1] == ["--history"] and (parsed := parse_history_args(args[1:])):
+        return show_history(Record(DB_FILE, rules["history"]), *parsed)
+    if args[:1] == ["--lifetimes"] and len(args) <= 2 and not (args[1:] and args[1].startswith("--")):
+        return show_lifetimes(Record(DB_FILE, rules["history"]), rules["limits"], args[1] if args[1:] else "", time.time())
     if args[:1] == ["--snapshot"] and len(args) == 2:
         Record(DB_FILE, rules["history"]).snapshot(args[1])
         return 0

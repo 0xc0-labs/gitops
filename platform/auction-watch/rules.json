@@ -3,6 +3,7 @@
     {"name": "64 GB or more with NVMe, under 60 EUR", "min_ram_gb": 64, "nvme_required": true, "max_price_eur": 60},
     {"name": "128 GB or more with NVMe, under 100 EUR", "min_ram_gb": 128, "nvme_required": true, "max_price_eur": 100}
   ],
+  "vat_pct": 21,
   "filters": {"datacenter_prefixes": ["FSN", "NBG"], "skip_hdd_only": true},
   "history":{"ram_gb": [64, 128], "under_pct": 20, "window_days": 90, "min_offers": 10}
 }
