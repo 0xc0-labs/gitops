@@ -48,9 +48,11 @@ spec:
 # The token, as on the model route (`agent-token`, gateway-route.yaml): the
 # platform's issuer and audience, the tenant a Require, and the expiry checked
 # by the authentication. The agent's token is in `Authorization`, which this
-# route has no other use for, and the gateway passes it on to the server, which
-# hands it to the API: the API judges every call again (matchmark's
-# docs/architecture/tracker-tools.md, Where the scope is enforced).
+# route has no other use for. The authentication removes the token it validates
+# (v1.7.0), so `backend.auth.passthrough` puts it back on the request to the
+# server, which hands it to the API: the API judges every call again
+# (matchmark's docs/architecture/tracker-tools.md, Where the scope is
+# enforced). Without it the server answers 401 to every call (#621).
 #
 # The grants are one Allow over the tool's name and the token's `grants` claim,
 # in the same policy as the authentication: a policy that reads `jwt` without
@@ -91,6 +93,8 @@ spec:
         matchExpressions:
           - has(jwt.tenant) && jwt.tenant == "default"
   backend:
+    auth:
+      passthrough: {}
     mcp:
       authorization:
         action: Allow

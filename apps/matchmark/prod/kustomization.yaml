@@ -146,7 +146,7 @@ replacements:
           index: 2
       - select:
           kind: Job
-          name: tracker-mcp-proof-version
+          name: tracker-mcp-proof-version-r2
         fieldPaths:
           - metadata.name
         options:

@@ -36,6 +36,18 @@ def body_of(response):
         return None
 
 
+def from_server(response):
+    # tracker-mcp's own refusal of a request with no bearer token is this body;
+    # the gateway's is not JSON of this shape.
+    answer = body_of(response)
+    return isinstance(answer, dict) and answer.get("error") == "unauthorized"
+
+
+def refusal(response):
+    who = "the server" if from_server(response) else "the gateway"
+    return f"status {response.status_code}, refused by {who}, {response.text[:200]!r}"
+
+
 def rpc(client, method, params=None, token=None, session=None, ident=1):
     headers = {"Accept": "application/json, text/event-stream"}
     if token:
@@ -73,10 +85,18 @@ with httpx.Client(timeout=15) as client:
     token = issued.json()["token"]
 
     bare = rpc(client, "tools/list")
-    check("2 tools/list, no token", bare.status_code == 401, f"status {bare.status_code}")
+    check(
+        "2 tools/list, no token: refused by the gateway",
+        bare.status_code == 401 and not from_server(bare),
+        refusal(bare),
+    )
 
     wrong = rpc(client, "tools/list", token="not-a-token")
-    check("3 tools/list, a token that is not ours", wrong.status_code == 401, f"status {wrong.status_code}")
+    check(
+        "3 tools/list, a token that is not ours: refused by the gateway",
+        wrong.status_code == 401 and not from_server(wrong),
+        refusal(wrong),
+    )
 
     started = rpc(client, "initialize", {
         "protocolVersion": "2025-06-18",
@@ -89,7 +109,8 @@ with httpx.Client(timeout=15) as client:
     check(
         "4 initialize, the run's token",
         started.status_code == 200 and server is not None,
-        f"status {started.status_code}, server {server}, session {'kept' if session else 'none'}",
+        f"status {started.status_code}, server {server}, session {'kept' if session else 'none'}"
+        + ("" if started.status_code == 200 else f", {refusal(started)}"),
     )
     if session:
         rpc(client, "notifications/initialized", token=token, session=session, ident=None)
@@ -101,7 +122,8 @@ with httpx.Client(timeout=15) as client:
     check(
         "5 tools/list, the run's token",
         listed.status_code == 200 and names is not None,
-        f"status {listed.status_code}, tools {names}",
+        f"status {listed.status_code}, tools {names}"
+        + ("" if listed.status_code == 200 else f", {refusal(listed)}"),
     )
 
     # The token has no grant. Hidden is the gateway authorizing from the claim
@@ -126,7 +148,9 @@ with httpx.Client(timeout=15) as client:
     refused_by_gateway = called.status_code != 200 or (answer or {}).get("error") is not None
     detail = f"status {called.status_code}, {called.text[:300]!r}"
     check("7 tools/call get_item, no grant: refused", refused_by_api or refused_by_gateway, detail)
-    if refused_by_gateway:
+    if refused_by_gateway and from_server(called):
+        observe("7 who refused it", "the server, for want of a token: the gateway did not pass it on")
+    elif refused_by_gateway:
         observe("7 who refused it", "the gateway")
     elif refused_by_api:
         observe("7 who refused it", "the API, as a tool error the agent reads")
