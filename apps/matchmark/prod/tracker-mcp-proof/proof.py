@@ -6,11 +6,6 @@ import httpx
 
 API = os.environ["API_URL"]
 ROUTE = os.environ["GATEWAY_URL"] + "/mcp/tracker"
-GRANTED = {
-    "tracker-read": {"get_item", "get_comments", "get_related"},
-    "tracker-write": {"comment", "ask_person", "create_subitem"},
-}
-TOOLS = set().union(*GRANTED.values())
 failures = []
 
 

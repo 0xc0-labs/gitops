@@ -816,12 +816,12 @@ agent's token on to the API, which judges every call.
   gateway proof's label, so it takes that proof's network. It fails unless:
   (1) the API issues a token; (2, 3) `tools/list` with no token, and with a
   token that is not ours, answer 401; (4) `initialize` with the token answers
-  the server's name; (5) `tools/list` with the token answers a list; (6) that list is empty for a
-  token with no grant; (7) a `tools/call` of `get_item` with such a token is
-  refused by the gateway: not by the server for want of a token, not by the API
-  as a tool error. It runs in the matchmark
-  namespace, not from a sandbox: the token is issued with the service token,
-  which only this namespace has. A read that succeeds needs a token with
+  the server's name; (5) `tools/list` with the token answers a list; (6) that
+  list is empty for a token with no grant; (7) a `tools/call` of `get_item`
+  with such a token is refused by the gateway: not by the server for want of a
+  token, not by the API as a tool error. It runs in the matchmark namespace,
+  not from a sandbox: the token is issued with the service token, which only
+  this namespace has. A read that succeeds needs a token with
   `tracker-read` and an item the tracker knows, so it waits for the first agent
   that has them.
 
