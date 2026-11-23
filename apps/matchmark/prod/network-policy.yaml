@@ -174,7 +174,7 @@ spec:
           port: 4318
 ---
 # The API's port: Traefik's pods for WARP, the namespace's gateway, which
-# fetches the JWKS from inside the cluster, and `intake-api`. The Service's port 80 is
+# fetches the JWKS from inside the cluster, `intake-api` and `tracker-mcp`. The Service's port 80 is
 # translated to 8000 before the policy applies.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -204,6 +204,9 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: matchmark-intake-api
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: matchmark-tracker-mcp
       ports:
         - protocol: TCP
           port: 8000

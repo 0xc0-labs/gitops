@@ -1,0 +1,82 @@
+# What `tracker-mcp` reaches and who reaches it (README.md, tracker-mcp). DNS is
+# `dns` in network-policy.yaml; the API's side is `api-ingress`. The rules name
+# the pod's port: a Service's port is translated to the pod's before a policy
+# applies.
+#
+# The gateway's proxy is the only caller: no sandbox and no other pod reaches
+# the server, so an agent's token cannot be presented to it without the route's
+# checks.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tracker-mcp-ingress
+  namespace: matchmark
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: matchmark-tracker-mcp
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              gateway.networking.k8s.io/gateway-name: gateway
+      ports:
+        - protocol: TCP
+          port: 8000
+---
+# The API, which every tool calls with the agent's token, and the collector's
+# OTLP/HTTP port, for its logs, metrics and traces. Nothing else: no tracker,
+# no Vault, no internet.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tracker-mcp-egress
+  namespace: matchmark
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: matchmark-tracker-mcp
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: matchmark-api
+      ports:
+        - protocol: TCP
+          port: 8000
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openobserve-collector
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/component: opentelemetry-collector
+              app.kubernetes.io/instance: openobserve-collector.openobserve-collector-gateway
+      ports:
+        - protocol: TCP
+          port: 4318
+---
+# The proxy's way to the server: the route's one backend.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: proxy-to-tracker-mcp
+  namespace: matchmark
+spec:
+  podSelector:
+    matchLabels:
+      gateway.networking.k8s.io/gateway-name: gateway
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: matchmark-tracker-mcp
+      ports:
+        - protocol: TCP
+          port: 8000
