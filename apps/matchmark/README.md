@@ -721,7 +721,12 @@ its item follows the run; no webhook is needed for that.
   `MATCHMARK_TRACKER_API_KEY_FILE` is `/run/secrets/plane/api_key`. The three
   are set together or not at all (a half is an error in the code). The API
   also has `MATCHMARK_TASK_APP=factory`, the application that runs tasks. No
-  webhook secret: only `intake-api` will hold one.
+  webhook secret: only `intake-api` will hold one. The worker alone also has
+  `MATCHMARK_TRACKER_WEB_ADDRESS`, `https://plane.int.0xc0.cc`: the address
+  people open the tracker at, which the factory's pull requests link their
+  task by (`.../0xc0/browse/<key>/`). It is optional, with no secret and no
+  path, and separate from `MATCHMARK_TRACKER_ADDRESS`, which the API is
+  called at.
 - **Key**: `matchmark/plane`'s `api_key`, written by the operator, read by the
   `VaultStaticSecret` `matchmark-plane` into `matchmark-plane-vault`. It is a
   **file**, mounted read-only at `/run/secrets/plane/`, mode 0440 with the
