@@ -139,6 +139,8 @@ spec:
             # holds one.
             - name: MATCHMARK_TRACKER_ADDRESS
               value: http://plane-api.plane.svc.cluster.local:8000
+            - name: MATCHMARK_TRACKER_WEB_ADDRESS
+              value: https://plane.int.0xc0.cc
             - name: MATCHMARK_TRACKER_WORKSPACE
               value: "0xc0"
             - name: MATCHMARK_TRACKER_API_KEY_FILE
