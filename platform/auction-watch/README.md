@@ -54,6 +54,18 @@ Today: 64 GB or more with NVMe under 60 EUR, and 128 GB or more with NVMe under
 | `window_days` | how far back the usual price looks: `90` |
 | `min_offers` | the least history a kind needs to have a baseline: `10` |
 
+**Filters**, `filters`, applied to every rule, the limits and the history alike:
+
+| Field | Meaning |
+|---|---|
+| `datacenter_prefixes` | the datacenter's name must start with one of them: `["FSN", "NBG"]` (Falkenstein, Nuremberg: Germany; `HEL` is Finland) |
+| `skip_hdd_only` | `true` never mails an offer whose only drives are hard disks: at least one HDD, no NVMe and no SATA SSD |
+
+An offer a filter leaves out is still written to the record, which is of the
+whole auction, and its kind's baseline does not change: it is only never
+mailed. The first mail's cheapest-of-each-shape section follows the filters,
+and the pass's log line counts, in `filtered`, the matches they left out.
+
 An offer's **kind** is its CPU, its RAM, each type's drive sizes (sorted) and
 whether it has a GPU: two offers of one kind are the same machine. ECC is not
 in it, as it follows from the CPU and the RAM. A kind's **baseline** is the
@@ -85,6 +97,10 @@ tries other rules and `--first-pass` adds the "is up" section.
   rule and were not mailed yet, or were mailed at a higher price. An offer
   mailed at this price is not mailed again; one that left the feed is
   forgotten, and mailed again if it comes back.
+- The subject names the machine, not the count (a subject with "offer(s) match"
+  went to spam): `auction-watch: <CPU>, <RAM> GB RAM, <price> EUR`, the cheapest
+  match's, and ` and N more` when there are others. The body's first line says
+  the same.
 - Each offer: the rules it met (both, in one entry, when it meets a limit and
   the history rule), the price and when it next drops, the CPU, the RAM and
   whether it is ECC, the drives, the datacenter, the specials, and a link that
@@ -104,14 +120,19 @@ tries other rules and `--first-pass` adds the "is up" section.
 of MB after 400 days), a SQLite file written with Python's `sqlite3`:
 
 - `offers`: for every offer of the feed, whatever its RAM: `id`, `kind`, `ecc`,
-  `specials`, `first_seen`, `last_seen`, `first_price`, `min_price`,
-  `last_price`, `gone`, `seed` and `offer` (the feed's entry as it was the
-  first time). An offer that is no longer in the feed is `gone`, and its
+  `specials`, `first_seen`, `pod_first_seen`, `last_seen`, `first_price`,
+  `min_price`, `last_price`, `gone`, `seed` and `offer` (the feed's entry as it
+  was the first time this pod saw it). A row from the seed has `seed = 1`, the
+  seed's `first_seen` and no `pod_first_seen`, `specials` or `offer` until a
+  read shows it: then it takes the body and specials, is no longer a seed row,
+  and `pod_first_seen` says when. An offer that is no longer in the feed is `gone`, and its
   `last_price` is what it went for. A gone offer is deleted 400 days after it
   was last seen.
 - `mailed`: the id and price of each offer mailed that is still in the feed.
 - `meta`: whether the first mail went, since when the feed cannot be read, the
-  feed's `last-modified`, and when the seed was loaded.
+  feed's `last-modified`, when the seed was loaded, and when the seed rows
+  this pod had seen were put right (#617: once, at the first start after it;
+  their `pod_first_seen` is the seed's load, the best date left).
 
 It replaces the CronJob's state ConfigMap, its Role and RoleBinding, and the
 Kubernetes API in the network policy: the pod mounts no service account token.

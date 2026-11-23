@@ -100,7 +100,7 @@ def parse_offers(feed):
 
 
 def parse_rules(rules):
-    """{"limits": [...], "history": {...}}, checked."""
+    """{"limits": [...], "history": {...}, "filters": {...}}, checked."""
     try:
         limits = [{"name": str(r["name"]), "min_ram_gb": float(r["min_ram_gb"]),
                    "nvme_required": bool(r["nvme_required"]), "max_price_eur": float(r["max_price_eur"])}
@@ -110,7 +110,9 @@ def parse_rules(rules):
                    "window_days": int(h["window_days"]), "min_offers": int(h["min_offers"])}
         if not 0 < history["under_pct"] < 100 or history["window_days"] < 1 or history["min_offers"] < 1:
             raise ValueError("history out of range")
-        return {"limits": limits, "history": history}
+        f = rules["filters"]
+        filters = {"datacenter_prefixes": [str(p) for p in f["datacenter_prefixes"]], "skip_hdd_only": bool(f["skip_hdd_only"])}
+        return {"limits": limits, "history": history, "filters": filters}
     except (KeyError, TypeError, ValueError) as e:
         raise ValueError(f"rules file: {type(e).__name__}: {e}") from None
 
@@ -146,11 +148,22 @@ def history_rule_name(history):
     return f"at least {history['under_pct']:g}% under its usual price"
 
 
-def matches(offers, rules, baseline):
+def allowed(offer, filters):
+    """Whether an offer may be mailed at all: in one of the datacenters wanted,
+    and not with hard disks as its only drives. The record keeps the rest."""
+    if filters["datacenter_prefixes"] and not offer["datacenter"].startswith(tuple(filters["datacenter_prefixes"])):
+        return False
+    return not (filters["skip_hdd_only"] and offer["hdd"] and not offer["nvme"] and not offer["sata"])
+
+
+def matches(offers, rules, baseline, filtered=True):
     """[(offer, rules met, history hit or None)] for every offer that meets a
-    limit or the history rule. `baseline(kind)` is the kind's baseline or None."""
+    limit or the history rule. `baseline(kind)` is the kind's baseline or None.
+    The filters apply to every rule; `filtered=False` skips them, to count what they leave out."""
     found = []
     for offer in offers:
+        if filtered and not allowed(offer, rules["filters"]):
+            continue
         met = [r["name"] for r in rules["limits"] if meets(offer, r)]
         hit = history_hit(offer, rules["history"], baseline(kind_of(offer))) if offer["ram_gb"] in rules["history"]["ram_gb"] else None
         if hit:
@@ -229,15 +242,22 @@ def cheapest_by_rule(offers, limits):
     return lines
 
 
+def machine_line(to_mail):
+    """The cheapest match as a machine and a price: an advert's subject went to spam (2026-11-23)."""
+    best = min((o for o, _, _ in to_mail), key=lambda o: o["price"])
+    more = f" and {len(to_mail) - 1} more" if len(to_mail) > 1 else ""
+    return f"{best['cpu']}, {best['ram_gb']:g} GB RAM, {eur(best['price'])}{more}"
+
+
 def build_mail(to_mail, notices):
     """One mail from the notices of the pass and the offers to report, or None."""
     if not to_mail and not notices:
         return None
     body = list(notices)
     if to_mail:
-        body.append(f"{len(to_mail)} offer(s) match. Prices are Prices.monthly.EUR.")
+        body.append(f"{machine_line(to_mail)}. Prices are Prices.monthly.EUR.")
         body.extend(describe(o, met, hit) for o, met, hit in to_mail)
-    cheapest = f"{len(to_mail)} offer(s) match, from {eur(min(o['price'] for o, _, _ in to_mail))}" if to_mail else ""
+    cheapest = machine_line(to_mail) if to_mail else ""
     lead = notices[0].splitlines()[0].rstrip(".") if notices else "auction-watch"
     subject = f"{lead}: {cheapest}" if notices and cheapest else lead if notices else f"{lead}: {cheapest}"
     return subject, "\n\n".join(body) + "\n"
@@ -266,6 +286,7 @@ CREATE TABLE IF NOT EXISTS offers (
   ecc INTEGER NOT NULL,
   specials TEXT,
   first_seen TEXT NOT NULL,
+  pod_first_seen TEXT,
   last_seen TEXT NOT NULL,
   first_price REAL NOT NULL,
   min_price REAL NOT NULL,
@@ -289,9 +310,12 @@ class Record:
         self.db = sqlite3.connect(path, timeout=TIMEOUT)
         self.db.execute("PRAGMA journal_mode=WAL")
         self.db.executescript(SCHEMA)
+        if "pod_first_seen" not in {r[1] for r in self.db.execute("PRAGMA table_info(offers)")}:
+            self.db.execute("ALTER TABLE offers ADD COLUMN pod_first_seen TEXT")
         self.db.commit()
         if seed_file and self._meta("seeded") is None:
             self._seed(seed_file)
+        self._repair_seed_rows()
 
     def _meta(self, key):
         row = self.db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
@@ -306,7 +330,18 @@ class Record:
                 " VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 1)",
                 ((int(s["id"]), s["kind"], int(s["ecc"]), s["first"], s["last"], s["first_price"], s["low"], s["price"])
                  for s in map(json.loads, f)))
-            self.db.execute("INSERT INTO meta VALUES ('seeded', ?)", (iso(time.time()),))
+            self.db.executemany("INSERT INTO meta VALUES (?, ?)", [("seeded", iso(time.time())), ("seed_rows_repaired", "new")])
+
+    def _repair_seed_rows(self):
+        """Once: a seed row this pod saw before #617 kept the seed's mark. Its last
+        sighting is after the seed was loaded; the first start is the best date for its first."""
+        if self._meta("seed_rows_repaired") is not None:
+            return
+        seeded = self._meta("seeded")
+        with self.db:
+            if seeded is not None:
+                self.db.execute("UPDATE offers SET seed=0, pod_first_seen=? WHERE seed=1 AND last_seen>=?", (seeded, seeded))
+            self.db.execute("INSERT INTO meta VALUES ('seed_rows_repaired', ?)", (iso(time.time()),))
 
     def observe(self, offers, now):
         """What a feed read shows: new offers, price changes, offers gone."""
@@ -316,11 +351,13 @@ class Record:
             self.db.execute("UPDATE offers SET gone=1 WHERE gone=0")
             for o in offers:
                 self.db.execute(
-                    "INSERT INTO offers (id, kind, ecc, specials, first_seen, last_seen, first_price, min_price, last_price, offer)"
-                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                    "INSERT INTO offers (id, kind, ecc, specials, first_seen, pod_first_seen, last_seen, first_price, min_price, last_price, offer)"
+                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
                     " ON CONFLICT (id) DO UPDATE SET last_seen=excluded.last_seen, last_price=excluded.last_price,"
-                    " min_price=min(min_price, excluded.min_price), gone=0",
-                    (o["id"], kind_of(o), int(o["ecc"]), json.dumps(o["specials"]), stamp, stamp,
+                    " min_price=min(min_price, excluded.min_price), gone=0, seed=0,"
+                    " specials=coalesce(specials, excluded.specials), offer=coalesce(offer, excluded.offer),"
+                    " pod_first_seen=coalesce(pod_first_seen, excluded.pod_first_seen)",
+                    (o["id"], kind_of(o), int(o["ecc"]), json.dumps(o["specials"]), stamp, stamp, stamp,
                      o["price"], o["price"], o["price"], json.dumps(o.get("raw"), separators=(",", ":"))))
             self.db.execute("DELETE FROM offers WHERE gone=1 AND last_seen<?", (iso(now - RETENTION_DAYS * 86400),))
 
@@ -411,7 +448,7 @@ def run_pass(record, rules, mail, now=None):
     """One pass. `mail(subject, text)` sends. Returns the fields of its log line."""
     started = time.monotonic()
     now = time.time() if now is None else now
-    summary = {"msg": "pass", "offers": 0, "met": 0, "history": 0, "mailed": 0, "feed": "error"}
+    summary = {"msg": "pass", "offers": 0, "met": 0, "history": 0, "filtered": 0, "mailed": 0, "feed": "error"}
     try:
         state = record.load_state()
         first = not state["up"]
@@ -437,7 +474,7 @@ def run_pass(record, rules, mail, now=None):
             if offers is None:
                 # Not up yet means no stored last-modified: never a 304.
                 raise ValueError("a 304 before the first pass")
-            notices.append(up_notice(offers, rules["limits"]))
+            notices.append(up_notice([o for o in offers if allowed(o, rules["filters"])], rules["limits"]))
         to_mail = []
         if offers is None:
             record.touch(now)
@@ -445,9 +482,11 @@ def run_pass(record, rules, mail, now=None):
             # Written before the mail: a mail that fails must not cost the history.
             record.observe(offers, now)
             cache = {}
-            found = matches(offers, rules, lambda kind: cache.setdefault(kind, record.baseline(kind, now)))
+            baseline = lambda kind: cache.setdefault(kind, record.baseline(kind, now))
+            found = matches(offers, rules, baseline)
             summary["offers"] = len(offers)
-            summary["met"] = sum(1 for o in offers if any(meets(o, r) for r in rules["limits"]))
+            summary["filtered"] = len(matches(offers, rules, baseline, filtered=False)) - len(found)
+            summary["met"] = sum(1 for o in offers if allowed(o, rules["filters"]) and any(meets(o, r) for r in rules["limits"]))
             summary["history"] = sum(1 for _, _, hit in found if hit)
             to_mail, state["mailed"] = plan(found, offers, state["mailed"])
         message = build_mail(to_mail, notices)
@@ -530,6 +569,27 @@ def self_test():
     assert (r64["min_ram_gb"], r64["nvme_required"], r64["max_price_eur"]) == (64, True, 60)
     assert (r128["min_ram_gb"], r128["nvme_required"], r128["max_price_eur"]) == (128, True, 100)
     assert history == {"ram_gb": [64.0, 128.0], "under_pct": 20.0, "window_days": 90, "min_offers": 10}
+    filters = rules["filters"]
+    assert filters == {"datacenter_prefixes": ["FSN", "NBG"], "skip_hdd_only": True}
+
+    # The filters: Germany only, and never HDD alone; any other drive makes it mailable.
+    def at(dc, nvme=(), sata=(), hdd=()):
+        o = _offer(1, 64, list(nvme), 10)
+        o.update(datacenter=dc, sata=list(sata), hdd=list(hdd))
+        return o
+    assert allowed(at("FSN1-DC14", [512]), filters) and allowed(at("NBG1-DC3", [512]), filters)
+    assert not allowed(at("HEL1-DC2", [512]), filters)
+    assert not allowed(at("FSN1-DC14", hdd=[4000]), filters)
+    assert allowed(at("FSN1-DC14", sata=[512], hdd=[4000]), filters) and allowed(at("FSN1-DC14", nvme=[512], hdd=[4000]), filters)
+    assert allowed(at("FSN1-DC14"), filters)                       # no drive listed is not "only HDD"
+    cheap_hel, cheap_hdd = at("HEL1-DC2", [512]), at("FSN1-DC14", hdd=[4000])
+    wide = {**rules, "limits": [{**r64, "nvme_required": False}]}
+    assert [o["datacenter"] for o, _, _ in matches([cheap_hel, cheap_hdd, at("NBG1-DC3", [512])], wide, lambda k: None)] == ["NBG1-DC3"]
+    assert len(matches([cheap_hel, cheap_hdd], wide, lambda k: None, filtered=False)) == 2
+    # And the history rule: far under the usual, yet never mailed from Helsinki.
+    usual_base = lambda k: (100.0, 12, "2026-09-01", "2026-11-20")
+    assert matches([cheap_hel], {**rules, "limits": []}, usual_base) == []
+    assert len(matches([cheap_hel], {**rules, "limits": []}, usual_base, filtered=False)) == 1
     pct_name = history_rule_name(history)
 
     # The limits: under, never equal; NVMe is needed; RAM is a floor.
@@ -588,6 +648,17 @@ def self_test():
         row = lambda: record.db.execute(
             "SELECT first_seen, last_seen, first_price, min_price, last_price, gone, seed, offer FROM offers WHERE id=1").fetchone()
         assert row() == (iso(now), iso(now), 70, 70, 70, 0, 0, '{"Id":1}')
+        # A seed offer the feed shows stops being a seed row: it takes the body and specials,
+        # keeps the seed's first_seen, and records when this pod first saw it.
+        seen = lambda i: record.db.execute(
+            "SELECT first_seen, pod_first_seen, seed, specials, offer FROM offers WHERE id=?", (i,)).fetchone()
+        assert seen(300) == (iso(now - 50 * day), None, 1, None, None)
+        record.observe([_offer(300, 64, [1000], 80)], now + 10)
+        assert seen(300) == (iso(now - 50 * day), iso(now + 10), 0, "[]", '{"Id":300}')
+        record.observe([_offer(300, 64, [1000], 79)], now + 20)
+        assert seen(300)[1] == iso(now + 10)
+        record.db.execute("DELETE FROM offers WHERE id=300")
+        record.db.commit()
         record.observe([_offer(1, 64, [512], 60)], now + 60)
         assert row()[:6] == (iso(now), iso(now + 60), 70, 60, 60, 0)
         record.observe([_offer(1, 64, [512], 65)], now + 120)
@@ -642,6 +713,9 @@ def self_test():
     assert drives(mixed) == "1 x NVME 512 GB, 2 x SATA SSD 512 GB, 1 x SATA SSD 1000 GB, 2 x HDD 4000 GB"
     assert drives(_offer(9, 64, [], 55)) == "none listed"
     assert build_mail([], []) is None
+    subject, text = build_mail(found, [])
+    assert subject == "auction-watch: CPU, 64 GB RAM, 55 EUR and 2 more" and "offer" not in subject
+    assert text.startswith("CPU, 64 GB RAM, 55 EUR and 2 more. ")
     up = up_notice([_offer(1, 64, [512], 65)], rules["limits"])
     assert "holds 1 offers" in up and "5 EUR over the limit" in up and "no offer of that shape" in up
 
@@ -657,7 +731,7 @@ def self_test():
     sent = []
     good = {"server": [{"Id": 1, "Hardware": {"CPU": {"Name": "c"}, "RAM": {"Size": 64},
                                               "Storage": {"Details": {"nvme": [512], "sata": [], "hdd": []}}},
-                        "Prices": {"monthly": {"EUR": 55}}, "Details": {"Datacenter": {"Name": "d"}}}]}
+                        "Prices": {"monthly": {"EUR": 55}}, "Details": {"Datacenter": {"Name": "FSN1-DC1"}}}]}
     feed = {"answer": ("200", good, "t1")}
 
     def fake_fetch(last_modified):
@@ -673,7 +747,7 @@ def self_test():
     with tempfile.TemporaryDirectory() as tmp:
         store = Record(os.path.join(tmp, "record.db"), history)
         result = run_pass(store, rules, mail, now)       # the first pass: up, with the offer
-        assert result["mailed"] == 1 and len(sent) == 1 and "is up" in sent[0] and "1 offer(s)" in sent[0]
+        assert result["mailed"] == 1 and len(sent) == 1 and "is up" in sent[0] and "c, 64 GB RAM, 55 EUR" in sent[0]
         assert store.load_state()["mailed"] == {"1": 55} and result["history"] == 0
         result = run_pass(store, rules, mail, now + 60)  # nothing new
         assert result["mailed"] == 0 and len(sent) == 1
@@ -704,12 +778,23 @@ def self_test():
         sent.clear()
         good["server"][0]["Prices"]["monthly"]["EUR"] = 70       # over the limit, 22% under 90
         result = run_pass(store2, rules, mail, now)
-        assert result["history"] == 1 and result["met"] == 0 and result["mailed"] == 1 and "1 offer(s) match" in sent[0]
+        assert result["history"] == 1 and result["met"] == 0 and result["mailed"] == 1 and sent[0] == "auction-watch: c, 64 GB RAM, 70 EUR"
         run_pass(store2, rules, mail, now + 60)
         assert len(sent) == 1
         good["server"][0]["Prices"]["monthly"]["EUR"] = 69
         run_pass(store2, rules, mail, now + 120)
         assert len(sent) == 2
+
+        # An offer in Helsinki is recorded and counted as left out, never mailed.
+        good["server"][0]["Prices"]["monthly"]["EUR"] = 55
+        good["server"][0]["Details"]["Datacenter"]["Name"] = "HEL1-DC2"
+        store4 = Record(os.path.join(tmp, "record4.db"), history)
+        sent.clear()
+        result = run_pass(store4, rules, mail, now)
+        assert result["mailed"] == 0 and result["filtered"] == 1 and result["met"] == 0 and result["offers"] == 1
+        assert sent == ["auction-watch is up: the feed holds 0 offers"]      # the first mail follows the filters too
+        assert store4.db.execute("SELECT count(*) FROM offers").fetchone() == (1,)
+        good["server"][0]["Details"]["Datacenter"]["Name"] = "FSN1-DC1"
 
         # Resend refusing the mail fails the pass: the mailed state stays, and the history is kept.
         good["server"][0]["Prices"]["monthly"]["EUR"] = 55
@@ -731,6 +816,24 @@ def self_test():
             show_kinds(store2, now + 3600)
             assert show_offer(store2, 1, now) == 0 and show_offer(store2, 100, now) == 0 and show_offer(store2, 5, now) == 1
         assert "90\t10\t69\t" in shown.getvalue() and "not seen by this record (seed)" in shown.getvalue()
+        assert "pod_first_seen: " in shown.getvalue() and "first_seen: " in shown.getvalue()
+
+        # A record written before the fix: its seed rows the pod saw are put right at the next start, once.
+        old = os.path.join(tmp, "old.db")
+        legacy = Record(old, history, seed)
+        legacy.db.execute("ALTER TABLE offers DROP COLUMN pod_first_seen")
+        legacy.db.execute("DELETE FROM meta WHERE key='seed_rows_repaired'")
+        legacy.db.execute("UPDATE offers SET last_seen='2020-01-01T00:00:00Z'")      # the seed's, before the first start
+        legacy.db.execute("UPDATE offers SET last_seen=?, gone=0 WHERE id=100", (iso(time.time() + 60),))
+        legacy.db.commit()
+        legacy.db.close()
+        fixed = Record(old, history, seed)
+        pair = lambda i: fixed.db.execute("SELECT seed, pod_first_seen IS NOT NULL FROM offers WHERE id=?", (i,)).fetchone()
+        assert pair(100) == (0, 1) and pair(101) == (1, 0)
+        fixed.db.execute("UPDATE offers SET seed=1 WHERE id=100")
+        fixed.db.commit()
+        fixed.db.close()
+        assert Record(old, history, seed).db.execute("SELECT seed FROM offers WHERE id=100").fetchone() == (1,)    # not again
         assert POLL_SECONDS >= MIN_POLL_SECONDS
     print("self-test: ok")
 
@@ -749,7 +852,7 @@ def dry_run(feed_path, rules_path, first_pass):
     to_mail, _ = plan(found, offers, {})
     print(f"{len(offers)} offers: {sum(1 for o in offers if any(meets(o, r) for r in rules['limits']))} meet a limit, "
           f"{sum(1 for _, _, h in found if h)} are far under their usual price, {len(to_mail)} would be mailed", file=sys.stderr)
-    notices = [up_notice(offers, rules["limits"])] if first_pass else []
+    notices = [up_notice([o for o in offers if allowed(o, rules["filters"])], rules["limits"])] if first_pass else []
     message = build_mail(to_mail, notices)
     if message is None:
         print("no mail: no offer matches")
