@@ -61,9 +61,9 @@ spec:
 # The write tools also need the run's item: with none, they are not offered,
 # and the API would answer `no_item`.
 #
-# Whether the gateway reads a claim in an MCP rule is untested (README.md,
-# tracker-mcp, and the proof). If it does not, the one rule is replaced by none
-# and the API alone refuses what is not granted.
+# The gateway reads the claim in this rule (README.md, tracker-mcp, which holds
+# what was seen and what the proof checks). If a release stops it, the fix is
+# to delete the one rule: the API alone refuses what is not granted.
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayPolicy
 metadata:

@@ -6,11 +6,6 @@ import httpx
 
 API = os.environ["API_URL"]
 ROUTE = os.environ["GATEWAY_URL"] + "/mcp/tracker"
-GRANTED = {
-    "tracker-read": {"get_item", "get_comments", "get_related"},
-    "tracker-write": {"comment", "ask_person", "create_subitem"},
-}
-TOOLS = set().union(*GRANTED.values())
 failures = []
 
 
@@ -18,10 +13,6 @@ def check(step, ok, detail):
     print(f"{step}: {'ok' if ok else 'FAILED'} ({detail})", flush=True)
     if not ok:
         failures.append(step)
-
-
-def observe(step, detail):
-    print(f"{step}: observed ({detail})", flush=True)
 
 
 def body_of(response):
@@ -126,16 +117,15 @@ with httpx.Client(timeout=15) as client:
         + ("" if listed.status_code == 200 else f", {refusal(listed)}"),
     )
 
-    # The token has no grant. Hidden is the gateway authorizing from the claim
-    # (or denying everything, which a token with a grant tells apart); every
-    # tool listed is the gateway checking the token alone.
+    # The token has no grant: the gateway lists it no tool (seen 2026-11-23,
+    # 0xc0-labs/workspace#282). A gateway that stopped reading the claim lists
+    # every tool.
     if names is not None:
-        if not names:
-            observe("6 what the gateway lists to a token with no grant", "no tool: the gateway hides what is not granted")
-        elif set(names) == TOOLS:
-            observe("6 what the gateway lists to a token with no grant", "every tool: the gateway checks the token alone and the API refuses")
-        else:
-            observe("6 what the gateway lists to a token with no grant", f"some tools: {names}")
+        check(
+            "6 tools/list, no grant: no tool listed",
+            not names,
+            f"tools {names}",
+        )
 
     called = rpc(client, "tools/call", {"name": "get_item", "arguments": {}}, token=token, session=session, ident=3)
     answer = body_of(called)
@@ -146,13 +136,18 @@ with httpx.Client(timeout=15) as client:
         and result.get("isError") is True
     )
     refused_by_gateway = called.status_code != 200 or (answer or {}).get("error") is not None
-    detail = f"status {called.status_code}, {called.text[:300]!r}"
-    check("7 tools/call get_item, no grant: refused", refused_by_api or refused_by_gateway, detail)
     if refused_by_gateway and from_server(called):
-        observe("7 who refused it", "the server, for want of a token: the gateway did not pass it on")
+        who = "the server, for want of a token: the gateway did not pass it on"
     elif refused_by_gateway:
-        observe("7 who refused it", "the gateway")
+        who = "the gateway"
     elif refused_by_api:
-        observe("7 who refused it", "the API, as a tool error the agent reads")
+        who = "the API, as a tool error the agent reads"
+    else:
+        who = "nobody"
+    check(
+        "7 tools/call get_item, no grant: refused by the gateway",
+        refused_by_gateway and not from_server(called),
+        f"refused by {who}, status {called.status_code}, {called.text[:300]!r}",
+    )
 
 sys.exit(1 if failures else 0)

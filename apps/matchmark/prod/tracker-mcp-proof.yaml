@@ -8,9 +8,9 @@ kind: Job
 metadata:
   # `version` is replaced with APP_VERSION (kustomization.yaml): Jobs are
   # immutable, so a release is a new Job and Argo CD prunes the previous one.
-  # `-r2` is the copy for the same release after the route's fix (#621): a
-  # Job that reruns on the same version needs a new name.
-  name: tracker-mcp-proof-version-r2
+  # A Job that reruns on the same version needs a new name, so the suffix
+  # moves when the proof changes (#631).
+  name: tracker-mcp-proof-version-r3
   namespace: matchmark
   annotations:
     # After the API's and the server's new pods are Healthy.
