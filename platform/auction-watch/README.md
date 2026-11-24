@@ -33,6 +33,15 @@ minutes.
 
 `rules.json`. A pull request edits it.
 
+**Mail**, `mail`: `true` or `false`; `true` when the key is missing. With
+`false` a pass still reads the feed and writes the record, so the 90-day
+history has no gap, and computes what it would mail, but calls Resend for
+nothing: no offer and no notice. What it would have mailed is not written into
+`mailed`, so an offer that still matches is mailed once `mail` is `true`
+again. Its log line says `"mail": "off"` and carries `would_mail`, the count
+that did not go out, beside `met`. `--dry-run` says when the rules have mail
+off. Today `false` (operator decision, 2026-11-25).
+
 **Limits**, `limits`, one line each:
 
 | Field | Meaning |
