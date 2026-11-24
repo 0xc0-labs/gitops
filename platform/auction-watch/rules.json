@@ -1,4 +1,5 @@
 {
+  "mail": false,
   "limits": [
     {"name": "64 GB or more with NVMe, under 60 EUR", "min_ram_gb": 64, "nvme_required": true, "max_price_eur": 60},
     {"name": "128 GB or more with NVMe, under 100 EUR", "min_ram_gb": 128, "nvme_required": true, "max_price_eur": 100}

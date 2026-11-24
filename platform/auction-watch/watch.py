@@ -119,8 +119,11 @@ def parse_offers(feed):
 
 
 def parse_rules(rules):
-    """{"limits": [...], "history": {...}, "filters": {...}, "vat_pct": n}, checked."""
+    """{"limits": [...], "history": {...}, "filters": {...}, "vat_pct": n, "mail": bool}, checked."""
     try:
+        mail = rules.get("mail", True)
+        if not isinstance(mail, bool):
+            raise ValueError("mail must be true or false")
         limits = [{"name": str(r["name"]), "min_ram_gb": float(r["min_ram_gb"]),
                    "nvme_required": bool(r["nvme_required"]), "max_price_eur": float(r["max_price_eur"])}
                   for r in rules["limits"]]
@@ -134,7 +137,7 @@ def parse_rules(rules):
         vat_pct = float(rules["vat_pct"])
         if not 0 <= vat_pct < 100:
             raise ValueError("vat_pct out of range")
-        return {"limits": limits, "history": history, "filters": filters, "vat_pct": vat_pct}
+        return {"limits": limits, "history": history, "filters": filters, "vat_pct": vat_pct, "mail": mail}
     except (KeyError, TypeError, ValueError) as e:
         raise ValueError(f"rules file: {type(e).__name__}: {e}") from None
 
@@ -480,10 +483,16 @@ def send_mail(api_key, to, subject, text):
 
 
 def run_pass(record, rules, mail, now=None):
-    """One pass. `mail(subject, text)` sends. Returns the fields of its log line."""
+    """One pass. `mail(subject, text)` sends, and is not called while the rules
+    have mail off: the pass still reads, records and plans, and writes nothing
+    into `mailed`, so what matches is mailed once mail is back. Returns the
+    fields of its log line."""
     started = time.monotonic()
     now = time.time() if now is None else now
     summary = {"msg": "pass", "offers": 0, "met": 0, "history": 0, "filtered": 0, "mailed": 0, "feed": "error"}
+    mailing = rules["mail"]
+    if not mailing:
+        summary["mail"] = "off"
     try:
         state = record.load_state()
         first = not state["up"]
@@ -493,7 +502,7 @@ def run_pass(record, rules, mail, now=None):
         except FeedError as e:
             summary.update(level="warn", error=str(e), feed="unreadable")
             state["failing_since"] = state["failing_since"] or now
-            if now - state["failing_since"] >= ALERT_AFTER_S and not state["alerted"]:
+            if mailing and now - state["failing_since"] >= ALERT_AFTER_S and not state["alerted"]:
                 mail("auction-watch: cannot read the feed", down_notice(round((now - state["failing_since"]) / 60)) + "\n")
                 state["alerted"] = True
             record.save_state(state)
@@ -523,11 +532,16 @@ def run_pass(record, rules, mail, now=None):
             summary["filtered"] = len(matches(offers, rules, baseline, filtered=False)) - len(found)
             summary["met"] = sum(1 for o in offers if allowed(o, rules["filters"]) and any(meets(o, r) for r in rules["limits"]))
             summary["history"] = sum(1 for _, _, hit in found if hit)
-            to_mail, state["mailed"] = plan(found, offers, state["mailed"])
-        message = build_mail(to_mail, notices, rules["vat_pct"])
+            to_mail, planned = plan(found, offers, state["mailed"])
+            if mailing:
+                state["mailed"] = planned
+            else:
+                state["mailed"] = {i: p for i, p in state["mailed"].items() if i in planned}
+                summary["would_mail"] = len(to_mail)
+        message = build_mail(to_mail, notices, rules["vat_pct"]) if mailing else None
         if message:
             mail(*message)
-        summary["mailed"] = len(to_mail)
+        summary["mailed"] = len(to_mail) if mailing else 0
         state.update(failing_since=0, alerted=False, up=True, last_modified=last_modified)
         record.save_state(state)
         return summary
@@ -823,6 +837,7 @@ def self_test_views(tmp, history, limits):
 def self_test():
     global fetch_feed
     rules = parse_rules(json.load(open(RULES_FILE)))
+    rules["mail"] = True                       # the passes below mail; the shipped rules may have it off
     r64, r128 = rules["limits"]
     history = rules["history"]
     assert len(rules["limits"]) == 2
@@ -1083,6 +1098,31 @@ def self_test():
         assert result.get("failed") and state["mailed"] == {} and state["failing_since"] == 0 and state["last_modified"] == "old"
         assert store3.db.execute("SELECT count(*) FROM offers").fetchone() == (1,)
 
+        # Mail off: the pass records and plans, calls nothing, and writes nothing into `mailed`.
+        silent = dict(rules, mail=False)
+        store5 = Record(os.path.join(tmp, "record5.db"), history)
+        sent.clear()
+        result = run_pass(store5, silent, mail, now)
+        assert sent == [] and result["mail"] == "off" and result["mailed"] == 0 and result["met"] == 1 and result["would_mail"] == 1
+        assert store5.load_state()["mailed"] == {} and store5.db.execute("SELECT count(*) FROM offers").fetchone() == (1,)
+        feed["answer"] = ("error", None, "")
+        for n in range(0, 15 * 6):
+            run_pass(store5, silent, refusing, now + 60 + n * 10)
+        run_pass(store5, silent, refusing, now + 3000)           # no alert either, and nothing marked alerted
+        assert store5.load_state()["alerted"] is False
+        feed["answer"] = ("200", good, "t2")
+        result = run_pass(store5, rules, mail, now + 3060)       # mail back on: the offer that still matches goes out
+        assert result["mailed"] == 1 and "mail" not in result and len(sent) == 1 and store5.load_state()["mailed"] == {"1": 55}
+        try:
+            parse_rules({**json.load(open(RULES_FILE)), "mail": "no"})
+            raise AssertionError("accepted")
+        except ValueError:
+            pass
+        assert parse_rules(dict(json.load(open(RULES_FILE)), mail=False))["mail"] is False
+        no_key = json.load(open(RULES_FILE))
+        no_key.pop("mail", None)
+        assert parse_rules(no_key)["mail"] is True
+
         # The looks.
         snap = os.path.join(tmp, "snap.db")
         store2.snapshot(snap)
@@ -1128,6 +1168,8 @@ def dry_run(feed_path, rules_path, first_pass):
         found = matches(offers, rules, lambda kind: record.baseline(kind, now))
         record.db.close()
     to_mail, _ = plan(found, offers, {})
+    if not rules["mail"]:
+        print("mail is off in these rules: the pod would send nothing; this is what it would have mailed", file=sys.stderr)
     print(f"{len(offers)} offers: {sum(1 for o in offers if any(meets(o, r) for r in rules['limits']))} meet a limit, "
           f"{sum(1 for _, _, h in found if h)} are far under their usual price, {len(to_mail)} would be mailed", file=sys.stderr)
     notices = [up_notice([o for o in offers if allowed(o, rules["filters"])], rules["limits"])] if first_pass else []
