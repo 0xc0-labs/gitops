@@ -100,7 +100,7 @@ the compactor had finished:
 | | Now | Per day | At 30 days |
 |---|---|---|---|
 | Bytes on the filesystem | 8.8 of 52.5 GB | ~0.8 GB | ~25 GB, 48% |
-| Inodes | 0.81 of 3.28 million | ~73,000 | ~2.25 million, 69% |
+| Inodes | 0.81 of 3.28 million | ~73,000 | ~2.25 million, 69% (projected; the volume held ~3.28 million, see below) |
 | Longhorn, per replica, after its trim | 9.7 GB | | |
 
 - Metrics are 98% of what comes in (about 40 GB a day before compression)
@@ -122,14 +122,24 @@ the compactor had finished:
   ~37,000 small files, about 0.36 GB. Compacted, it is ~1,500 files and
   24 MB.
 
+On 2026-11-25 the volume ran out of inodes at 50 Gi: 3,276,800 used of
+3,276,800, with bytes at 75% (36.5 of 48.9 GiB). OpenObserve logged `No space
+left on device (os error 28)` some 2,000 times a minute, and ingestion, the
+compactor and the memtable flush failed until the volume was grown. At 80 Gi
+the inodes went to 63% (3.29 of 5.24 million; 36.7 of 78.4 GiB). The
+projection above was 2.25 million inodes at 30 days; the volume held about
+1.5 times that, with more streams than when it was measured (Temporal,
+Matchmark, agentgateway, Plane).
+
 So a longer retention needs a larger volume, for the inodes before the bytes.
-Inodes grow with the volume (ext4 keeps one per 16 KiB):
+Inodes grow with the volume (ext4 keeps one per 16 KiB). Measured at 30 days,
+and scaled for the rest:
 
 | Retention | Bytes | Inodes | Fits in |
 |---|---|---|---|
-| 30 days | ~25 GB | ~2.25 million | 50 Gi: 48% and 69% |
-| 60 days | ~48 GB | ~4.4 million | 80 Gi: 56% and 84%. 50 Gi runs out of inodes around day 44 |
-| 90 days | ~72 GB | ~6.6 million | 120 Gi: 56% and 84%, past what vm-rke2-01, -02 and -03 can schedule today |
+| 30 days | ~39 GB (36.7 GiB) | ~3.3 million | 50 Gi: 75% and 100%, it ran out. 80 Gi: 47% and 63% |
+| 60 days | ~78 GB | ~6.6 million | 120 Gi: 63% and 84%. 80 Gi runs out of inodes around day 48 |
+| 90 days | ~117 GB | ~9.9 million | 160 Gi: 71% and 94%, past what vm-rke2-01, -02 and -03 can schedule today |
 
 A PVC cannot shrink. Longhorn allocates only what is written, so the unused
 half costs scheduling room on each replica's node, not disk.
@@ -137,9 +147,10 @@ half costs scheduling room on each replica's node, not disk.
 Growing it: `volumeClaimTemplates` cannot change on a StatefulSet, so the
 size goes on the PVC first (`kubectl -n openobserve patch pvc
 data-openobserve-0`), which Longhorn and ext4 grow online. Then
-`persistence.size` in `values.yaml` follows. `kubectl -n openobserve delete
-statefulset openobserve --cascade=orphan` lets the sync recreate the
-StatefulSet without touching the pod.
+`persistence.size` in `values.yaml` follows. After that change merges,
+`kubectl -n openobserve delete statefulset openobserve --cascade=orphan` lets
+the sync recreate the StatefulSet with the new `volumeClaimTemplates`,
+without touching the pod.
 
 To measure it again, from the kubelet of the node that runs `openobserve-0`:
 
