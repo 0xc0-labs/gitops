@@ -1,0 +1,16 @@
+# The collectors' own metrics on 8888, from the Service the operator creates
+# beside each one: `otelcol_exporter_send_failed_*` and the rest (README.md).
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: otel-collectors
+  namespace: opentelemetry
+spec:
+  selector:
+    matchLabels:
+      operator.opentelemetry.io/collector-service-type: monitoring
+  namespaceSelector:
+    matchNames: [opentelemetry]
+  endpoints:
+    - port: monitoring
+      interval: 60s

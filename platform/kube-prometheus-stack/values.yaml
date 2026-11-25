@@ -49,6 +49,15 @@ prometheus:
     # The applications' metrics arrive over OTLP from the collectors' gateway
     # (openobserve-collector, kustomization.yaml).
     enableOTLPReceiver: true
+    # The resource attributes Grafana filters by become labels; the rest stay
+    # in target_info. Temporality is cumulative, the SDKs' default.
+    otlp:
+      promoteResourceAttributes:
+        - service.name
+        - service.namespace
+        - k8s.namespace.name
+        - k8s.pod.name
+        - deployment.environment
     # Every ServiceMonitor, PodMonitor, Probe and PrometheusRule in the
     # cluster, not only the chart's own.
     serviceMonitorSelectorNilUsesHelmValues: false

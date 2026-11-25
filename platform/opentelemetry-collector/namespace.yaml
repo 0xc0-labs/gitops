@@ -1,0 +1,8 @@
+# The agent reads the node's logs from hostPath, past SELinux, and keeps its
+# offsets there.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: opentelemetry
+  labels:
+    pod-security.kubernetes.io/enforce: privileged

@@ -31,6 +31,12 @@ spec:
               app.kubernetes.io/component: opentelemetry-collector
         - namespaceSelector:
             matchLabels:
+              kubernetes.io/metadata.name: opentelemetry
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/component: opentelemetry-collector
+        - namespaceSelector:
+            matchLabels:
               kubernetes.io/metadata.name: monitoring
           podSelector:
             matchLabels:

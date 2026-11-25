@@ -1,0 +1,12 @@
+# Backups: no volumes. The agent's offsets are a hostPath on each node and
+# can be lost: it reads from the end then.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: opentelemetry
+resources:
+  - namespace.yaml
+  - rbac.yaml
+  - agent.yaml
+  - gateway.yaml
+  - servicemonitor.yaml
+  - network-policy.yaml
