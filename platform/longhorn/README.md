@@ -13,7 +13,9 @@ and `persistence.defaultClassReplicaCount` in `values.yaml` are both 2.
   that reboots or breaks, and PBS covers the host.
 - **What two does not cover.** While a node reboots, the volumes with a
   replica on it run on one copy until it is rebuilt. A second failure in that
-  window loses the volume, to be restored from PBS.
+  window, of the node holding the other copy, makes the volume unavailable
+  until one of the two nodes is back; it is lost only if both disks are, and
+  then PBS restores it.
 - **Replicas go on different nodes** (`replica-soft-anti-affinity` is false),
   so a volume needs two schedulable nodes with room.
 
@@ -36,14 +38,20 @@ kubectl -n longhorn-system get configmap longhorn-storageclass \
 kubectl get storageclass longhorn -o jsonpath='{.parameters.numberOfReplicas}{"\n"}'   # 2
 ```
 
-**2. The existing volumes.** One loop, which stops at the first error and
-waits for each volume to be `healthy` with two replicas before it takes the
-next, so at no point two volumes are rebuilding at once:
+**2. The existing volumes.** One loop, which stops at the first error. An
+attached volume is patched, then waited on until it is `healthy` with two
+replicas, so at no point two volumes are rebuilding at once. A detached one
+(`status.state` is `detached`) reports `unknown` robustness and would never
+pass that wait: it is patched and the loop goes on without waiting.
 
 ```sh
 set -e
 for v in $(kubectl -n longhorn-system get volumes.longhorn.io -o name); do
   kubectl -n longhorn-system patch "$v" --type merge -p '{"spec":{"numberOfReplicas":2}}'
+  if [ "$(kubectl -n longhorn-system get "$v" -o jsonpath='{.status.state}')" = detached ]; then
+    echo "$v: detached, patched, not waited on"
+    continue
+  fi
   until [ "$(kubectl -n longhorn-system get "$v" -o jsonpath='{.status.robustness}')" = healthy ] \
     && [ "$(kubectl -n longhorn-system get replicas.longhorn.io \
          -l "longhornvolume=${v#*/}" -o name | wc -l | tr -d ' ')" = 2 ]; do
@@ -53,12 +61,13 @@ for v in $(kubectl -n longhorn-system get volumes.longhorn.io -o name); do
 done
 ```
 
-Longhorn removes the surplus replica by itself once the volume is healthy. A
-detached volume reports `unknown` robustness: attach it, or wait, and run the
-loop again, which is safe to repeat.
+Longhorn removes the surplus replica of an attached volume by itself once it
+is healthy. A detached volume (`mariadb-dumps` and `postgres-dumps` on
+2026-11-25) keeps its third replica until it is attached, and Longhorn trims
+it then. The loop is safe to repeat.
 
-**3. Check.** Read-only. Every volume is `healthy` with `2` in its spec, and
-no replica is left over:
+**3. Check.** Read-only. Every volume has `2` in its spec, and every attached
+one is `healthy` with no replica left over:
 
 ```sh
 kubectl -n longhorn-system get volumes.longhorn.io \
@@ -67,7 +76,8 @@ kubectl -n longhorn-system get replicas.longhorn.io \
   -o custom-columns=VOLUME:.spec.volumeName --no-headers | sort | uniq -c
 ```
 
-The last command counts replicas per volume: every line says `2`.
+The last command counts replicas per volume: every attached volume says `2`.
+A detached one still says `3` until it is attached.
 
 ## Recurring trims
 
