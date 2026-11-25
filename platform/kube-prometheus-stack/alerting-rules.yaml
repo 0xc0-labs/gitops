@@ -476,8 +476,9 @@ grafana:
                     conditions: [{evaluator: {type: gt, params: [0]}}]
                     datasource: {type: __expr__, uid: __expr__}
 
-            # An example of a log rule: error lines per namespace, over the
-            # labels the collectors set (platform/loki).
+            # An example of a log rule: error lines per namespace, by the
+            # severity_text the node agent sets (structured metadata, not a
+            # label: platform/loki).
             - uid: namespace-error-logs
               title: Error log lines from one namespace above 100 in 10 minutes
               condition: C
@@ -486,7 +487,7 @@ grafana:
               execErrState: Error
               labels: {severity: warning}
               annotations:
-                summary: A namespace logged more than 100 lines containing "error" in 10 minutes.
+                summary: A namespace logged more than 100 lines of severity ERROR or FATAL in 10 minutes.
                 runbook_url: https://github.com/0xc0-labs/gitops/blob/main/platform/loki/README.md
               data:
                 - refId: A
@@ -497,7 +498,7 @@ grafana:
                     queryType: instant
                     expr: >-
                       sum by (k8s_namespace_name)
-                      (count_over_time({k8s_namespace_name=~".+"} |= "error" [10m]))
+                      (count_over_time({k8s_namespace_name=~".+"} | severity_text=~"ERROR|FATAL" [10m]))
                 - {refId: B, datasourceUid: __expr__, model: *reduce}
                 - refId: C
                   datasourceUid: __expr__

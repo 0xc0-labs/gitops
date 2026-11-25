@@ -38,6 +38,16 @@ spec:
     connectors:
       # The service map of Grafana's Tempo data source reads these metrics.
       servicegraph:
+        # Names the servers that send no spans of their own after the client
+        # span's attributes, in this order, instead of "unknown".
+        virtual_node_peer_attributes:
+          - peer.service
+          - db.name
+          - db.system
+          - rpc.service
+          - messaging.system
+          - server.address
+          - net.peer.name
         dimensions:
           - http.method
         latency_histogram_buckets:
