@@ -30,6 +30,13 @@ commonAnnotations:
 # annotation caps a ConfigMap near 256 KiB. The names carry no hash, so an
 # edit replaces the dashboard instead of leaving the old one behind.
 configMapGenerator:
+  # Home, Grafana's home dashboard: mounted as a file (values.yaml), so no
+  # grafana_dashboard label for the sidecar.
+  - name: grafana-dashboard-home
+    files:
+      - dashboards/home/home.json
+    options:
+      disableNameSuffixHash: true
   - name: grafana-dashboard-kubernetes-events
     files:
       - dashboards/kubernetes/kubernetes-events.json

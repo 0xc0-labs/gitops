@@ -4,7 +4,8 @@
   "tags": [
     "applications",
     "rum",
-    "faro"
+    "faro",
+    "0xc0"
   ],
   "description": "The sites' real-user monitoring: what the browsers send through Faro to the OpenTelemetry gateway, from its records in Loki and its spans in Tempo.",
   "schemaVersion": 39,
@@ -51,192 +52,9 @@
   },
   "panels": [
     {
-      "type": "row",
-      "title": "Traffic",
-      "id": 1,
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 0
-      },
-      "panels": []
-    },
-    {
-      "type": "timeseries",
-      "title": "Page loads",
-      "description": "Faro's navigation events, by app. Faro sends one per page load once its performance instrumentation is on.",
-      "id": 2,
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "sum by (service_name) (count_over_time({service_name=~\"$app\"} | kind=\"event\" | logfmt | event_name=\"faro.performance.navigation\" [$__auto]))",
-          "legendFormat": "{{service_name}}",
-          "queryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {
-            "fillOpacity": 10,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "normal"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 1
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Sessions",
-      "description": "Distinct Faro sessions that sent anything in the interval, by app.",
-      "id": 3,
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "count by (service_name) (sum by (service_name, session_id) (count_over_time({service_name=~\"$app\"} | kind=~\".+\" | logfmt | session_id!=\"\" [$__auto])))",
-          "legendFormat": "{{service_name}}",
-          "queryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {
-            "fillOpacity": 10,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "none"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 1
-      }
-    },
-    {
-      "type": "table",
-      "title": "Top pages",
-      "description": "Page loads by page_url over the range. The URL is the browser's own, query string included.",
-      "id": 4,
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "topk(20, sum by (service_name, page_url) (count_over_time({service_name=~\"$app\"} | kind=\"event\" | logfmt | event_name=\"faro.performance.navigation\" [$__range])))",
-          "queryType": "instant",
-          "instant": true,
-          "range": false,
-          "format": "table"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true
-            }
-          }
-        }
-      ],
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 9
-      }
-    },
-    {
-      "type": "row",
-      "title": "Web Vitals (75th percentile)",
-      "id": 5,
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 17
-      },
-      "panels": []
-    },
-    {
-      "type": "timeseries",
-      "title": "Largest Contentful Paint",
-      "description": "Good below 2500 ms. By app, from Faro's web-vitals measurements.",
-      "id": 6,
+      "type": "stat",
+      "title": "LCP",
+      "description": "Largest Contentful Paint, 75th percentile. Good below 2500, poor above 4000 (Google's thresholds). By app, from Faro's web-vitals measurements.",
       "datasource": {
         "type": "loki",
         "uid": "loki"
@@ -256,41 +74,57 @@
       "fieldConfig": {
         "defaults": {
           "unit": "ms",
-          "custom": {
-            "fillOpacity": 10,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "none"
-            }
-          }
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 2500
+              },
+              {
+                "color": "red",
+                "value": 4000
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "noValue": "-"
         },
         "overrides": []
       },
       "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
           "calcs": [
             "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
+          ],
+          "fields": "",
+          "values": false
         }
       },
       "gridPos": {
-        "h": 8,
-        "w": 12,
+        "h": 4,
+        "w": 3,
         "x": 0,
-        "y": 18
-      }
+        "y": 0
+      },
+      "id": 1
     },
     {
-      "type": "timeseries",
-      "title": "Interaction to Next Paint",
-      "description": "Good below 200 ms. By app, from Faro's web-vitals measurements.",
-      "id": 7,
+      "type": "stat",
+      "title": "INP",
+      "description": "Interaction to Next Paint, 75th percentile. Good below 200, poor above 500 (Google's thresholds). By app, from Faro's web-vitals measurements.",
       "datasource": {
         "type": "loki",
         "uid": "loki"
@@ -310,41 +144,57 @@
       "fieldConfig": {
         "defaults": {
           "unit": "ms",
-          "custom": {
-            "fillOpacity": 10,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "none"
-            }
-          }
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 200
+              },
+              {
+                "color": "red",
+                "value": 500
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "noValue": "-"
         },
         "overrides": []
       },
       "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
           "calcs": [
             "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
+          ],
+          "fields": "",
+          "values": false
         }
       },
       "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 18
-      }
+        "h": 4,
+        "w": 3,
+        "x": 3,
+        "y": 0
+      },
+      "id": 2
     },
     {
-      "type": "timeseries",
-      "title": "Cumulative Layout Shift",
-      "description": "Good below 0.1. By app, from Faro's web-vitals measurements.",
-      "id": 8,
+      "type": "stat",
+      "title": "CLS",
+      "description": "Cumulative Layout Shift, 75th percentile. Good below 0.1, poor above 0.25 (Google's thresholds). By app, from Faro's web-vitals measurements.",
       "datasource": {
         "type": "loki",
         "uid": "loki"
@@ -364,95 +214,57 @@
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "custom": {
-            "fillOpacity": 10,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "none"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 26
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Time to First Byte",
-      "description": "Good below 800 ms. By app, from Faro's web-vitals measurements.",
-      "id": 9,
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 0.25
+              }
+            ]
           },
-          "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | unwrap value_ttfb | __error__=\"\" [$__auto]) by (service_name)",
-          "legendFormat": "{{service_name}}",
-          "queryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ms",
-          "custom": {
-            "fillOpacity": 10,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "none"
-            }
-          }
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 2,
+          "noValue": "-"
         },
         "overrides": []
       },
       "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
           "calcs": [
             "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
+          ],
+          "fields": "",
+          "values": false
         }
       },
       "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 26
-      }
+        "h": 4,
+        "w": 3,
+        "x": 6,
+        "y": 0
+      },
+      "id": 3
     },
     {
-      "type": "timeseries",
-      "title": "First Contentful Paint",
-      "description": "Good below 1800 ms. By app, from Faro's web-vitals measurements.",
-      "id": 10,
+      "type": "stat",
+      "title": "FCP",
+      "description": "First Contentful Paint, 75th percentile. Good below 1800, poor above 3000 (Google's thresholds). By app, from Faro's web-vitals measurements.",
       "datasource": {
         "type": "loki",
         "uid": "loki"
@@ -472,41 +284,57 @@
       "fieldConfig": {
         "defaults": {
           "unit": "ms",
-          "custom": {
-            "fillOpacity": 10,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "none"
-            }
-          }
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 1800
+              },
+              {
+                "color": "red",
+                "value": 3000
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "noValue": "-"
         },
         "overrides": []
       },
       "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
           "calcs": [
             "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
+          ],
+          "fields": "",
+          "values": false
         }
       },
       "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 34
-      }
+        "h": 4,
+        "w": 3,
+        "x": 9,
+        "y": 0
+      },
+      "id": 4
     },
     {
-      "type": "table",
-      "title": "Slowest pages (LCP, 75th percentile)",
-      "description": "Largest Contentful Paint by page over the range, pages with the slowest first.",
-      "id": 11,
+      "type": "stat",
+      "title": "TTFB",
+      "description": "Time to First Byte, 75th percentile. Good below 800, poor above 1800 (Google's thresholds). By app, from Faro's web-vitals measurements.",
       "datasource": {
         "type": "loki",
         "uid": "loki"
@@ -518,56 +346,189 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "topk(20, quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | unwrap value_lcp | __error__=\"\" [$__range]) by (service_name, page_url))",
-          "queryType": "instant",
-          "instant": true,
-          "range": false,
-          "format": "table"
+          "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | unwrap value_ttfb | __error__=\"\" [$__auto]) by (service_name)",
+          "legendFormat": "{{service_name}}",
+          "queryType": "range"
         }
       ],
       "fieldConfig": {
-        "defaults": {},
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 800
+              },
+              {
+                "color": "red",
+                "value": 1800
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "noValue": "-"
+        },
         "overrides": []
       },
-      "transformations": [
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 12,
+        "y": 0
+      },
+      "id": 5
+    },
+    {
+      "type": "stat",
+      "title": "Page loads",
+      "description": "Faro's navigation events over the range, by app.",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
         {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true
-            }
-          }
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum by (service_name) (count_over_time({service_name=~\"$app\"} | kind=\"event\" | logfmt | event_name=\"faro.performance.navigation\" [$__auto]))",
+          "legendFormat": "{{service_name}}",
+          "queryType": "range"
         }
       ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "noValue": "0"
+        },
+        "overrides": []
+      },
       "options": {
-        "showHeader": true,
-        "cellHeight": "sm"
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        }
       },
       "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 42
-      }
-    },
-    {
-      "type": "row",
-      "title": "Errors",
-      "id": 12,
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 50
+        "h": 4,
+        "w": 3,
+        "x": 15,
+        "y": 0
       },
-      "panels": []
+      "id": 6
     },
     {
-      "type": "timeseries",
-      "title": "JavaScript errors",
-      "description": "Faro's exception records, by app.",
-      "id": 13,
+      "type": "stat",
+      "title": "Sessions",
+      "description": "Distinct Faro sessions that sent anything, by app.",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "count by (service_name) (sum by (service_name, session_id) (count_over_time({service_name=~\"$app\"} | kind=~\".+\" | logfmt | session_id!=\"\" [$__auto])))",
+          "legendFormat": "{{service_name}}",
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 18,
+        "y": 0
+      },
+      "id": 7
+    },
+    {
+      "type": "stat",
+      "title": "JS errors",
+      "description": "Faro's exception records over the range, by app.",
       "datasource": {
         "type": "loki",
         "uid": "loki"
@@ -587,166 +548,1120 @@
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "custom": {
-            "fillOpacity": 10,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "normal"
-            }
-          }
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 20
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "noValue": "0"
         },
         "overrides": []
       },
       "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
           "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
+            "sum"
+          ],
+          "fields": "",
+          "values": false
         }
       },
       "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 51
-      }
-    },
-    {
-      "type": "table",
-      "title": "Top exceptions",
-      "description": "Exceptions over the range, grouped by type and message.",
-      "id": 14,
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "h": 4,
+        "w": 3,
+        "x": 21,
+        "y": 0
       },
-      "targets": [
+      "links": [
         {
-          "refId": "A",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "topk(20, sum by (service_name, type, value) (count_over_time({service_name=~\"$app\"} | kind=\"exception\" | logfmt | __error__=\"\" [$__range])))",
-          "queryType": "instant",
-          "instant": true,
-          "range": false,
-          "format": "table"
+          "title": "Exceptions",
+          "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{service_name%3D~%5C%22${app%3Aregex}%5C%22}%20%7C%20kind%3D%5C%22exception%5C%22%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
+          "targetBlank": false
         }
       ],
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true
-            }
-          }
-        }
-      ],
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 51
-      }
-    },
-    {
-      "type": "logs",
-      "title": "Recent exceptions",
-      "description": "The exceptions' own records: stack trace, page and browser.",
-      "id": 15,
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "{service_name=~\"$app\"} | kind=\"exception\"",
-          "queryType": "range"
-        }
-      ],
-      "options": {
-        "showTime": true,
-        "wrapLogMessage": true,
-        "sortOrder": "Descending",
-        "enableLogDetails": true
-      },
-      "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 59
-      }
+      "id": 8
     },
     {
       "type": "row",
-      "title": "Traces",
-      "id": 16,
-      "collapsed": false,
+      "title": "Traffic",
+      "collapsed": true,
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "Page loads",
+          "description": "Faro's navigation events, by app. Faro sends one per page load once its performance instrumentation is on. One per page load.",
+          "id": 10,
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "expr": "sum by (service_name) (count_over_time({service_name=~\"$app\"} | kind=\"event\" | logfmt | event_name=\"faro.performance.navigation\" [$__auto]))",
+              "legendFormat": "{{service_name}}",
+              "queryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "normal"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 5
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Sessions",
+          "description": "Distinct Faro sessions that sent anything in the interval, by app.",
+          "id": 11,
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "expr": "count by (service_name) (sum by (service_name, session_id) (count_over_time({service_name=~\"$app\"} | kind=~\".+\" | logfmt | session_id!=\"\" [$__auto])))",
+              "legendFormat": "{{service_name}}",
+              "queryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "none"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 5
+          }
+        },
+        {
+          "type": "bargauge",
+          "title": "Page loads by page",
+          "id": 12,
+          "description": "Page loads by page_url over the range (top 20). The URL is the browser's own, query string included. There is no map by country: Faro's records here carry no country field.",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "expr": "topk(20, sum by (service_name, page_url) (count_over_time({service_name=~\"$app\"} | kind=\"event\" | logfmt | event_name=\"faro.performance.navigation\" [$__range])))",
+              "queryType": "instant",
+              "instant": true,
+              "range": false,
+              "format": "time_series",
+              "legendFormat": "{{service_name}} {{page_url}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "decimals": 0,
+              "color": {
+                "mode": "continuous-BlPu"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "blue",
+                    "value": null
+                  }
+                ]
+              },
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "displayMode": "gradient",
+            "orientation": "horizontal",
+            "namePlacement": "left",
+            "valueMode": "color",
+            "showUnfilled": true,
+            "minVizHeight": 16,
+            "minVizWidth": 8,
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            }
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 24,
+            "x": 0,
+            "y": 13
+          }
+        }
+      ],
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 69
+        "y": 4
       },
-      "panels": []
+      "id": 9
     },
     {
-      "type": "table",
-      "title": "Recent traces",
-      "description": "Spans the browsers sent through Faro, by app. The server's own traces carry the server's service name.",
-      "id": 17,
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
+      "type": "row",
+      "title": "Web Vitals (75th percentile)",
+      "collapsed": true,
+      "panels": [
         {
-          "refId": "A",
+          "type": "timeseries",
+          "title": "Largest Contentful Paint",
+          "description": "Good below 2500 ms. By app, from Faro's web-vitals measurements.",
+          "id": 14,
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | unwrap value_lcp | __error__=\"\" [$__auto]) by (service_name)",
+              "legendFormat": "{{service_name}}",
+              "queryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ms",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "none"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never",
+                "thresholdsStyle": {
+                  "mode": "line"
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "#EAB839",
+                    "value": 2500
+                  },
+                  {
+                    "color": "red",
+                    "value": 4000
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 6
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Interaction to Next Paint",
+          "description": "Good below 200 ms. By app, from Faro's web-vitals measurements.",
+          "id": 15,
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | unwrap value_inp | __error__=\"\" [$__auto]) by (service_name)",
+              "legendFormat": "{{service_name}}",
+              "queryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ms",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "none"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never",
+                "thresholdsStyle": {
+                  "mode": "line"
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "#EAB839",
+                    "value": 200
+                  },
+                  {
+                    "color": "red",
+                    "value": 500
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 6
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Cumulative Layout Shift",
+          "description": "Good below 0.1. By app, from Faro's web-vitals measurements.",
+          "id": 16,
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | unwrap value_cls | __error__=\"\" [$__auto]) by (service_name)",
+              "legendFormat": "{{service_name}}",
+              "queryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "none"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never",
+                "thresholdsStyle": {
+                  "mode": "line"
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "#EAB839",
+                    "value": 0.1
+                  },
+                  {
+                    "color": "red",
+                    "value": 0.25
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 14
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Time to First Byte",
+          "description": "Good below 800 ms. By app, from Faro's web-vitals measurements.",
+          "id": 17,
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | unwrap value_ttfb | __error__=\"\" [$__auto]) by (service_name)",
+              "legendFormat": "{{service_name}}",
+              "queryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ms",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "none"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never",
+                "thresholdsStyle": {
+                  "mode": "line"
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "#EAB839",
+                    "value": 800
+                  },
+                  {
+                    "color": "red",
+                    "value": 1800
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 14
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "First Contentful Paint",
+          "description": "Good below 1800 ms. By app, from Faro's web-vitals measurements.",
+          "id": 18,
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | unwrap value_fcp | __error__=\"\" [$__auto]) by (service_name)",
+              "legendFormat": "{{service_name}}",
+              "queryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ms",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "none"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never",
+                "thresholdsStyle": {
+                  "mode": "line"
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "#EAB839",
+                    "value": 1800
+                  },
+                  {
+                    "color": "red",
+                    "value": 3000
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 22
+          }
+        },
+        {
+          "type": "table",
+          "title": "Slowest pages (LCP, 75th percentile)",
+          "description": "Largest Contentful Paint by page over the range, pages with the slowest first.",
+          "id": 19,
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "expr": "topk(20, quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | unwrap value_lcp | __error__=\"\" [$__range]) by (service_name, page_url))",
+              "queryType": "instant",
+              "instant": true,
+              "range": false,
+              "format": "table"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "cellOptions": {
+                  "type": "auto"
+                }
+              },
+              "unit": "ms",
+              "decimals": 0
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byType",
+                  "options": "number"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background",
+                      "mode": "gradient"
+                    }
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green",
+                          "value": null
+                        },
+                        {
+                          "color": "#EAB839",
+                          "value": 2500
+                        },
+                        {
+                          "color": "red",
+                          "value": 4000
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "thresholds"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true
+                }
+              }
+            }
+          ],
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm"
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 30
+          }
+        }
+      ],
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "id": 13
+    },
+    {
+      "type": "row",
+      "title": "Errors",
+      "collapsed": true,
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "JavaScript errors",
+          "description": "Faro's exception records, by app.",
+          "id": 21,
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "expr": "sum by (service_name) (count_over_time({service_name=~\"$app\"} | kind=\"exception\" [$__auto]))",
+              "legendFormat": "{{service_name}}",
+              "queryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "normal"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 7
+          }
+        },
+        {
+          "type": "table",
+          "title": "Top exceptions",
+          "description": "Exceptions over the range, grouped by type and message.",
+          "id": 22,
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "expr": "topk(20, sum by (service_name, type, value) (count_over_time({service_name=~\"$app\"} | kind=\"exception\" | logfmt | __error__=\"\" [$__range])))",
+              "queryType": "instant",
+              "instant": true,
+              "range": false,
+              "format": "table"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "cellOptions": {
+                  "type": "auto"
+                }
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byType",
+                  "options": "number"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background",
+                      "mode": "gradient"
+                    }
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green",
+                          "value": null
+                        },
+                        {
+                          "color": "#EAB839",
+                          "value": 1
+                        },
+                        {
+                          "color": "red",
+                          "value": 20
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "thresholds"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true
+                }
+              }
+            }
+          ],
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm"
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 7
+          }
+        },
+        {
+          "type": "logs",
+          "title": "Recent exceptions",
+          "description": "The exceptions' own records: stack trace, page and browser.",
+          "id": 23,
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "expr": "{service_name=~\"$app\"} | kind=\"exception\"",
+              "queryType": "range"
+            }
+          ],
+          "options": {
+            "showTime": true,
+            "wrapLogMessage": true,
+            "sortOrder": "Descending",
+            "enableLogDetails": true
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 24,
+            "x": 0,
+            "y": 15
+          },
+          "links": []
+        }
+      ],
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "id": 20
+    },
+    {
+      "type": "row",
+      "title": "Traces",
+      "collapsed": true,
+      "panels": [
+        {
+          "type": "table",
+          "title": "Recent traces",
+          "description": "Spans the browsers sent through Faro, by app. The server's own traces carry the server's service name.",
+          "id": 25,
           "datasource": {
             "type": "tempo",
             "uid": "tempo"
           },
-          "queryType": "traceql",
-          "query": "{ resource.service.name =~ \"${app:regex}\" }",
-          "limit": 20,
-          "tableType": "traces"
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ resource.service.name =~ \"${app:regex}\" }",
+              "limit": 20,
+              "tableType": "traces"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "cellOptions": {
+                  "type": "auto"
+                }
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byType",
+                  "options": "number"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background",
+                      "mode": "gradient"
+                    }
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "blue",
+                          "value": null
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "thresholds"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm"
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 24,
+            "x": 0,
+            "y": 8
+          }
         }
       ],
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm"
-      },
       "gridPos": {
-        "h": 10,
+        "h": 1,
         "w": 24,
         "x": 0,
-        "y": 70
-      }
+        "y": 7
+      },
+      "id": 24
+    }
+  ],
+  "links": [
+    {
+      "type": "link",
+      "title": "Home",
+      "url": "/d/home",
+      "icon": "dashboard",
+      "targetBlank": false,
+      "keepTime": true,
+      "includeVars": false,
+      "tags": [],
+      "asDropdown": false
+    },
+    {
+      "type": "dashboards",
+      "title": "0xc0",
+      "tags": [
+        "0xc0"
+      ],
+      "asDropdown": false,
+      "asTabs": false,
+      "includeVars": false,
+      "keepTime": true,
+      "icon": "external link",
+      "targetBlank": false
     }
   ]
 }

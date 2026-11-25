@@ -107,6 +107,23 @@ grafana:
   persistence:
     enabled: false
   defaultDashboardsEnabled: true
+  # Home is not loaded by the sidecar: Grafana's home dashboard is a file path,
+  # and the sidecar's folders are not a stable one. Its ConfigMap
+  # (kustomization.yaml) is mounted here instead.
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: home
+          orgId: 1
+          folder: ""
+          type: file
+          disableDeletion: true
+          allowUiUpdates: false
+          options:
+            path: /var/lib/grafana/dashboards/home
+  dashboardsConfigMaps:
+    home: grafana-dashboard-home
   # Loki and Tempo (workspace#290, phase 2), linked both ways by trace ID. Loki
   # turns the OTLP attributes into the labels service_name,
   # k8s_namespace_name and k8s_pod_name; trace_id is structured metadata.
@@ -145,6 +162,8 @@ grafana:
     server:
       domain: grafana.int.0xc0.cc
       root_url: https://grafana.int.0xc0.cc
+    dashboards:
+      default_home_dashboard_path: /var/lib/grafana/dashboards/home/home.json
     analytics:
       check_for_updates: false
       reporting_enabled: false
