@@ -1,15 +1,15 @@
 # kube-prometheus-stack
 
-Prometheus and Grafana in the `monitoring` namespace, beside OpenObserve
-(workspace#290). OpenObserve keeps working as before;
-this stack takes nothing from it.
+Prometheus and Grafana in the `monitoring` namespace. Grafana is the one view
+of the cluster: metrics from Prometheus, logs from Loki (`platform/loki`),
+traces from Tempo (`platform/tempo`), and the alerts (workspace#290).
 
 ## What runs
 
 | What | How |
 |---|---|
 | Prometheus | One replica, 30 days of retention (`retentionSize` 16 GB, under the 20 Gi Longhorn volume), a scrape every minute. Selects every ServiceMonitor, PodMonitor, Probe and PrometheusRule in the cluster, not only the chart's. Requests 200m / 1.5 Gi, memory limit 3 Gi |
-| OTLP | Prometheus's OTLP receiver is on. The collectors' gateway (`openobserve-collector`) sends it the metrics it receives over OTLP, the applications', as well as to OpenObserve. What the collectors scrape is not forwarded: Prometheus scrapes the same ServiceMonitors itself |
+| OTLP | Prometheus's OTLP receiver is on. The collectors' gateway (`opentelemetry-collector`) sends it the metrics it receives over OTLP, the applications'. The collectors scrape nothing: Prometheus scrapes the ServiceMonitors itself |
 | Alertmanager | Off: alerting is Grafana's (Alert rules, below) |
 | Grafana | `https://grafana.int.0xc0.cc`, WARP only; the chart's default dashboards and ours (Dashboards, below); Prometheus, Loki and Tempo (`platform/loki`, `platform/tempo`) as data sources, Tempo and Loki linked by trace ID; no persistence |
 | node-exporter, kube-state-metrics | As the chart ships them. node-exporter tolerates the `apps` and `sandbox` pool taints, so every node reports |
@@ -47,12 +47,8 @@ and no dollar sign in it.
 - `noDataState` is `OK` on every rule: a series that does not exist is not an
   alert. A metric that never arrives (Vault's, cert-manager's, Longhorn's) is
   caught by `Prometheus target down`, if its target exists.
-- `Prometheus target down` leaves out the `node-exporter` job: the zone
-  firewall admits no 9100 between the nodes (see Control plane), so its targets
-  on other nodes than Prometheus's may stay down. The node's filesystem rule
-  sees only the targets that answer.
-- The collectors' metrics reach Prometheus through a `PodMonitor` in
-  `openobserve-collector`.
+- The collectors' metrics reach Prometheus through a `ServiceMonitor` in
+  `opentelemetry` (`platform/opentelemetry-collector`).
 - Not covered: the PBS Storage Box's usage. No metric for it reaches
   Prometheus.
 
@@ -79,9 +75,8 @@ and data sources come from git: an edit made in the UI is lost on a restart.
 
 ## Dashboards
 
-Every dashboard OpenObserve had exists here (workspace#290), provisioned from
-git and read-only in the UI. The chart's defaults cover the Kubernetes ones;
-the rest are JSON files in `dashboards/<folder>/`, each turned by
+Every dashboard is provisioned from git and read-only in the UI. The chart's
+defaults cover the Kubernetes ones; the rest are JSON files in `dashboards/<folder>/`, each turned by
 `kustomization.yaml` into a ConfigMap labelled `grafana_dashboard: "1"` with a
 `grafana_folder` annotation, which Grafana's sidecar loads into that folder:
 `Kubernetes`, `Platform`, `Applications`, `Traces`. The component's `Prune=false`
@@ -93,6 +88,8 @@ To add one, put its JSON in `dashboards/<folder>/<name>.json` with a stable
 "prometheus"}` (`loki`, `tempo` likewise), then add a `configMapGenerator`
 entry beside the others with its folder. One ConfigMap per dashboard: Argo CD's
 last-applied annotation caps one near 256 KiB.
+
+Where each dashboard of OpenObserve, which these replaced (workspace#290), went:
 
 | OpenObserve dashboard | In Grafana | Folder |
 |---|---|---|
@@ -133,8 +130,7 @@ a fixed `uid`); Traefik's keeps its own data source variable.
 
 ### Panels with a caveat
 
-A panel whose data differs from what the old OpenObserve one read says so in
-its description:
+A panel whose data is not what its name suggests says so in its description:
 
 - **Matchmark and the trace dashboards, their time series and aggregate
   tables** are TraceQL metrics queries, which Tempo answers with its metrics
@@ -144,8 +140,7 @@ its description:
   gateway makes (its `servicegraph` connector) and sends to Prometheus.
 - **`Kubernetes / Events`**: the gateway sends the events to Loki. Its queries
   assume they arrive as JSON lines with `service_name` `unknown_service`.
-- **`Apps`' memory and CPU** read cAdvisor in Prometheus, where OpenObserve's
-  read the collector's `k8s_pod_*` series.
+- **`Apps`' memory and CPU** read cAdvisor in Prometheus.
 - **Argo CD's panels** read the four `ServiceMonitor`s in `argocd`, which
   `infrastructure`'s role installs with Argo CD (RKE2's helm-controller) and
   Prometheus scrapes.
@@ -162,9 +157,8 @@ RKE2 exposes the control plane's metrics on the node's address (the
 | kube-scheduler | 10259, HTTPS, bearer token, no verification | scraped |
 | kube-proxy | 10249 | **off**: RKE2 binds it to `127.0.0.1`, and the zone firewall admits no such port between the nodes. Its rules are off too |
 
-node-exporter listens on 9100 of each node. The zone firewall admits `platform`
-to `platform` on no 9100 (`infrastructure`'s `transit`): a node-exporter target
-on another node than Prometheus's may stay down until that rule exists.
+node-exporter listens on 9100 of each node, and every node's target is up
+(infrastructure#325).
 
 ## Pod Security
 
@@ -177,9 +171,9 @@ The namespace denies ingress by default. Grafana takes ingress from Traefik
 alone; Prometheus from Grafana, the operator and the collectors' gateway
 (OTLP). In the
 namespaces that limit ingress and carry a ServiceMonitor (`cert-manager`,
-`crowdsec`, `external-dns`, `longhorn-system`, `openobserve`, `openobserve-collector`, `traefik`,
+`crowdsec`, `external-dns`, `longhorn-system`, `traefik`,
 `vault`, `vault-secrets-operator`), Prometheus's pods may reach the metrics
-port, beside the collectors.
+port.
 
 ## Storage
 

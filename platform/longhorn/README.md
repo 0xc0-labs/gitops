@@ -146,131 +146,33 @@ kubectl -n longhorn-system get pods -l app=longhorn-csi-plugin \
 Every pod lists `0xc0.cc/pool` with value `apps`. Only then does the taint go
 on the nodes.
 
-## Recurring trims
+## Recurring trim
 
 A trim hands a volume's freed blocks back to Longhorn; without it a replica
-holds every block ever written.
+holds every block ever written (a volume that used 2 GB held 12 GiB per
+replica, 2026-10-02). `filesystem-trim` (`recurring-jobs.yaml`) is a Longhorn
+`RecurringJob` of the group `default`, every six hours at :17, for every volume
+with no recurring job of its own.
 
-| Job | Kind | Runs | Volumes |
-|---|---|---|---|
-| `filesystem-trim` (`recurring-jobs.yaml`) | Longhorn `RecurringJob`, group `default` | every six hours, at :17 | every volume with no recurring job of its own |
-| `filesystem-trim-openobserve` (`trim-openobserve.yaml`) | `CronJob` | every hour, at :47 | OpenObserve's |
+A large volume that is written all day may take longer than a minute to trim
+and show `FailedFilesystemTrim`, `context deadline exceeded`. The recurring
+job's API client waits a fixed minute, a constant in
+[`app/recurringjob/constant.go`][l-const] that no setting changes
+([longhorn/longhorn#6868][l-6868], open again in [#14526][l-14526]); the
+manager's `fstrim` goes on after the client gives up, so the space is reclaimed
+anyway and the red mark is the client's. The job's retries are what hurt: each
+starts another `fstrim` beside the first. A volume like that wants a `CronJob`
+of its own that calls `trimFilesystem` on the manager (port 9500, no
+credential) and waits for the answer.
 
-### A trim that outlasts the recurring job
-
-Seen on 2026-11-21 (#521) and again on 2026-11-22 (#575):
-`FailedFilesystemTrim` on OpenObserve's volume, `Post
-"http://longhorn-backend:9500/v1/volumes/<pv>?action=trimFilesystem": context
-deadline exceeded (Client.Timeout exceeded while awaiting headers)`. Every
-other volume trims in about five seconds; OpenObserve's (50 GiB, written all
-day) takes longer than a minute even when trimmed hourly (#522).
-
-What Longhorn 1.13.0 does, from its source (`longhorn-manager` v1.13.0):
-
-- **The wait is fixed.** The recurring job's API client is built with
-  `HTTPClientTimout = 1 * time.Minute`, a constant in
-  [`app/recurringjob/constant.go`][l-const]; no setting, `RecurringJob` field
-  or environment variable changes it ([longhorn/longhorn#6868][l-6868], open
-  again in [#14526][l-14526]).
-- **The trim goes on after the client gives up.** The manager's `trimFilesystem`
-  handler runs `fstrim` on the volume's node with a one-hour limit, and takes
-  no request context ([`util.TrimFilesystem`][l-util]); the manager serves with
-  `http.ListenAndServe` and a proxy with no timeout of their own, so a client
-  that waits longer is not cut off, and one that leaves (the `502` in the
-  manager's log) leaves `fstrim` running. The space is reclaimed anyway: the
-  job's red mark is the client's, not the trim's. The job's retries are what
-  hurt: each starts another `fstrim` beside the first, and answers `500`.
-- **What the docs offer** ([Trim Filesystem][l-doc]): the UI button, `fstrim`
-  by hand, a `RecurringJob`, and the `discard` mount option, which the page
-  itself says to use with caution, since it triggers snapshot removal often
-  and interrupts operations such as backup creation. It is a StorageClass
-  `mountOptions` entry, applied when a volume is provisioned: OpenObserve's
-  claim cannot change (a StatefulSet's `volumeClaimTemplates`), so it would
-  mean replacing the volume and its data.
-
-Chosen: a `CronJob` of ours that calls the same action and waits for the
-answer (`curl --max-time 3700`, a little over the node's hour), and replaces
-the volume's `RecurringJob`. It has no service account token, nothing in
-Vault, and no credential at all: Longhorn's API takes none. Its
-NetworkPolicy, `trim-openobserve-to-manager`, opens the manager's port 9500
-to its pod alone. Not retried inside a run (`backoffLimit: 0`) and never two at
-once (`concurrencyPolicy: Forbid`): the next hour's run is the retry. What it
-does not do is the recurring job's last step, purging snapshots a trim marked
-as removed, which only happens when *Remove Snapshots During Filesystem Trim*
-or the volume's `unmapMarkSnapChainRemoved` asks for it; OpenObserve's volume
-is `ignored` and the setting off.
-
-The job names the volume (`pvc-6905cde8-…`, replaced on 2026-11-25: data
-dropped, operator's decision). A replaced volume has a new name, and the job
-answers `404` until it is changed here.
-
-### Replacing the recurring job
-
-Argo CD prunes nothing in this component, so the merge does not delete the old
-`RecurringJob`; the operator does, once, after the sync:
-
-```sh
-kubectl -n longhorn-system delete recurringjob filesystem-trim-openobserve
-```
-
-The claim keeps its `recurring-job-group.longhorn.io/openobserve` label (and
-`recurring-job.longhorn.io/source`), on purpose. A volume takes the `default`
-group only while it has no group of its own, so the label keeps the six-hourly
-job away from it, and the group no longer holds a job. Removing the label
-would give the volume back to the default job, which fails on it again. A
-claim created later (the volume restored or replaced) needs the same two
-labels, set by hand because the StatefulSet's claim template cannot change:
-
-```sh
-kubectl -n openobserve label pvc data-openobserve-0 \
-  recurring-job.longhorn.io/source=enabled \
-  recurring-job-group.longhorn.io/openobserve=enabled
-```
-
-### Telling that it works
-
-Read-only, from the cluster:
-
-```sh
-# The job's result: every hour a Job that Completed, none Failed.
-kubectl -n longhorn-system get job -l app.kubernetes.io/name=filesystem-trim-openobserve
-kubectl -n longhorn-system logs job/<job>   # "trimFilesystem answered HTTP 200 after Ns"
-
-# The old job is gone and nothing else trims this volume.
-kubectl -n longhorn-system get recurringjob
-kubectl -n longhorn-system get events --field-selector reason=FailedFilesystemTrim
-
-# The volume's size: actual (Longhorn's count) against what the filesystem uses.
-kubectl -n longhorn-system get volume pvc-6905cde8-b942-42fc-be87-7584bdc1f727 \
-  -o jsonpath='{.status.actualSize}{"\n"}'
-```
-
-Read `actualSize` before the first run and after it: after a trim it falls
-toward the filesystem's used space (OpenObserve's own figure, in its README,
-Retention and size), and on the Longhorn dashboard of OpenObserve
-`longhorn_volume_actual_size_bytes` should stop climbing past it between
-runs. The first run after the change may be the slowest, and its pod may
-outlive a minute: that is the point.
-
-### Seeing a failure
-
-- Each failed trim is an event, `FailedFilesystemTrim` on the `RecurringJob`
-  in `longhorn-system`: in Headlamp, with `kubectl -n longhorn-system get
-  events --field-selector reason=FailedFilesystemTrim`, and in OpenObserve's
-  `k8s_events` stream, which `openobserve-collector` fills.
-- The job pods say which volume: `kubectl -n longhorn-system logs <pod>`.
-  Longhorn keeps only the last failed and the last successful job of each
-  kind (history limits of 1), so read them soon.
-- A volume that is not trimmed shows as `longhorn_volume_actual_size_bytes`
-  growing past its used space, on the Longhorn dashboard of OpenObserve.
-- Grafana alerts on a volume's bytes and inodes and on a degraded or faulted
-  volume (`platform/kube-prometheus-stack`, README, Alert rules); none covers
-  the trim jobs.
+Each failed trim is an event, `FailedFilesystemTrim` on the `RecurringJob` in
+`longhorn-system`: in Headlamp, or `kubectl -n longhorn-system get events
+--field-selector reason=FailedFilesystemTrim`. Grafana alerts on a volume's
+bytes and inodes and on a degraded or faulted volume
+(`platform/kube-prometheus-stack`, README, Alert rules); none covers the trim.
 
 [l-settings]: https://longhorn.io/docs/1.13.0/references/settings/
 [l-taint]: https://longhorn.io/docs/1.13.0/advanced-resources/deploy/taint-toleration/
 [l-const]: https://github.com/longhorn/longhorn-manager/blob/v1.13.0/app/recurringjob/constant.go
-[l-util]: https://github.com/longhorn/longhorn-manager/blob/v1.13.0/util/util.go
-[l-doc]: https://longhorn.io/docs/1.13.0/nodes-and-volumes/volumes/trim-filesystem/
 [l-6868]: https://github.com/longhorn/longhorn/issues/6868
 [l-14526]: https://github.com/longhorn/longhorn/issues/14526

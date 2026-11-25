@@ -161,7 +161,7 @@ spec:
         - protocol: TCP
           port: 8080
 ---
-# The collector's scrape of the server pods' metrics.
+# Prometheus's scrape of the server pods' metrics.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -182,10 +182,10 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: openobserve-collector
+              kubernetes.io/metadata.name: monitoring
           podSelector:
             matchLabels:
-              app.kubernetes.io/component: opentelemetry-collector
+              app.kubernetes.io/name: prometheus
       ports:
         - protocol: TCP
           port: 9090

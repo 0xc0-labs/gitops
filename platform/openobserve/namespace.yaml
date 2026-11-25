@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: openobserve
-  labels:
-    pod-security.kubernetes.io/enforce: restricted
-    gateway.0xc0.cc/internal: "true"

@@ -1,4 +1,4 @@
-# Runs the collectors in openobserve-collector.
+# Runs the collectors in opentelemetry.
 #
 # Backups: no volumes.
 apiVersion: kustomize.config.k8s.io/v1beta1

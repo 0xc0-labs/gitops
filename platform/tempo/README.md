@@ -1,7 +1,7 @@
 # tempo
 
-Tempo in the `tempo` namespace, beside OpenObserve (workspace#290, phase 2).
-OpenObserve keeps every trace as before; the collectors send a second copy here.
+Tempo in the `tempo` namespace: the cluster's traces (workspace#290), read in
+Grafana.
 
 ## What runs
 
@@ -10,7 +10,7 @@ OpenObserve keeps every trace as before; the collectors send a second copy here.
 | Tempo | Grafana's `tempo` chart, monolithic, one replica. Requests 100m / 768Mi, memory limit 2Gi (the generator holds live traces in memory) |
 | Storage | Blocks in the R2 bucket `tempo-blocks`, region `auto`. The Longhorn volume (10 Gi) holds the WAL and the metrics generator's WAL and local blocks (`/var/tempo/generator`) |
 | Retention | 14 days (`336h`), enforced by the compactor on the bucket |
-| Ingest | OTLP gRPC (`tempo.tempo.svc.cluster.local:4317`) and HTTP (`4318`). The collectors' gateway (`openobserve-collector`) exports its traces there beside OpenObserve |
+| Ingest | OTLP gRPC (`tempo.tempo.svc.cluster.local:4317`) and HTTP (`4318`). The collectors' gateway (`opentelemetry-collector`) exports its traces there |
 | Query | Grafana's `Tempo` data source (`platform/kube-prometheus-stack`, port 3200), linked to Loki (trace to logs) and with the service map pointed at Prometheus |
 | Metrics generator | On, with the `local-blocks` processor alone: what TraceQL metrics queries (the `Traces` dashboards and `Matchmark`'s time series) read. `service-graphs` and `span-metrics` stay off: the collectors' gateway already feeds Prometheus the `traces_service_graph_*` series (its `servicegraph` connector), and span metrics would duplicate series. Nothing is remote-written. It keeps every span (`filter_server_spans: false`) and flushes its blocks to the bucket, so ranges beyond the last hour answer |
 

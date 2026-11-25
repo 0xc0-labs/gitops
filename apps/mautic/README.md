@@ -67,7 +67,7 @@ Then, on every start:
   `CMS_API_EMAIL` and the password of `cms`. A role or user that exists is
   left as it is: its password is not reset. It then idles. A failure (the admin's login
   refused, a lookup or a create answered with an error) is one line in the
-  `provision` container's log, in OpenObserve, and the container idles
+  `provision` container's log, in Loki, and the container idles
   instead of exiting, so the site stays up; fix the cause and restart the
   pod to run it again.
 

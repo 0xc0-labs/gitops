@@ -19,8 +19,7 @@ spec:
       operator: Equal
       value: sandbox
       effect: NoSchedule
-  # SELinux keeps a container out of /var/log/pods: spc_t, as OpenObserve's
-  # chart did.
+  # SELinux keeps a container out of /var/log/pods: spc_t.
   securityContext:
     privileged: true
     runAsUser: 0

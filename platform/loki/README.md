@@ -1,7 +1,7 @@
 # loki
 
-Loki in the `loki` namespace, beside OpenObserve (workspace#290, phase 2).
-OpenObserve keeps every log as before; the collectors send a second copy here.
+Loki in the `loki` namespace: the cluster's logs (workspace#290), read in
+Grafana.
 
 ## What runs
 
@@ -10,13 +10,13 @@ OpenObserve keeps every log as before; the collectors send a second copy here.
 | Loki | Grafana's chart in its single-binary mode, one replica, no gateway, caches, canary or self-monitoring. Requests 250m / 512Mi, memory limit 1536Mi |
 | Storage | Chunks and the `tsdb` index (schema `v13`) in the R2 bucket `loki-chunks`, region `auto`. The Longhorn volume (10 Gi) holds the WAL and the compactor's scratch space only |
 | Retention | 30 days (`720h`), enforced by the compactor, with its delete requests on the same bucket |
-| Ingest | OTLP HTTP at `http://loki.loki.svc.cluster.local:3100/otlp`. The collectors' agent (`openobserve-collector`), which reads every container's log, exports there beside OpenObserve |
+| Ingest | OTLP HTTP at `http://loki.loki.svc.cluster.local:3100/otlp`. The collectors' agent (`opentelemetry-collector`), which reads every container's log, exports there |
 | Labels | Three: `service_name`, `k8s_namespace_name`, `k8s_pod_name`. Every other attribute is structured metadata, searchable but not a stream |
 | Query | Grafana's `Loki` data source (`platform/kube-prometheus-stack`), linked to Tempo by `trace_id` |
 
 Why R2 and not a Longhorn volume: Loki writes a file per chunk, and a node
 that relabels a volume's files at each start gives up on millions of them
-(OpenObserve's pod looped on 2026-11-25).
+(a pod looped on 2026-11-25).
 
 ## The operator's secret
 

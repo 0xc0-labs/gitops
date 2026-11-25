@@ -1,4 +1,4 @@
-# Prometheus and Grafana beside OpenObserve (workspace#290, phases 1 and 3).
+# Prometheus and Grafana: the one view of metrics, logs and traces (workspace#290).
 #
 # Backups: prometheus-kube-prometheus-stack-prometheus-db-prometheus-
 # kube-prometheus-stack-prometheus-0 (Longhorn, 20 Gi), in PBS's nightly backup

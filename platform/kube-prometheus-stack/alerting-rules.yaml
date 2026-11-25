@@ -63,7 +63,7 @@ grafana:
               labels: {severity: warning}
               annotations:
                 summary: A PersistentVolume has used more than 80% of its inodes.
-                runbook_url: https://github.com/0xc0-labs/gitops/blob/main/platform/openobserve/README.md
+                runbook_url: https://github.com/0xc0-labs/gitops/blob/main/platform/longhorn/README.md
               data:
                 - refId: A
                   relativeTimeRange: *range
@@ -416,7 +416,7 @@ grafana:
                     conditions: [{evaluator: {type: gt, params: [0]}}]
                     datasource: {type: __expr__, uid: __expr__}
 
-            # As TargetDown, per target; node-exporter's are left out (README, Alert rules).
+            # As TargetDown, per target.
             - uid: target-down
               title: Prometheus target down for 10 minutes
               condition: C
@@ -434,7 +434,7 @@ grafana:
                   model:
                     refId: A
                     instant: true
-                    expr: 1 - up{job!="node-exporter"}
+                    expr: 1 - up
                 - {refId: B, datasourceUid: __expr__, model: *reduce}
                 - refId: C
                   datasourceUid: __expr__
@@ -445,7 +445,7 @@ grafana:
                     conditions: [{evaluator: {type: gt, params: [0]}}]
                     datasource: {type: __expr__, uid: __expr__}
 
-            # The collectors' own metrics (a PodMonitor in openobserve-collector).
+            # The collectors' own metrics (a ServiceMonitor in opentelemetry).
             - uid: collector-export-failing
               title: Collectors failing to export
               condition: C
@@ -455,7 +455,7 @@ grafana:
               labels: {severity: warning}
               annotations:
                 summary: A collector's exporter has been failing to send telemetry for 10 minutes.
-                runbook_url: https://github.com/0xc0-labs/gitops/blob/main/platform/openobserve/README.md
+                runbook_url: https://github.com/0xc0-labs/gitops/blob/main/platform/opentelemetry-collector/README.md#checking-that-it-exports
               data:
                 - refId: A
                   relativeTimeRange: *range
