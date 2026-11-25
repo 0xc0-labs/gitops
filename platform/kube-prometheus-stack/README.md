@@ -11,7 +11,7 @@ this stack takes nothing from it.
 | Prometheus | One replica, 30 days of retention (`retentionSize` 16 GB, under the 20 Gi Longhorn volume), a scrape every minute. Selects every ServiceMonitor, PodMonitor, Probe and PrometheusRule in the cluster, not only the chart's. Requests 200m / 1.5 Gi, memory limit 3 Gi |
 | OTLP | Prometheus's OTLP receiver is on. The collectors' gateway (`openobserve-collector`) sends it the metrics it receives over OTLP, the applications', as well as to OpenObserve. What the collectors scrape is not forwarded: Prometheus scrapes the same ServiceMonitors itself |
 | Alertmanager | Off: alerting is Grafana's (Alert rules, below) |
-| Grafana | `https://grafana.int.0xc0.cc`, WARP only; the chart's default Kubernetes dashboards; Prometheus, Loki and Tempo (`platform/loki`, `platform/tempo`) as data sources, Tempo and Loki linked by trace ID; no persistence |
+| Grafana | `https://grafana.int.0xc0.cc`, WARP only; the chart's default dashboards and ours (Dashboards, below); Prometheus, Loki and Tempo (`platform/loki`, `platform/tempo`) as data sources, Tempo and Loki linked by trace ID; no persistence |
 | node-exporter, kube-state-metrics | As the chart ships them. node-exporter tolerates the `apps` and `sandbox` pool taints, so every node reports |
 | The operator | No admission webhooks |
 
@@ -76,6 +76,81 @@ README, Writing or rotating a secret][vault-write] says:
 Until it is written, Grafana's pod waits for the Secret and the rest runs.
 Vault Secrets Operator restarts Grafana when the secret changes. Dashboards
 and data sources come from git: an edit made in the UI is lost on a restart.
+
+## Dashboards
+
+Every dashboard OpenObserve had exists here (workspace#290), provisioned from
+git and read-only in the UI. The chart's defaults cover the Kubernetes ones;
+the rest are JSON files in `dashboards/<folder>/`, each turned by
+`kustomization.yaml` into a ConfigMap labelled `grafana_dashboard: "1"` with a
+`grafana_folder` annotation, which Grafana's sidecar loads into that folder:
+`Kubernetes`, `Platform`, `Applications`, `Traces`. The component's `Prune=false`
+reaches the ConfigMaps: deleting a dashboard's entry leaves its ConfigMap to
+delete by hand.
+
+To add one, put its JSON in `dashboards/<folder>/<name>.json` with a stable
+`uid`, `"id": null` and its data sources as `{"type": "prometheus", "uid":
+"prometheus"}` (`loki`, `tempo` likewise), then add a `configMapGenerator`
+entry beside the others with its folder. One ConfigMap per dashboard: Argo CD's
+last-applied annotation caps one near 256 KiB.
+
+| OpenObserve dashboard | In Grafana | Folder |
+|---|---|---|
+| `kubernetes-clusters-overview` | Default: `Kubernetes / Compute Resources / Cluster` | Kubernetes |
+| `kubernetes-nodes` | Default: `Kubernetes / Compute Resources / Nodes Overview` | Kubernetes |
+| `kubernetes-nodes-pressure` | Default: `Node Exporter / USE Method / Cluster` and `/ Node` | Kubernetes |
+| `kubernetes-node-pods` | Default: `Kubernetes / Compute Resources / Node (Pods)` | Kubernetes |
+| `kubernetes-namespaces` | Default: `Kubernetes / Compute Resources / Cluster`, its per-namespace tables | Kubernetes |
+| `kubernetes-namespace-pods` | Default: `Kubernetes / Compute Resources / Namespace (Pods)` | Kubernetes |
+| `kubernetes-namespace-pod` | Default: `Kubernetes / Compute Resources / Pod` | Kubernetes |
+| `kubernetes-api-server` | Default: `Kubernetes / API server` | Kubernetes |
+| `etcd` | Default: `etcd` | Kubernetes |
+| `host-metrics` | Default: `Node Exporter / Nodes` | Kubernetes |
+| `argocd-monitoring` | Imported: `platform/argocd.json` | Platform |
+| `longhorn` | Imported: `platform/longhorn.json` | Platform |
+| `traefik` | Imported: `platform/traefik.json` | Platform |
+| `vault` | Imported: `platform/vault.json` | Platform |
+| `crowdsec` | Imported: `platform/crowdsec.json` | Platform |
+| `matchmark` | Rebuilt: `applications/matchmark.json`, TraceQL | Applications |
+| `apps` | Rebuilt: `applications/apps.json`, PromQL and LogQL | Applications |
+| `traces-overall` | Rebuilt: `traces/traces-overall.json`, TraceQL and the service map | Traces |
+| `traces-by-service` | Rebuilt: `traces/traces-by-service.json`, the same for one service | Traces |
+| `kubernetes-events` | Rebuilt: `kubernetes/kubernetes-events.json`, LogQL | Kubernetes |
+| `openobserve` | Dropped: OpenObserve watching itself | |
+
+### Imported ones
+
+Each was edited only to take our data source (`__inputs` removed, `"id": null`,
+a fixed `uid`); Traefik's keeps its own data source variable.
+
+| File | Source | Licence |
+|---|---|---|
+| `argocd.json` | [`argoproj/argo-cd`, `examples/dashboard.json`, tag `v3.6.3`](https://github.com/argoproj/argo-cd/blob/v3.6.3/examples/dashboard.json) | Apache-2.0 |
+| `vault.json` | [`adinhodovic/vault-mixin`, `dashboards_out/vault-overview.json`, commit `51529a7`](https://github.com/adinhodovic/vault-mixin/blob/51529a79ea4bef5ae75c62cf8bbeeda621d640c2/dashboards_out/vault-overview.json) | Apache-2.0 |
+| `crowdsec.json` | [`crowdsecurity/grafana-dashboards`, `dashboards_v5/Crowdsec Overview.json`, commit `0d34f68`](https://github.com/crowdsecurity/grafana-dashboards/tree/0d34f686930aab1f11562bdf664ffad60c567e39/dashboards_v5) | MIT |
+| `traefik.json` | [grafana.com 17347](https://grafana.com/grafana/dashboards/17347), revision 9, published by Traefik Labs | none stated on the page |
+| `longhorn.json` | [grafana.com 17626](https://grafana.com/grafana/dashboards/17626), revision 1, the Longhorn example for v1.4.0 | none stated on the page |
+
+### Panels without data yet
+
+A panel whose data does not exist yet says so in its description, rather than
+being dropped:
+
+- **Matchmark and the trace dashboards, their time series and aggregate
+  tables.** They are TraceQL metrics queries, which Tempo answers only with its
+  metrics generator's `local-blocks` processor on: it is off
+  (`platform/tempo`). The two TraceQL search tables of `Failures` and the
+  `Latest traces` tables work without it.
+- **The service maps** read `traces_service_graph_*`, which the collectors'
+  gateway makes (its `servicegraph` connector) and Prometheus does not receive
+  yet (gitops#661).
+- **`Kubernetes / Events`**: the gateway sends the events to OpenObserve alone,
+  so Loki holds none. Its queries assume the events arrive as JSON lines with
+  `service_name` `unknown_service`.
+- **`Apps`' memory and CPU** read cAdvisor in Prometheus, where OpenObserve's
+  read the collector's `k8s_pod_*` series.
+- **Argo CD's panels** need its metrics in Prometheus: no `ServiceMonitor` for
+  it lives here (Argo CD comes from RKE2's helm-controller, `infrastructure`).
 
 ## Control plane
 

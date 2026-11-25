@@ -146,6 +146,14 @@ grafana:
     limits:
       memory: 512Mi
   sidecar:
+    dashboards:
+      # The folder comes from each ConfigMap's grafana_folder annotation; the
+      # chart's own dashboards carry the one below.
+      folderAnnotation: grafana_folder
+      annotations:
+        grafana_folder: Kubernetes
+      provider:
+        foldersFromFilesStructure: true
     # The chart adds one for the Alertmanager it no longer runs.
     datasources:
       alertmanager:
