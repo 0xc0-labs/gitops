@@ -1,0 +1,9 @@
+# privileged: node-exporter reads the node through host networking, PID and
+# paths, the one pod here that does. Nothing in it runs a privileged container.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    gateway.0xc0.cc/internal: "true"

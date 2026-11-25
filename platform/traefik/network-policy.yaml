@@ -54,6 +54,12 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/component: opentelemetry-collector
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
       ports:
         - protocol: TCP
           port: 9100

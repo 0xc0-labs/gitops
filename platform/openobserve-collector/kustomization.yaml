@@ -55,6 +55,34 @@ patches:
               target_label: __address__
             - source_labels: [__meta_kubernetes_pod_node_name]
               target_label: node
+  # The applications' OTLP metrics to Prometheus as well (kube-prometheus-stack,
+  # workspace#290). A pipeline of its own with the OTLP receiver alone: what
+  # the collector scrapes stays out, since Prometheus scrapes the same
+  # ServiceMonitors itself and forwarding them would duplicate every series.
+  - target:
+      kind: OpenTelemetryCollector
+      name: openobserve-collector-gateway
+    patch: |-
+      - op: add
+        path: /spec/config/exporters/otlphttp~1prometheus
+        value:
+          endpoint: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/otlp
+          compression: gzip
+          timeout: 10s
+          retry_on_failure:
+            enabled: true
+            initial_interval: 5s
+            max_interval: 30s
+            max_elapsed_time: 120s
+          sending_queue:
+            enabled: true
+            queue_size: 1000
+      - op: add
+        path: /spec/config/service/pipelines/metrics~1prometheus
+        value:
+          receivers: [otlp]
+          processors: [memory_limiter, resourcedetection, attributes, k8sattributes, batch]
+          exporters: [otlphttp/prometheus]
   # The usage record: the log records of a model call, from the OTLP receiver,
   # to Matchmark's API (apps/matchmark/README.md, The usage record). No other
   # pipeline takes logs from that receiver, so a slow or failing API holds back

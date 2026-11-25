@@ -1,0 +1,26 @@
+# Prometheus, Alertmanager and Grafana beside OpenObserve (workspace#290,
+# phase 1).
+#
+# Backups: prometheus-kube-prometheus-stack-prometheus-db-prometheus-
+# kube-prometheus-stack-prometheus-0 (Longhorn, 20 Gi), in PBS's nightly backup
+# of the RKE2 VMs. Grafana and Alertmanager keep nothing.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: monitoring
+helmCharts:
+  - name: kube-prometheus-stack
+    repo: https://prometheus-community.github.io/helm-charts
+    version: 93.11.0
+    releaseName: kube-prometheus-stack
+    namespace: monitoring
+    kubeVersion: "1.36.4"
+    skipTests: true
+    valuesFile: values.yaml
+resources:
+  - namespace.yaml
+  - network-policy.yaml
+  - vault-secrets.yaml
+  - httproute.yaml
+# No pruning: it holds data.
+commonAnnotations:
+  argocd.argoproj.io/sync-options: Prune=false

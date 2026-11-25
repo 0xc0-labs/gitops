@@ -1,0 +1,188 @@
+# The chart's CRDs are platform/prometheus-operator-crds': one owner each.
+crds:
+  enabled: false
+
+defaultRules:
+  create: true
+  rules:
+    # Switched off below: nothing scrapes it, so its rules would only fire.
+    kubeProxy: false
+
+# The operator has no webhooks: no certgen Job, no port for the API server.
+prometheusOperator:
+  admissionWebhooks:
+    enabled: false
+  tls:
+    enabled: false
+  image:
+    tag: v0.95.2
+    sha: 7986c2afa118c9dea07d01c5e1a29555824582e92f6ee8607591d1a7178acf29
+  prometheusConfigReloader:
+    image:
+      tag: v0.95.2
+      sha: cc74ddedad4ab1c49446971f6d51302ad4303d8660a2018af925c7f62c114304
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        memory: 64Mi
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
+
+prometheus:
+  prometheusSpec:
+    image:
+      tag: v3.16.0-distroless
+      sha: 9764044e09eb2c9e1abdb12d0f0188d4efb7384b0262d3c080f0fc59045c89ba
+    replicas: 1
+    retention: 30d
+    # Under the volume's 20 Gi, so a full disk never stops the head.
+    retentionSize: 16GB
+    # As the collectors scrape: every minute.
+    scrapeInterval: 60s
+    evaluationInterval: 60s
+    # The applications' metrics arrive over OTLP from the collectors' gateway
+    # (openobserve-collector, kustomization.yaml).
+    enableOTLPReceiver: true
+    # Every ServiceMonitor, PodMonitor, Probe and PrometheusRule in the
+    # cluster, not only the chart's own.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    probeSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    scrapeConfigSelectorNilUsesHelmValues: false
+    resources:
+      requests:
+        cpu: 200m
+        memory: 1536Mi
+      limits:
+        memory: 3Gi
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: longhorn
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests:
+              storage: 20Gi
+
+alertmanager:
+  # Where alerts go is a later choice (workspace#290): the chart's rules
+  # evaluate and show in Alertmanager's UI and Grafana, and reach nothing.
+  config:
+    route:
+      receiver: "null"
+      group_by: [namespace]
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+    receivers:
+      - name: "null"
+  alertmanagerSpec:
+    image:
+      tag: v0.35.1
+      sha: 03d4e362b9948eee910802ddac55f9175b320862a2de1fdef5206c3213875a09
+    replicas: 1
+    resources:
+      requests:
+        cpu: 10m
+        memory: 48Mi
+      limits:
+        memory: 128Mi
+
+grafana:
+  image:
+    tag: 13.3.2-distroless
+    sha: d9425e704fa9dff189966b827fbc9b63befc5b443999c7b82193f1b1a73c74f7
+  # The login from Vault (vault-secrets.yaml), keys as written there.
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin_user
+    passwordKey: admin_password
+  # Dashboards and data sources come from git: nothing to keep.
+  persistence:
+    enabled: false
+  defaultDashboardsEnabled: true
+  grafana.ini:
+    server:
+      domain: grafana.int.0xc0.cc
+      root_url: https://grafana.int.0xc0.cc
+    analytics:
+      check_for_updates: false
+      reporting_enabled: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 192Mi
+    limits:
+      memory: 512Mi
+  sidecar:
+    image:
+      tag: 2.14.3
+      sha: 52d311dcedd587421a236c4d6c621f05614c40a51386e955e0699dca97ec0880
+    resources:
+      requests:
+        cpu: 10m
+        memory: 48Mi
+      limits:
+        memory: 128Mi
+
+kube-state-metrics:
+  image:
+    tag: v2.20.0
+    sha: sha256:42cfe3723a5f058171c627537fb57a3ea0f26e4380fa18555a95cb1a1b4cfc5b
+  # Not the chart's own wildcard: it would let the pool taints through.
+  tolerations: []
+  resources:
+    requests:
+      cpu: 10m
+      memory: 48Mi
+    limits:
+      memory: 128Mi
+
+prometheus-node-exporter:
+  image:
+    digest: sha256:dbc46b5381ae47c5634a6ad16d7b4862191979b0ba4f4cfbdee85e5aa2fcd1e3
+  # Every node reports, the tainted pools included, and only those taints.
+  tolerations:
+    - key: 0xc0.cc/pool
+      operator: Equal
+      value: apps
+      effect: NoSchedule
+    - key: 0xc0.cc/pool
+      operator: Equal
+      value: sandbox
+      effect: NoSchedule
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 96Mi
+
+# RKE2 exposes the control plane's metrics on the node's address, as the
+# rke2_server role in infrastructure sets: etcd's over HTTP on 2381, the
+# scheduler's (10259) and the controller manager's (10257) over HTTPS behind
+# the API's authorization, the chart's defaults for a bearer token and no
+# verification. The ports are stated so a chart bump cannot move them.
+kubeEtcd:
+  service:
+    port: 2381
+    targetPort: 2381
+kubeControllerManager:
+  service:
+    port: 10257
+    targetPort: 10257
+kubeScheduler:
+  service:
+    port: 10259
+    targetPort: 10259
+# RKE2's kube-proxy listens on 127.0.0.1:10249 and the zone firewall admits
+# no such port between the nodes: no target can be reached.
+kubeProxy:
+  enabled: false
