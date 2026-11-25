@@ -89,6 +89,42 @@ To add one, put its JSON in `dashboards/<folder>/<name>.json` with a stable
 entry beside the others with its folder. One ConfigMap per dashboard: Argo CD's
 last-applied annotation caps one near 256 KiB.
 
+### Visual language
+
+Every dashboard of ours follows it, the vendored ones included (their queries
+stay, their look does not). The chart's defaults stay as shipped. `Home` is the
+estate on one screen and Grafana's home dashboard.
+
+- **Structure.** A dashboard opens with a row of stats, the few numbers that
+  say whether things are fine, then detail rows, collapsed below the fold.
+- **The panel follows the data.**
+
+  | Data | Panel |
+  |---|---|
+  | A current value | `stat`, with a sparkline and thresholds |
+  | A trend | `timeseries`, gradient fill, thresholds as lines |
+  | A latency distribution | `heatmap` |
+  | A top-N, or a saturation across many things | `bargauge` |
+  | Pod, target or sync states over time | `state-timeline` |
+  | One bounded saturation (disk, memory) | `gauge`, only then |
+  | An inventory | `table`, with cell colouring |
+  | A service map | `nodeGraph` |
+  | Loki lines | `logs` |
+  | A share of 2 to 5 parts | `piechart`, only then |
+
+- **One palette.** Thresholds are green, amber, red (`green`, `#EAB839`,
+  `red`) and mean the same everywhere: green fine, amber look at it, red act.
+  Series use Grafana's `palette-classic`. Units are always set (`bytes`,
+  `percent`, `reqps`, `s`, `short`) and decimals are sensible (0 for counts,
+  1 or 2 for ratios and durations).
+- **Every panel has a one-line description**; a panel whose data does not
+  exist says so there. Variables (`namespace`, `service`, `node`) where they
+  help, each with `All`.
+- **Links** go from a service's panel to its traces, its logs and its own
+  dashboard, and every dashboard links back to `Home` (a dashboard link by tag,
+  `0xc0`).
+- **Nothing is lost in a restyle.** A panel keeps its queries and its series.
+
 Where each dashboard of OpenObserve, which these replaced (workspace#290), went:
 
 | OpenObserve dashboard | In Grafana | Folder |

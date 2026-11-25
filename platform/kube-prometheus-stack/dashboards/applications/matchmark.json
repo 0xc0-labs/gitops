@@ -3,7 +3,8 @@
   "title": "Matchmark",
   "tags": [
     "matchmark",
-    "traces"
+    "traces",
+    "0xc0"
   ],
   "description": "Matchmark's tasks, attempts, waits, agents, models and tools, from its spans in Tempo.",
   "schemaVersion": 39,
@@ -72,2012 +73,3682 @@
   },
   "panels": [
     {
+      "type": "stat",
+      "title": "Tasks",
+      "description": "Tasks that ended in the range. TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name = \"matchmark.task\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time()",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 0,
+        "y": 0
+      },
+      "links": [
+        {
+          "title": "Matchmark's logs",
+          "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{k8s_namespace_name%3D%5C%22matchmark%5C%22}%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
+          "targetBlank": false
+        },
+        {
+          "title": "Traces",
+          "url": "/d/traces-overall",
+          "targetBlank": false
+        }
+      ],
+      "id": 1
+    },
+    {
+      "type": "stat",
+      "title": "Failed or escalated",
+      "description": "Tasks that ended failed or escalated. TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name = \"matchmark.task\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && span.matchmark.task.outcome =~ \"failed|escalated\" } | count_over_time()",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 3,
+        "y": 0
+      },
+      "links": [
+        {
+          "title": "Matchmark's logs",
+          "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{k8s_namespace_name%3D%5C%22matchmark%5C%22}%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
+          "targetBlank": false
+        },
+        {
+          "title": "Traces",
+          "url": "/d/traces-overall",
+          "targetBlank": false
+        }
+      ],
+      "id": 2
+    },
+    {
+      "type": "stat",
+      "title": "Attempts",
+      "description": "Attempts that ended in the range. TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name = \"matchmark.attempt\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time()",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 6,
+        "y": 0
+      },
+      "id": 3
+    },
+    {
+      "type": "stat",
+      "title": "Task p95",
+      "description": "95th percentile of task duration. TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name = \"matchmark.task\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | quantile_over_time(duration, .95)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "noValue": "-"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 9,
+        "y": 0
+      },
+      "id": 4
+    },
+    {
+      "type": "stat",
+      "title": "Agent runs in error",
+      "description": "Agent runs that ended in error. TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"invoke_agent.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && status = error } | count_over_time()",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 12,
+        "y": 0
+      },
+      "links": [
+        {
+          "title": "Matchmark's logs",
+          "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{k8s_namespace_name%3D%5C%22matchmark%5C%22}%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
+          "targetBlank": false
+        },
+        {
+          "title": "Traces",
+          "url": "/d/traces-overall",
+          "targetBlank": false
+        }
+      ],
+      "id": 5
+    },
+    {
+      "type": "stat",
+      "title": "Failed tool calls",
+      "description": "Tool calls that ended in error. TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && status = error } | count_over_time()",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 15,
+        "y": 0
+      },
+      "links": [
+        {
+          "title": "Matchmark's logs",
+          "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{k8s_namespace_name%3D%5C%22matchmark%5C%22}%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
+          "targetBlank": false
+        },
+        {
+          "title": "Traces",
+          "url": "/d/traces-overall",
+          "targetBlank": false
+        }
+      ],
+      "id": 6
+    },
+    {
+      "type": "stat",
+      "title": "Input tokens",
+      "description": "Input tokens of the model calls in the range. No cost series exists yet, so tokens stand for it. TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.input_tokens)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 18,
+        "y": 0
+      },
+      "id": 7
+    },
+    {
+      "type": "stat",
+      "title": "Output tokens",
+      "description": "Output tokens of the model calls in the range. TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.output_tokens)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 21,
+        "y": 0
+      },
+      "id": 8
+    },
+    {
       "type": "row",
       "title": "Tasks",
-      "id": 1,
-      "collapsed": false,
+      "collapsed": true,
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "Tasks ended by outcome",
+          "description": "Tasks ended per second, by outcome. TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name = \"matchmark.task\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | rate() by (span.matchmark.task.outcome)",
+              "metricsQueryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "normal"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "id": 10,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 5
+          },
+          "links": [
+            {
+              "title": "Traces",
+              "url": "/d/traces-overall",
+              "targetBlank": false
+            }
+          ]
+        },
+        {
+          "type": "piechart",
+          "title": "Tasks by outcome, for the range",
+          "description": "Share of tasks by outcome over the range. TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name = \"matchmark.task\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.matchmark.task.outcome)",
+              "metricsQueryType": "instant"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "decimals": 0,
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "pieType": "donut",
+            "legend": {
+              "displayMode": "table",
+              "placement": "right",
+              "values": [
+                "value"
+              ]
+            },
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "values": false
+            }
+          },
+          "id": 11,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 5
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Task duration, p50 and p95",
+          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name = \"matchmark.task\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | quantile_over_time(duration, .5, .95)",
+              "metricsQueryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "none"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "id": 12,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 13
+          },
+          "links": [
+            {
+              "title": "Traces",
+              "url": "/d/traces-overall",
+              "targetBlank": false
+            }
+          ]
+        },
+        {
+          "type": "barchart",
+          "title": "Attempts per task",
+          "description": "Tasks counted by how many attempts they took. TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name = \"matchmark.task\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.matchmark.task.attempts)",
+              "metricsQueryType": "instant"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "decimals": 0,
+              "custom": {
+                "gradientMode": "opacity",
+                "fillOpacity": 80
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "xTickLabelRotation": 0
+          },
+          "id": 13,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 13
+          }
+        },
+        {
+          "type": "barchart",
+          "title": "Restorations per task",
+          "description": "Tasks counted by how many restorations they needed. TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name = \"matchmark.task\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.matchmark.task.restorations)",
+              "metricsQueryType": "instant"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "decimals": 0,
+              "custom": {
+                "gradientMode": "opacity",
+                "fillOpacity": 80
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "xTickLabelRotation": 0
+          },
+          "id": 14,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 21
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Attempts ended by outcome",
+          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name = \"matchmark.attempt\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | rate() by (span.matchmark.attempt.outcome)",
+              "metricsQueryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "normal"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "id": 15,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 21
+          },
+          "links": [
+            {
+              "title": "Traces",
+              "url": "/d/traces-overall",
+              "targetBlank": false
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Attempt duration, p50 and p95",
+          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name = \"matchmark.attempt\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | quantile_over_time(duration, .5, .95)",
+              "metricsQueryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "none"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "id": 16,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 29
+          },
+          "links": [
+            {
+              "title": "Traces",
+              "url": "/d/traces-overall",
+              "targetBlank": false
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "title": "Stage time, the attempt and the QA",
+          "description": "p50 and p95 per stage, for the attempt and the QA. TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"matchmark.attempt|matchmark.qa\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | quantile_over_time(duration, .5, .95) by (name, span.matchmark.stage)",
+              "metricsQueryType": "instant"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "cellOptions": {
+                  "type": "auto"
+                }
+              },
+              "unit": "s",
+              "decimals": 1
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byType",
+                  "options": "number"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background",
+                      "mode": "gradient"
+                    }
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green",
+                          "value": null
+                        },
+                        {
+                          "color": "#EAB839",
+                          "value": 300
+                        },
+                        {
+                          "color": "red",
+                          "value": 900
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "thresholds"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm"
+          },
+          "id": 17,
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 37
+          }
+        }
+      ],
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 0
+        "y": 4
       },
-      "panels": []
-    },
-    {
-      "type": "timeseries",
-      "title": "Tasks ended by outcome",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name = \"matchmark.task\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | rate() by (span.matchmark.task.outcome)",
-          "metricsQueryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {
-            "fillOpacity": 30,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "normal"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 2,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 1
-      }
-    },
-    {
-      "type": "piechart",
-      "title": "Tasks by outcome, for the range",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name = \"matchmark.task\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.matchmark.task.outcome)",
-          "metricsQueryType": "instant"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "options": {
-        "pieType": "donut",
-        "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "values": [
-            "value"
-          ]
-        },
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "values": false
-        }
-      },
-      "id": 3,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 1
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Task duration, p50 and p95",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name = \"matchmark.task\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | quantile_over_time(duration, .5, .95)",
-          "metricsQueryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "custom": {
-            "fillOpacity": 10,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "none"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 4,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 9
-      }
-    },
-    {
-      "type": "barchart",
-      "title": "Attempts per task",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name = \"matchmark.task\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.matchmark.task.attempts)",
-          "metricsQueryType": "instant"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "xTickLabelRotation": 0
-      },
-      "id": 5,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 9
-      }
-    },
-    {
-      "type": "barchart",
-      "title": "Restorations per task",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name = \"matchmark.task\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.matchmark.task.restorations)",
-          "metricsQueryType": "instant"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "xTickLabelRotation": 0
-      },
-      "id": 6,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 17
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Attempts ended by outcome",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name = \"matchmark.attempt\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | rate() by (span.matchmark.attempt.outcome)",
-          "metricsQueryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {
-            "fillOpacity": 30,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "normal"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 7,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 17
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Attempt duration, p50 and p95",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name = \"matchmark.attempt\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | quantile_over_time(duration, .5, .95)",
-          "metricsQueryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "custom": {
-            "fillOpacity": 10,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "none"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 8,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 25
-      }
-    },
-    {
-      "type": "table",
-      "title": "Stage time, the attempt and the QA",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"matchmark.attempt|matchmark.qa\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | quantile_over_time(duration, .5, .95) by (name, span.matchmark.stage)",
-          "metricsQueryType": "instant"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm"
-      },
-      "id": 9,
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 33
-      }
+      "id": 9
     },
     {
       "type": "row",
       "title": "Waits",
-      "id": 10,
-      "collapsed": false,
+      "collapsed": true,
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "Waits by stage",
+          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name = \"matchmark.wait\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | rate() by (span.matchmark.wait.stage)",
+              "metricsQueryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "normal"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "id": 19,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 6
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Time waited, by stage",
+          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name = \"matchmark.wait\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(duration) by (span.matchmark.wait.stage)",
+              "metricsQueryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "normal"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "id": 20,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 6
+          }
+        },
+        {
+          "type": "table",
+          "title": "Waits, for the range",
+          "description": "p50 and p95 of the waits, by stage. TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name = \"matchmark.wait\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | quantile_over_time(duration, .5, .95) by (span.matchmark.wait.stage)",
+              "metricsQueryType": "instant"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "cellOptions": {
+                  "type": "auto"
+                }
+              },
+              "unit": "s",
+              "decimals": 1
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byType",
+                  "options": "number"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background",
+                      "mode": "gradient"
+                    }
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green",
+                          "value": null
+                        },
+                        {
+                          "color": "#EAB839",
+                          "value": 30
+                        },
+                        {
+                          "color": "red",
+                          "value": 120
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "thresholds"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm"
+          },
+          "id": 21,
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 14
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Wait p50, by stage",
+          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name = \"matchmark.wait\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | quantile_over_time(duration, .5) by (span.matchmark.wait.stage)",
+              "metricsQueryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "none"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "id": 22,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 22
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Wait p95, by stage",
+          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name = \"matchmark.wait\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | quantile_over_time(duration, .95) by (span.matchmark.wait.stage)",
+              "metricsQueryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "none"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "id": 23,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 22
+          }
+        }
+      ],
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 41
+        "y": 5
       },
-      "panels": []
-    },
-    {
-      "type": "timeseries",
-      "title": "Waits by stage",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name = \"matchmark.wait\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | rate() by (span.matchmark.wait.stage)",
-          "metricsQueryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {
-            "fillOpacity": 30,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "normal"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 11,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 42
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Time waited, by stage",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name = \"matchmark.wait\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(duration) by (span.matchmark.wait.stage)",
-          "metricsQueryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "custom": {
-            "fillOpacity": 30,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "normal"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 12,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 42
-      }
-    },
-    {
-      "type": "table",
-      "title": "Waits, for the range",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name = \"matchmark.wait\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | quantile_over_time(duration, .5, .95) by (span.matchmark.wait.stage)",
-          "metricsQueryType": "instant"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm"
-      },
-      "id": 13,
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 50
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Wait p50, by stage",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name = \"matchmark.wait\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | quantile_over_time(duration, .5) by (span.matchmark.wait.stage)",
-          "metricsQueryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "custom": {
-            "fillOpacity": 10,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "none"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 14,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 58
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Wait p95, by stage",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name = \"matchmark.wait\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | quantile_over_time(duration, .95) by (span.matchmark.wait.stage)",
-          "metricsQueryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "custom": {
-            "fillOpacity": 10,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "none"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 15,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 58
-      }
+      "id": 18
     },
     {
       "type": "row",
       "title": "Agents and models",
-      "id": 16,
-      "collapsed": false,
+      "collapsed": true,
+      "panels": [
+        {
+          "type": "table",
+          "title": "Agents, for the range",
+          "description": "Columns by query: A runs, B errors, C calls, D input, E output, F cache read tokens.",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"invoke_agent.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.matchmark.agent)",
+              "metricsQueryType": "instant"
+            },
+            {
+              "refId": "B",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"invoke_agent.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && status = error } | count_over_time() by (span.matchmark.agent)",
+              "metricsQueryType": "instant"
+            },
+            {
+              "refId": "C",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"chat.*\" && span.gen_ai.usage.input_tokens > 0 && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.matchmark.agent)",
+              "metricsQueryType": "instant"
+            },
+            {
+              "refId": "D",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.input_tokens) by (span.matchmark.agent)",
+              "metricsQueryType": "instant"
+            },
+            {
+              "refId": "E",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.output_tokens) by (span.matchmark.agent)",
+              "metricsQueryType": "instant"
+            },
+            {
+              "refId": "F",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.cache_read.input_tokens) by (span.matchmark.agent)",
+              "metricsQueryType": "instant"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "cellOptions": {
+                  "type": "auto"
+                }
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byType",
+                  "options": "number"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background",
+                      "mode": "gradient"
+                    }
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "blue",
+                          "value": null
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "thresholds"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Value #B"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background",
+                      "mode": "gradient"
+                    }
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green",
+                          "value": null
+                        },
+                        {
+                          "color": "#EAB839",
+                          "value": 1
+                        },
+                        {
+                          "color": "red",
+                          "value": 10
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "thresholds"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm"
+          },
+          "transformations": [
+            {
+              "id": "joinByField",
+              "options": {
+                "byField": "span.matchmark.agent",
+                "mode": "outer"
+              }
+            }
+          ],
+          "id": 25,
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 7
+          }
+        },
+        {
+          "type": "table",
+          "title": "Runs by model",
+          "description": "A runs, B errors.",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"invoke_agent.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.gen_ai.request.model)",
+              "metricsQueryType": "instant"
+            },
+            {
+              "refId": "B",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"invoke_agent.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && status = error } | count_over_time() by (span.gen_ai.request.model)",
+              "metricsQueryType": "instant"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "cellOptions": {
+                  "type": "auto"
+                }
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byType",
+                  "options": "number"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background",
+                      "mode": "gradient"
+                    }
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "blue",
+                          "value": null
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "thresholds"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Value #B"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background",
+                      "mode": "gradient"
+                    }
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green",
+                          "value": null
+                        },
+                        {
+                          "color": "#EAB839",
+                          "value": 1
+                        },
+                        {
+                          "color": "red",
+                          "value": 10
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "thresholds"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm"
+          },
+          "transformations": [
+            {
+              "id": "joinByField",
+              "options": {
+                "byField": "span.gen_ai.request.model",
+                "mode": "outer"
+              }
+            }
+          ],
+          "id": 26,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 15
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Runs by agent",
+          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"invoke_agent.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | rate() by (span.matchmark.agent)",
+              "metricsQueryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "normal"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "id": 27,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 15
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Runs in error, by agent",
+          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"invoke_agent.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && status = error } | rate() by (span.matchmark.agent)",
+              "metricsQueryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "normal"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "id": 28,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 23
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Model calls, by model",
+          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"chat.*\" && span.gen_ai.usage.input_tokens > 0 && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | rate() by (span.gen_ai.request.model)",
+              "metricsQueryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "normal"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "id": 29,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 23
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Input tokens, by model",
+          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.input_tokens) by (span.gen_ai.request.model)",
+              "metricsQueryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "normal"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "id": 30,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 31
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Output tokens, by model",
+          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.output_tokens) by (span.gen_ai.request.model)",
+              "metricsQueryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "normal"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "id": 31,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 31
+          }
+        },
+        {
+          "type": "table",
+          "title": "Tokens by model, for the range",
+          "description": "A calls, B input, C output, D cache read, E cache creation tokens.",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"chat.*\" && span.gen_ai.usage.input_tokens > 0 && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.gen_ai.request.model)",
+              "metricsQueryType": "instant"
+            },
+            {
+              "refId": "B",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.input_tokens) by (span.gen_ai.request.model)",
+              "metricsQueryType": "instant"
+            },
+            {
+              "refId": "C",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.output_tokens) by (span.gen_ai.request.model)",
+              "metricsQueryType": "instant"
+            },
+            {
+              "refId": "D",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.cache_read.input_tokens) by (span.gen_ai.request.model)",
+              "metricsQueryType": "instant"
+            },
+            {
+              "refId": "E",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.cache_creation.input_tokens) by (span.gen_ai.request.model)",
+              "metricsQueryType": "instant"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "cellOptions": {
+                  "type": "auto"
+                }
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byType",
+                  "options": "number"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background",
+                      "mode": "gradient"
+                    }
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "blue",
+                          "value": null
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "thresholds"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm"
+          },
+          "transformations": [
+            {
+              "id": "joinByField",
+              "options": {
+                "byField": "span.gen_ai.request.model",
+                "mode": "outer"
+              }
+            }
+          ],
+          "id": 32,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 39
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Model calls, by agent",
+          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"chat.*\" && span.gen_ai.usage.input_tokens > 0 && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | rate() by (span.matchmark.agent)",
+              "metricsQueryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "normal"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "id": 33,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 39
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Input tokens, by agent",
+          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.input_tokens) by (span.matchmark.agent)",
+              "metricsQueryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "normal"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "id": 34,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 47
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Output tokens, by agent",
+          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.output_tokens) by (span.matchmark.agent)",
+              "metricsQueryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "normal"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "id": 35,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 47
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Cache read tokens, by agent",
+          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.cache_read.input_tokens) by (span.matchmark.agent)",
+              "metricsQueryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "normal"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "id": 36,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 55
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Cache creation tokens, by agent",
+          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.cache_creation.input_tokens) by (span.matchmark.agent)",
+              "metricsQueryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "normal"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "id": 37,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 55
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Calls by finish reason",
+          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"chat.*\" && span.gen_ai.usage.input_tokens > 0 && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | rate() by (span.gen_ai.response.finish_reasons)",
+              "metricsQueryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "normal"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "id": 38,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 63
+          }
+        }
+      ],
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 66
+        "y": 6
       },
-      "panels": []
-    },
-    {
-      "type": "table",
-      "title": "Agents, for the range",
-      "description": "Columns by query: A runs, B errors, C calls, D input, E output, F cache read tokens.",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"invoke_agent.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.matchmark.agent)",
-          "metricsQueryType": "instant"
-        },
-        {
-          "refId": "B",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"invoke_agent.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && status = error } | count_over_time() by (span.matchmark.agent)",
-          "metricsQueryType": "instant"
-        },
-        {
-          "refId": "C",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"chat.*\" && span.gen_ai.usage.input_tokens > 0 && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.matchmark.agent)",
-          "metricsQueryType": "instant"
-        },
-        {
-          "refId": "D",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.input_tokens) by (span.matchmark.agent)",
-          "metricsQueryType": "instant"
-        },
-        {
-          "refId": "E",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.output_tokens) by (span.matchmark.agent)",
-          "metricsQueryType": "instant"
-        },
-        {
-          "refId": "F",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.cache_read.input_tokens) by (span.matchmark.agent)",
-          "metricsQueryType": "instant"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm"
-      },
-      "transformations": [
-        {
-          "id": "joinByField",
-          "options": {
-            "byField": "span.matchmark.agent",
-            "mode": "outer"
-          }
-        }
-      ],
-      "id": 17,
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 67
-      }
-    },
-    {
-      "type": "table",
-      "title": "Runs by model",
-      "description": "A runs, B errors.",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"invoke_agent.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.gen_ai.request.model)",
-          "metricsQueryType": "instant"
-        },
-        {
-          "refId": "B",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"invoke_agent.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && status = error } | count_over_time() by (span.gen_ai.request.model)",
-          "metricsQueryType": "instant"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm"
-      },
-      "transformations": [
-        {
-          "id": "joinByField",
-          "options": {
-            "byField": "span.gen_ai.request.model",
-            "mode": "outer"
-          }
-        }
-      ],
-      "id": 18,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 75
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Runs by agent",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"invoke_agent.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | rate() by (span.matchmark.agent)",
-          "metricsQueryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {
-            "fillOpacity": 30,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "normal"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 19,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 75
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Runs in error, by agent",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"invoke_agent.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && status = error } | rate() by (span.matchmark.agent)",
-          "metricsQueryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {
-            "fillOpacity": 30,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "normal"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 20,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 83
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Model calls, by model",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"chat.*\" && span.gen_ai.usage.input_tokens > 0 && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | rate() by (span.gen_ai.request.model)",
-          "metricsQueryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {
-            "fillOpacity": 30,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "normal"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 21,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 83
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Input tokens, by model",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.input_tokens) by (span.gen_ai.request.model)",
-          "metricsQueryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {
-            "fillOpacity": 30,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "normal"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 22,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 91
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Output tokens, by model",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.output_tokens) by (span.gen_ai.request.model)",
-          "metricsQueryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {
-            "fillOpacity": 30,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "normal"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 23,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 91
-      }
-    },
-    {
-      "type": "table",
-      "title": "Tokens by model, for the range",
-      "description": "A calls, B input, C output, D cache read, E cache creation tokens.",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"chat.*\" && span.gen_ai.usage.input_tokens > 0 && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.gen_ai.request.model)",
-          "metricsQueryType": "instant"
-        },
-        {
-          "refId": "B",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.input_tokens) by (span.gen_ai.request.model)",
-          "metricsQueryType": "instant"
-        },
-        {
-          "refId": "C",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.output_tokens) by (span.gen_ai.request.model)",
-          "metricsQueryType": "instant"
-        },
-        {
-          "refId": "D",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.cache_read.input_tokens) by (span.gen_ai.request.model)",
-          "metricsQueryType": "instant"
-        },
-        {
-          "refId": "E",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.cache_creation.input_tokens) by (span.gen_ai.request.model)",
-          "metricsQueryType": "instant"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm"
-      },
-      "transformations": [
-        {
-          "id": "joinByField",
-          "options": {
-            "byField": "span.gen_ai.request.model",
-            "mode": "outer"
-          }
-        }
-      ],
-      "id": 24,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 99
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Model calls, by agent",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"chat.*\" && span.gen_ai.usage.input_tokens > 0 && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | rate() by (span.matchmark.agent)",
-          "metricsQueryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {
-            "fillOpacity": 30,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "normal"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 25,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 99
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Input tokens, by agent",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.input_tokens) by (span.matchmark.agent)",
-          "metricsQueryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {
-            "fillOpacity": 30,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "normal"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 26,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 107
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Output tokens, by agent",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.output_tokens) by (span.matchmark.agent)",
-          "metricsQueryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {
-            "fillOpacity": 30,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "normal"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 27,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 107
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Cache read tokens, by agent",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.cache_read.input_tokens) by (span.matchmark.agent)",
-          "metricsQueryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {
-            "fillOpacity": 30,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "normal"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 28,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 115
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Cache creation tokens, by agent",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.cache_creation.input_tokens) by (span.matchmark.agent)",
-          "metricsQueryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {
-            "fillOpacity": 30,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "normal"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 29,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 115
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Calls by finish reason",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"chat.*\" && span.gen_ai.usage.input_tokens > 0 && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | rate() by (span.gen_ai.response.finish_reasons)",
-          "metricsQueryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {
-            "fillOpacity": 30,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "normal"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 30,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 123
-      }
+      "id": 24
     },
     {
       "type": "row",
       "title": "Tools",
-      "id": 31,
-      "collapsed": false,
+      "collapsed": true,
+      "panels": [
+        {
+          "type": "table",
+          "title": "Calls by agent and tool, for the range",
+          "description": "A calls, B failed, C refused, D p95 duration.",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.matchmark.agent, span.gen_ai.tool.name)",
+              "metricsQueryType": "instant"
+            },
+            {
+              "refId": "B",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && status = error } | count_over_time() by (span.matchmark.agent, span.gen_ai.tool.name)",
+              "metricsQueryType": "instant"
+            },
+            {
+              "refId": "C",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && span.matchmark.tool.refused = true } | count_over_time() by (span.matchmark.agent, span.gen_ai.tool.name)",
+              "metricsQueryType": "instant"
+            },
+            {
+              "refId": "D",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | quantile_over_time(duration, .95) by (span.matchmark.agent, span.gen_ai.tool.name)",
+              "metricsQueryType": "instant"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "cellOptions": {
+                  "type": "auto"
+                }
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byType",
+                  "options": "number"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background",
+                      "mode": "gradient"
+                    }
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "blue",
+                          "value": null
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "thresholds"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Value #B"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background",
+                      "mode": "gradient"
+                    }
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green",
+                          "value": null
+                        },
+                        {
+                          "color": "#EAB839",
+                          "value": 1
+                        },
+                        {
+                          "color": "red",
+                          "value": 10
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "thresholds"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Value #C"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background",
+                      "mode": "gradient"
+                    }
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green",
+                          "value": null
+                        },
+                        {
+                          "color": "#EAB839",
+                          "value": 1
+                        },
+                        {
+                          "color": "red",
+                          "value": 10
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "thresholds"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm"
+          },
+          "transformations": [
+            {
+              "id": "joinByField",
+              "options": {
+                "byField": "span.gen_ai.tool.name",
+                "mode": "outer"
+              }
+            }
+          ],
+          "id": 40,
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 8
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Calls, by tool",
+          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | rate() by (span.gen_ai.tool.name)",
+              "metricsQueryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "normal"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "id": 41,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 16
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Failed calls, by tool",
+          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && status = error } | rate() by (span.gen_ai.tool.name)",
+              "metricsQueryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "normal"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "id": 42,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 16
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Refused calls, by tool",
+          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && span.matchmark.tool.refused = true } | rate() by (span.gen_ai.tool.name)",
+              "metricsQueryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "normal"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "id": 43,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 24
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Tool duration p95, by tool",
+          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | quantile_over_time(duration, .95) by (span.gen_ai.tool.name)",
+              "metricsQueryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "none"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "id": 44,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 24
+          }
+        },
+        {
+          "type": "table",
+          "title": "Tools with the most failures and refusals",
+          "description": "A failed, B refused, C calls; sort by A for the worst.",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && status = error } | count_over_time() by (span.gen_ai.tool.name)",
+              "metricsQueryType": "instant"
+            },
+            {
+              "refId": "B",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && span.matchmark.tool.refused = true } | count_over_time() by (span.gen_ai.tool.name)",
+              "metricsQueryType": "instant"
+            },
+            {
+              "refId": "C",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.gen_ai.tool.name)",
+              "metricsQueryType": "instant"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "cellOptions": {
+                  "type": "auto"
+                }
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byType",
+                  "options": "number"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background",
+                      "mode": "gradient"
+                    }
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "blue",
+                          "value": null
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "thresholds"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Value #A"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background",
+                      "mode": "gradient"
+                    }
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green",
+                          "value": null
+                        },
+                        {
+                          "color": "#EAB839",
+                          "value": 1
+                        },
+                        {
+                          "color": "red",
+                          "value": 10
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "thresholds"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Value #B"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background",
+                      "mode": "gradient"
+                    }
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green",
+                          "value": null
+                        },
+                        {
+                          "color": "#EAB839",
+                          "value": 1
+                        },
+                        {
+                          "color": "red",
+                          "value": 10
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "thresholds"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm"
+          },
+          "transformations": [
+            {
+              "id": "joinByField",
+              "options": {
+                "byField": "span.gen_ai.tool.name",
+                "mode": "outer"
+              }
+            }
+          ],
+          "id": 45,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 32
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Failed calls, by agent",
+          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && status = error } | rate() by (span.matchmark.agent)",
+              "metricsQueryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "normal"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "id": 46,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 32
+          }
+        }
+      ],
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 123
+        "y": 7
       },
-      "panels": []
-    },
-    {
-      "type": "table",
-      "title": "Calls by agent and tool, for the range",
-      "description": "A calls, B failed, C refused, D p95 duration.",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.matchmark.agent, span.gen_ai.tool.name)",
-          "metricsQueryType": "instant"
-        },
-        {
-          "refId": "B",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && status = error } | count_over_time() by (span.matchmark.agent, span.gen_ai.tool.name)",
-          "metricsQueryType": "instant"
-        },
-        {
-          "refId": "C",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && span.matchmark.tool.refused = true } | count_over_time() by (span.matchmark.agent, span.gen_ai.tool.name)",
-          "metricsQueryType": "instant"
-        },
-        {
-          "refId": "D",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | quantile_over_time(duration, .95) by (span.matchmark.agent, span.gen_ai.tool.name)",
-          "metricsQueryType": "instant"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm"
-      },
-      "transformations": [
-        {
-          "id": "joinByField",
-          "options": {
-            "byField": "span.gen_ai.tool.name",
-            "mode": "outer"
-          }
-        }
-      ],
-      "id": 32,
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 124
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Calls, by tool",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | rate() by (span.gen_ai.tool.name)",
-          "metricsQueryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {
-            "fillOpacity": 30,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "normal"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 33,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 132
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Failed calls, by tool",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && status = error } | rate() by (span.gen_ai.tool.name)",
-          "metricsQueryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {
-            "fillOpacity": 30,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "normal"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 34,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 132
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Refused calls, by tool",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && span.matchmark.tool.refused = true } | rate() by (span.gen_ai.tool.name)",
-          "metricsQueryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {
-            "fillOpacity": 30,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "normal"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 35,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 140
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Tool duration p95, by tool",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | quantile_over_time(duration, .95) by (span.gen_ai.tool.name)",
-          "metricsQueryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "custom": {
-            "fillOpacity": 10,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "none"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 36,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 140
-      }
-    },
-    {
-      "type": "table",
-      "title": "Tools with the most failures and refusals",
-      "description": "A failed, B refused, C calls; sort by A for the worst.",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && status = error } | count_over_time() by (span.gen_ai.tool.name)",
-          "metricsQueryType": "instant"
-        },
-        {
-          "refId": "B",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && span.matchmark.tool.refused = true } | count_over_time() by (span.gen_ai.tool.name)",
-          "metricsQueryType": "instant"
-        },
-        {
-          "refId": "C",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.gen_ai.tool.name)",
-          "metricsQueryType": "instant"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm"
-      },
-      "transformations": [
-        {
-          "id": "joinByField",
-          "options": {
-            "byField": "span.gen_ai.tool.name",
-            "mode": "outer"
-          }
-        }
-      ],
-      "id": 37,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 148
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Failed calls, by agent",
-      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && status = error } | rate() by (span.matchmark.agent)",
-          "metricsQueryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {
-            "fillOpacity": 30,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "normal"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 38,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 148
-      }
+      "id": 39
     },
     {
       "type": "row",
       "title": "Failures",
-      "id": 39,
-      "collapsed": false,
+      "collapsed": true,
+      "panels": [
+        {
+          "type": "table",
+          "title": "Latest tasks that failed or escalated",
+          "description": "A TraceQL search. Click a trace ID to open it.",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name = \"matchmark.task\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && span.matchmark.task.outcome =~ \"failed|escalated\" } | select(span.matchmark.app, span.matchmark.project, span.matchmark.task, span.matchmark.task.outcome)",
+              "limit": 50,
+              "tableType": "spans"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "cellOptions": {
+                  "type": "auto"
+                }
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byType",
+                  "options": "number"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background",
+                      "mode": "gradient"
+                    }
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green",
+                          "value": null
+                        },
+                        {
+                          "color": "#EAB839",
+                          "value": 1
+                        },
+                        {
+                          "color": "red",
+                          "value": 10
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "thresholds"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm"
+          },
+          "id": 48,
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 9
+          },
+          "links": [
+            {
+              "title": "Matchmark's logs",
+              "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{k8s_namespace_name%3D%5C%22matchmark%5C%22}%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
+              "targetBlank": false
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "title": "Latest attempts that did not finish",
+          "description": "A TraceQL search. Click a trace ID to open it.",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "queryType": "traceql",
+              "query": "{ name = \"matchmark.attempt\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && span.matchmark.attempt.outcome != \"finished\" } | select(span.matchmark.app, span.matchmark.project, span.matchmark.task, span.matchmark.attempt, span.matchmark.attempt.outcome, span.matchmark.attempt.restorations)",
+              "limit": 50,
+              "tableType": "spans"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "cellOptions": {
+                  "type": "auto"
+                }
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byType",
+                  "options": "number"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background",
+                      "mode": "gradient"
+                    }
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green",
+                          "value": null
+                        },
+                        {
+                          "color": "#EAB839",
+                          "value": 1
+                        },
+                        {
+                          "color": "red",
+                          "value": 10
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "thresholds"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm"
+          },
+          "id": 49,
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 17
+          },
+          "links": [
+            {
+              "title": "Matchmark's logs",
+              "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{k8s_namespace_name%3D%5C%22matchmark%5C%22}%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
+              "targetBlank": false
+            }
+          ]
+        }
+      ],
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 156
+        "y": 8
       },
-      "panels": []
-    },
-    {
-      "type": "table",
-      "title": "Latest tasks that failed or escalated",
-      "description": "A TraceQL search. Click a trace ID to open it.",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name = \"matchmark.task\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && span.matchmark.task.outcome =~ \"failed|escalated\" } | select(span.matchmark.app, span.matchmark.project, span.matchmark.task, span.matchmark.task.outcome)",
-          "limit": 50,
-          "tableType": "spans"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm"
-      },
-      "id": 40,
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 157
-      }
-    },
-    {
-      "type": "table",
-      "title": "Latest attempts that did not finish",
-      "description": "A TraceQL search. Click a trace ID to open it.",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{ name = \"matchmark.attempt\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && span.matchmark.attempt.outcome != \"finished\" } | select(span.matchmark.app, span.matchmark.project, span.matchmark.task, span.matchmark.attempt, span.matchmark.attempt.outcome, span.matchmark.attempt.restorations)",
-          "limit": 50,
-          "tableType": "spans"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm"
-      },
-      "id": 41,
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 165
-      }
+      "id": 47
     }
-  ]
+  ],
+  "links": [
+    {
+      "type": "link",
+      "title": "Home",
+      "url": "/d/home",
+      "icon": "dashboard",
+      "targetBlank": false,
+      "keepTime": true,
+      "includeVars": false,
+      "tags": [],
+      "asDropdown": false
+    },
+    {
+      "type": "dashboards",
+      "title": "0xc0",
+      "tags": [
+        "0xc0"
+      ],
+      "asDropdown": false,
+      "asTabs": false,
+      "includeVars": false,
+      "keepTime": true,
+      "icon": "external link",
+      "targetBlank": false
+    }
+  ],
+  "id": null
 }

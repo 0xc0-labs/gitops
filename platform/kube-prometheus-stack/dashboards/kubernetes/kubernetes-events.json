@@ -3,7 +3,8 @@
   "title": "Kubernetes / Events",
   "tags": [
     "kubernetes",
-    "events"
+    "events",
+    "0xc0"
   ],
   "description": "What is happening in the cluster: Kubernetes events, from Loki.",
   "schemaVersion": 39,
@@ -23,9 +24,9 @@
   },
   "panels": [
     {
-      "type": "piechart",
-      "title": "Severity",
-      "description": "The collectors' gateway sends the Kubernetes events to Loki. Assumes they arrive as JSON log lines with service_name unknown_service. Severity is the event's type, Normal or Warning.",
+      "type": "stat",
+      "title": "Events",
+      "description": "Kubernetes events over the range. The collectors' gateway sends the Kubernetes events to Loki; assumes JSON lines with service_name unknown_service.",
       "datasource": {
         "type": "loki",
         "uid": "loki"
@@ -37,136 +38,63 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "sum by (object_type) (count_over_time({service_name=\"unknown_service\"} | json | object_reason != \"\" [$__range]))",
-          "legendFormat": "{{object_type}}",
-          "queryType": "instant"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "options": {
-        "pieType": "donut",
-        "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "values": [
-            "value"
-          ]
-        },
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "values": false
-        }
-      },
-      "id": 1,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 0
-      }
-    },
-    {
-      "type": "barchart",
-      "title": "Severity by namespace",
-      "description": "The collectors' gateway sends the Kubernetes events to Loki. Assumes they arrive as JSON log lines with service_name unknown_service.",
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "sum by (object_metadata_namespace, object_type) (count_over_time({service_name=\"unknown_service\"} | json | object_reason != \"\" [$__range]))",
-          "legendFormat": "{{object_metadata_namespace}} {{object_type}}",
-          "queryType": "instant"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "xTickLabelRotation": 0
-      },
-      "id": 2,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 0
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Event reason by namespace",
-      "description": "The collectors' gateway sends the Kubernetes events to Loki. Assumes they arrive as JSON log lines with service_name unknown_service.",
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "sum by (object_reason, object_metadata_namespace) (count_over_time({service_name=\"unknown_service\"} | json | object_reason != \"\" [$__auto]))",
-          "legendFormat": "{{object_reason}} {{object_metadata_namespace}}",
+          "expr": "sum(count_over_time({service_name=\"unknown_service\"} | json | object_reason != \"\" [$__auto]))",
           "queryType": "range"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "custom": {
-            "fillOpacity": 30,
-            "lineWidth": 1,
-            "stacking": {
-              "mode": "normal"
-            }
-          }
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "noValue": "0"
         },
         "overrides": []
       },
       "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
           "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
+            "sum"
+          ],
+          "fields": "",
+          "values": false
         }
       },
-      "id": 3,
       "gridPos": {
-        "h": 8,
-        "w": 24,
+        "h": 4,
+        "w": 8,
         "x": 0,
-        "y": 8
-      }
+        "y": 0
+      },
+      "links": [
+        {
+          "title": "Events",
+          "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{service_name%3D%5C%22unknown_service%5C%22}%20%7C%20json%20%7C%20object_reason%20%21%3D%20%5C%22%5C%22%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
+          "targetBlank": false
+        }
+      ],
+      "id": 1
     },
     {
-      "type": "table",
-      "title": "Events",
-      "description": "The collectors' gateway sends the Kubernetes events to Loki. Assumes they arrive as JSON log lines with service_name unknown_service. Counts for the range, by namespace, type and reason.",
+      "type": "stat",
+      "title": "Warnings",
+      "description": "Events of type Warning over the range. The collectors' gateway sends the Kubernetes events to Loki; assumes JSON lines with service_name unknown_service.",
       "datasource": {
         "type": "loki",
         "uid": "loki"
@@ -178,26 +106,564 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "sum by (object_metadata_namespace, object_type, object_reason) (count_over_time({service_name=\"unknown_service\"} | json | object_reason != \"\" [$__range]))",
-          "legendFormat": "__auto",
-          "queryType": "instant"
+          "expr": "sum(count_over_time({service_name=\"unknown_service\"} | json | object_reason != \"\" | object_type=\"Warning\" [$__auto]))",
+          "queryType": "range"
         }
       ],
       "fieldConfig": {
-        "defaults": {},
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 20
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "noValue": "0"
+        },
         "overrides": []
       },
       "options": {
-        "showHeader": true,
-        "cellHeight": "sm"
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        }
       },
-      "id": 4,
       "gridPos": {
-        "h": 8,
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 0
+      },
+      "links": [
+        {
+          "title": "Warnings",
+          "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{service_name%3D%5C%22unknown_service%5C%22}%20%7C%20json%20%7C%20object_reason%20%21%3D%20%5C%22%5C%22%20%7C%20object_type%3D%5C%22Warning%5C%22%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
+          "targetBlank": false
+        }
+      ],
+      "id": 2
+    },
+    {
+      "type": "stat",
+      "title": "Normal",
+      "description": "Events of type Normal over the range. The collectors' gateway sends the Kubernetes events to Loki; assumes JSON lines with service_name unknown_service.",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({service_name=\"unknown_service\"} | json | object_reason != \"\" | object_type=\"Normal\" [$__auto]))",
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 0
+      },
+      "id": 3
+    },
+    {
+      "type": "row",
+      "title": "Breakdown",
+      "collapsed": true,
+      "panels": [
+        {
+          "type": "piechart",
+          "title": "Severity",
+          "description": "Share of Normal and Warning events over the range. The collectors' gateway sends the Kubernetes events to Loki; assumes JSON lines with service_name unknown_service.",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "expr": "sum by (object_type) (count_over_time({service_name=\"unknown_service\"} | json | object_reason != \"\" [$__range]))",
+              "legendFormat": "{{object_type}}",
+              "queryType": "instant"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "decimals": 0,
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Warning"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#EAB839"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Normal"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "green"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "pieType": "donut",
+            "legend": {
+              "displayMode": "table",
+              "placement": "right",
+              "values": [
+                "value"
+              ]
+            },
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "values": false
+            }
+          },
+          "id": 5,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 5
+          },
+          "links": [
+            {
+              "title": "Events",
+              "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{service_name%3D%5C%22unknown_service%5C%22}%20%7C%20json%20%7C%20object_reason%20%21%3D%20%5C%22%5C%22%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
+              "targetBlank": false
+            }
+          ]
+        },
+        {
+          "type": "barchart",
+          "title": "Severity by namespace",
+          "description": "Events by namespace and severity over the range. The collectors' gateway sends the Kubernetes events to Loki; assumes JSON lines with service_name unknown_service.",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "expr": "sum by (object_metadata_namespace, object_type) (count_over_time({service_name=\"unknown_service\"} | json | object_reason != \"\" [$__range]))",
+              "legendFormat": "{{object_metadata_namespace}} {{object_type}}",
+              "queryType": "instant"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "decimals": 0,
+              "custom": {
+                "gradientMode": "opacity",
+                "fillOpacity": 80
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "xTickLabelRotation": 0
+          },
+          "id": 6,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 5
+          },
+          "links": [
+            {
+              "title": "Events",
+              "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{service_name%3D%5C%22unknown_service%5C%22}%20%7C%20json%20%7C%20object_reason%20%21%3D%20%5C%22%5C%22%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
+              "targetBlank": false
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Event reason by namespace",
+          "description": "Events per interval by reason and namespace. The collectors' gateway sends the Kubernetes events to Loki; assumes JSON lines with service_name unknown_service.",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "expr": "sum by (object_reason, object_metadata_namespace) (count_over_time({service_name=\"unknown_service\"} | json | object_reason != \"\" [$__auto]))",
+              "legendFormat": "{{object_reason}} {{object_metadata_namespace}}",
+              "queryType": "range"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "normal"
+                },
+                "gradientMode": "opacity",
+                "showPoints": "never"
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "id": 7,
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 13
+          },
+          "links": [
+            {
+              "title": "Events",
+              "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{service_name%3D%5C%22unknown_service%5C%22}%20%7C%20json%20%7C%20object_reason%20%21%3D%20%5C%22%5C%22%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
+              "targetBlank": false
+            }
+          ]
+        }
+      ],
+      "gridPos": {
+        "h": 1,
         "w": 24,
         "x": 0,
-        "y": 16
-      }
+        "y": 4
+      },
+      "id": 4
+    },
+    {
+      "type": "row",
+      "title": "Events",
+      "collapsed": true,
+      "panels": [
+        {
+          "type": "table",
+          "title": "Events",
+          "description": "Counts for the range, by namespace, type and reason. The collectors' gateway sends the Kubernetes events to Loki; assumes JSON lines with service_name unknown_service.",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "expr": "sum by (object_metadata_namespace, object_type, object_reason) (count_over_time({service_name=\"unknown_service\"} | json | object_reason != \"\" [$__range]))",
+              "legendFormat": "__auto",
+              "queryType": "instant"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "cellOptions": {
+                  "type": "auto"
+                }
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byType",
+                  "options": "number"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background",
+                      "mode": "gradient"
+                    }
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green",
+                          "value": null
+                        },
+                        {
+                          "color": "#EAB839",
+                          "value": 10
+                        },
+                        {
+                          "color": "red",
+                          "value": 50
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "thresholds"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "object_type"
+                },
+                "properties": [
+                  {
+                    "id": "mappings",
+                    "value": [
+                      {
+                        "type": "value",
+                        "options": {
+                          "Warning": {
+                            "color": "#EAB839",
+                            "text": "Warning",
+                            "index": 1
+                          },
+                          "Normal": {
+                            "color": "green",
+                            "text": "Normal",
+                            "index": 0
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-text"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm"
+          },
+          "id": 9,
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 6
+          },
+          "links": [
+            {
+              "title": "Events",
+              "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{service_name%3D%5C%22unknown_service%5C%22}%20%7C%20json%20%7C%20object_reason%20%21%3D%20%5C%22%5C%22%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
+              "targetBlank": false
+            }
+          ]
+        },
+        {
+          "type": "logs",
+          "title": "Recent events",
+          "description": "The events' own lines. The collectors' gateway sends the Kubernetes events to Loki; assumes JSON lines with service_name unknown_service.",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "expr": "{service_name=\"unknown_service\"} | json | object_reason != \"\"",
+              "queryType": "range"
+            }
+          ],
+          "options": {
+            "showTime": true,
+            "wrapLogMessage": true,
+            "sortOrder": "Descending",
+            "enableLogDetails": true
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 24,
+            "x": 0,
+            "y": 14
+          },
+          "id": 10
+        }
+      ],
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "id": 8
     }
-  ]
+  ],
+  "links": [
+    {
+      "type": "link",
+      "title": "Home",
+      "url": "/d/home",
+      "icon": "dashboard",
+      "targetBlank": false,
+      "keepTime": true,
+      "includeVars": false,
+      "tags": [],
+      "asDropdown": false
+    },
+    {
+      "type": "dashboards",
+      "title": "0xc0",
+      "tags": [
+        "0xc0"
+      ],
+      "asDropdown": false,
+      "asTabs": false,
+      "includeVars": false,
+      "keepTime": true,
+      "icon": "external link",
+      "targetBlank": false
+    }
+  ],
+  "id": null
 }
