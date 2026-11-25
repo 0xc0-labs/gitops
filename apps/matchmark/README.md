@@ -47,7 +47,8 @@ The proxy sends its access log and traces over OTLP gRPC to the collector
 (`AgentgatewayPolicy` `telemetry`); `platform/openobserve-collector` admits
 the namespace in `otlp-from-senders`. The chart's `ServiceMonitor` (controller,
 `:9092`) and `PodMonitor` (proxy, `:15020`) are what the collector's target
-allocator scrapes.
+allocator scrapes, and what Prometheus (`monitoring`) scrapes too:
+`metrics-from-collector` admits both to those two ports.
 
 ## Pod Security
 

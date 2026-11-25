@@ -123,7 +123,8 @@ spec:
         - protocol: TCP
           port: 4317
 ---
-# The collector's scrape: the controller's metrics and the proxy's.
+# The scrape of the collector and of Prometheus: the controller's metrics and
+# the proxy's.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -141,6 +142,12 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/component: opentelemetry-collector
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
       ports:
         - protocol: TCP
           port: 9092
