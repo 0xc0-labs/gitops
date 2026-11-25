@@ -41,6 +41,22 @@ image:
     livenessProbe:
       repository: longhornio/livenessprobe
       tag: "v2.20.0@sha256:d1199b77452bfc11cfc62feb8a266758fe8d72953e97faac8065941e3767f1a3"
+# Requests only: a manager or UI OOM-killed mid-operation touches storage.
+longhornManager:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 256Mi
+longhornGlobalManager:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+longhornUI:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
 # Per Longhorn's guide for Argo CD.
 preUpgradeChecker:
   jobEnabled: false

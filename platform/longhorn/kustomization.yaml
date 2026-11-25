@@ -33,6 +33,15 @@ patches:
       kind: Job
       metadata:
         name: longhorn-uninstall
+  # The chart has no value for the UI's resources.
+  - target:
+      kind: Deployment
+      name: longhorn-ui
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests: {cpu: 10m, memory: 64Mi}
 # No pruning: it holds the cluster's data.
 commonAnnotations:
   argocd.argoproj.io/sync-options: Prune=false
