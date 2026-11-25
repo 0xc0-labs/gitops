@@ -49,6 +49,8 @@ the namespace in `otlp-from-senders`. The chart's `ServiceMonitor` (controller,
 `:9092`) and `PodMonitor` (proxy, `:15020`) are what the collector's target
 allocator scrapes, and what Prometheus (`monitoring`) scrapes too:
 `metrics-from-collector` admits both to those two ports.
+The namespace's own services (API, intake API, factory worker, tracker MCP)
+expose no metrics port: they push over OTLP, so no other monitor is wanted.
 
 ## Pod Security
 
@@ -444,8 +446,9 @@ the UI, the namespace Job, the API and the worker reach the frontend) and WARP, 
 `https://temporal.matchmark.int.0xc0.cc`. The route is on the
 `internal-matchmark` listener, with no `public` annotation.
 
-**Telemetry.** The server pods' metrics (`:9090`) carry `prometheus.io/*`
-annotations, as the collector's scrape reads them; traces go over OTLP gRPC
+**Telemetry.** The server pods' metrics (`:9090`) are scraped by Prometheus
+through the chart's `ServiceMonitor`s (`server.metrics.serviceMonitor`), one per
+service; `temporal-metrics-from-collector` admits it. Traces go over OTLP gRPC
 to the collector's gateway (`OTEL_*` in `server.additionalEnv`), only the
 spans of a trace a client started
 ([`matchmark-temporal`](../matchmark-temporal/README.md#server-tracing)); logs are
