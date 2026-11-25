@@ -49,6 +49,13 @@ tempo:
       path: /var/tempo/generator/wal
     traces_storage:
       path: /var/tempo/generator/traces
+  # Tempo refuses a TraceQL metrics query over more than 3h by default, and
+  # Grafana shows the panel empty. 7 days is the longest range the dashboards'
+  # time picker offers; the volume is about 3 spans per second, so such a
+  # query is small (#686).
+  queryFrontend:
+    metrics:
+      max_duration: 168h
   overrides:
     defaults:
       metrics_generator:
