@@ -1,974 +1,918 @@
 {
-  "uid": "home",
-  "title": "Home",
-  "id": null,
-  "tags": [
-    "0xc0"
-  ],
-  "description": "The estate on one screen: is everything fine, and where to look when it is not.",
-  "schemaVersion": 39,
-  "version": 1,
-  "editable": false,
-  "graphTooltip": 1,
-  "time": {
-    "from": "now-6h",
-    "to": "now"
-  },
-  "refresh": "1m",
-  "templating": {
-    "list": []
-  },
   "annotations": {
-    "list": []
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "name": "Argo CD syncs",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#7DD3FC",
+        "expr": "sum by (name) (increase(argocd_app_sync_total{phase=\"Succeeded\"}[2m])) > 0",
+        "step": "60s",
+        "titleFormat": "sync {{name}}",
+        "textFormat": "Argo CD synced {{name}}",
+        "tagKeys": "name",
+        "useValueForTime": false
+      },
+      {
+        "name": "Releases",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#34D399",
+        "expr": "label_replace(count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}) unless count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"} offset 10m), \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")",
+        "step": "60s",
+        "titleFormat": "{{namespace}} {{version}}",
+        "textFormat": "{{image_spec}}",
+        "tagKeys": "namespace,version",
+        "useValueForTime": false
+      }
+    ]
   },
+  "description": "The estate on one screen: health, traffic, services, memory, logs, capacity and changes. Grafana's home dashboard.",
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
   "links": [
     {
+      "title": "Estate",
+      "type": "link",
+      "url": "/d/home",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Apps",
+      "type": "link",
+      "url": "/d/apps",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Matchmark",
+      "type": "link",
+      "url": "/d/matchmark",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Web vitals",
+      "type": "link",
+      "url": "/d/applications-rum",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Traces",
+      "type": "link",
+      "url": "/d/traces-overall",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Platform",
       "type": "dashboards",
-      "title": "Dashboards",
       "tags": [
-        "0xc0"
+        "platform"
       ],
       "asDropdown": true,
+      "keepTime": true,
       "includeVars": false,
-      "keepTime": true
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
     }
   ],
   "panels": [
     {
-      "id": 1,
-      "type": "stat",
-      "title": "Nodes Ready",
-      "description": "Share of the cluster's nodes whose Ready condition is true.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 0,
-        "w": 4,
-        "h": 5
-      },
+      "type": "marcusolsson-dynamictext-panel",
+      "title": "",
+      "description": "Four checks, 25 points each: every node Ready (kube-state-metrics), every Argo CD application Synced and Healthy (argocd_app_info), Vault unsealed (vault_core_unsealed), and no alert firing (Grafana's rules, grafana_alerting_alerts, plus Prometheus's, ALERTS).",
+      "transparent": true,
       "targets": [
         {
-          "refId": "A",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(kube_node_status_condition{condition=\"Ready\",status=\"true\"}) / count(kube_node_status_condition{condition=\"Ready\",status=\"true\"})",
-          "instant": false,
-          "range": true,
-          "legendFormat": "Nodes Ready"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percentunit",
-          "decimals": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "noValue": "0"
+          "expr": "25 * (((sum(kube_node_status_condition{condition=\"Ready\", status=\"true\"})) == bool (count(kube_node_info))) + ((count(argocd_app_info{sync_status=\"Synced\", health_status=\"Healthy\"}) or vector(0)) == bool (count(argocd_app_info))) + ((max(vault_core_unsealed{job=\"vault-active\"})) == bool 1) + (((sum(grafana_alerting_alerts{state=\"alerting\"}) or vector(0)) + (count(ALERTS{alertstate=\"firing\"}) or vector(0))) == bool 0))",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "editorMode": "code",
+          "format": "table",
+          "refId": "A"
         },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "textMode": "value",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        }
-      }
-    },
-    {
-      "id": 2,
-      "type": "stat",
-      "title": "Pods not running",
-      "description": "Pods Pending, Failed or Unknown right now.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "x": 4,
-        "y": 0,
-        "w": 4,
-        "h": 5
-      },
-      "targets": [
         {
-          "refId": "A",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(kube_pod_status_phase{phase=~\"Pending|Failed|Unknown\"}) or vector(0)",
-          "instant": false,
-          "range": true,
-          "legendFormat": "Pods not running"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "#EAB839",
-                "value": 1
-              },
-              {
-                "color": "red",
-                "value": 5
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "noValue": "0"
+          "expr": "(25 * (((sum(kube_node_status_condition{condition=\"Ready\", status=\"true\"})) == bool (count(kube_node_info))) + ((count(argocd_app_info{sync_status=\"Synced\", health_status=\"Healthy\"}) or vector(0)) == bool (count(argocd_app_info))) + ((max(vault_core_unsealed{job=\"vault-active\"})) == bool 1) + (((sum(grafana_alerting_alerts{state=\"alerting\"}) or vector(0)) + (count(ALERTS{alertstate=\"firing\"}) or vector(0))) == bool 0))) == bool 100",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "editorMode": "code",
+          "format": "table",
+          "refId": "B"
         },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "textMode": "value",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        }
-      }
-    },
-    {
-      "id": 3,
-      "type": "stat",
-      "title": "Argo CD apps not Synced Healthy",
-      "description": "Applications that are out of sync or not healthy. Argo CD dashboard has the detail.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "x": 8,
-        "y": 0,
-        "w": 4,
-        "h": 5
-      },
-      "targets": [
         {
-          "refId": "A",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "count(argocd_app_info{sync_status!=\"Synced\"} or argocd_app_info{health_status!=\"Healthy\"}) or vector(0)",
-          "instant": false,
-          "range": true,
-          "legendFormat": "Argo CD apps not Synced Healthy"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "#EAB839",
-                "value": 1
-              },
-              {
-                "color": "red",
-                "value": 3
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "noValue": "0"
+          "expr": "(25 * (((sum(kube_node_status_condition{condition=\"Ready\", status=\"true\"})) == bool (count(kube_node_info))) + ((count(argocd_app_info{sync_status=\"Synced\", health_status=\"Healthy\"}) or vector(0)) == bool (count(argocd_app_info))) + ((max(vault_core_unsealed{job=\"vault-active\"})) == bool 1) + (((sum(grafana_alerting_alerts{state=\"alerting\"}) or vector(0)) + (count(ALERTS{alertstate=\"firing\"}) or vector(0))) == bool 0))) >= bool 50",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "editorMode": "code",
+          "format": "table",
+          "refId": "C"
         },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "textMode": "value",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        }
-      },
-      "links": [
         {
-          "title": "Argo CD",
-          "url": "/d/argocd"
-        }
-      ]
-    },
-    {
-      "id": 4,
-      "type": "stat",
-      "title": "Alerts firing",
-      "description": "Grafana-managed alerts in the alerting state plus the Prometheus rules firing.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "x": 12,
-        "y": 0,
-        "w": 3,
-        "h": 5
-      },
-      "targets": [
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(kube_node_status_condition{condition=\"Ready\", status=\"true\"})",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "editorMode": "code",
+          "format": "table",
+          "refId": "D"
+        },
         {
-          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "count(kube_node_info)",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "editorMode": "code",
+          "format": "table",
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(sum(kube_node_status_condition{condition=\"Ready\", status=\"true\"})) == bool (count(kube_node_info))",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "editorMode": "code",
+          "format": "table",
+          "refId": "F"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "count(argocd_app_info{sync_status=\"Synced\", health_status=\"Healthy\"}) or vector(0)",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "editorMode": "code",
+          "format": "table",
+          "refId": "G"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "count(argocd_app_info)",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "editorMode": "code",
+          "format": "table",
+          "refId": "H"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(count(argocd_app_info{sync_status=\"Synced\", health_status=\"Healthy\"}) or vector(0)) == bool (count(argocd_app_info))",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "editorMode": "code",
+          "format": "table",
+          "refId": "I"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "max(vault_core_unsealed{job=\"vault-active\"})",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "editorMode": "code",
+          "format": "table",
+          "refId": "J"
+        },
+        {
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
           "expr": "(sum(grafana_alerting_alerts{state=\"alerting\"}) or vector(0)) + (count(ALERTS{alertstate=\"firing\"}) or vector(0))",
-          "instant": false,
-          "range": true,
-          "legendFormat": "Alerts firing"
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "editorMode": "code",
+          "format": "table",
+          "refId": "K"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "((sum(grafana_alerting_alerts{state=\"alerting\"}) or vector(0)) + (count(ALERTS{alertstate=\"firing\"}) or vector(0))) == bool 0",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "editorMode": "code",
+          "format": "table",
+          "refId": "L"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
-          "decimals": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#E7ECF3",
                 "value": null
-              },
-              {
-                "color": "#EAB839",
-                "value": 1
-              },
-              {
-                "color": "red",
-                "value": 3
               }
             ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "noValue": "0"
+          }
         },
         "overrides": []
       },
       "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "textMode": "value",
-        "justifyMode": "center",
+        "renderMode": "everyRow",
+        "editor": {
+          "language": "html",
+          "format": "auto"
+        },
+        "editors": [
+          "styles",
+          "helpers"
+        ],
+        "content": "<div class=\"cr\">\n  <div class=\"ring\">\n    <svg viewBox=\"0 0 168 168\" role=\"img\" aria-label=\"Estate health {{score}} of 100\">\n      <circle cx=\"84\" cy=\"84\" r=\"70\" pathLength=\"100\" class=\"track\"/>\n      <circle cx=\"84\" cy=\"84\" r=\"70\" pathLength=\"100\" class=\"arc {{#if score_ok}}ok{{else if score_warn}}warn{{else}}crit{{/if}}\"\n        stroke-dasharray=\"{{score}} 100\" transform=\"rotate(-90 84 84)\"/>\n    </svg>\n    <div class=\"mid\">\n      <span class=\"num\">{{score}}</span>\n      <span class=\"lbl {{#if score_ok}}ok{{else if score_warn}}warn{{else}}crit{{/if}}\">{{#if score_ok}}healthy{{else if score_warn}}degraded{{else}}critical{{/if}}</span>\n    </div>\n  </div>\n  <div class=\"checks\">\n    <div class=\"lbl\">Estate health</div>\n    <div class=\"check\"><span class=\"dot {{#if nodes_ok}}ok{{else}}crit{{/if}}\"></span><span class=\"name\">Nodes ready</span><span class=\"num\">{{nodes_ready}} / {{nodes_total}}</span><span class=\"word\">{{#if nodes_ok}}ok{{else}}down{{/if}}</span></div>\n    <div class=\"check\"><span class=\"dot {{#if apps_all}}ok{{else}}warn{{/if}}\"></span><span class=\"name\">Argo CD synced and healthy</span><span class=\"num\">{{apps_ok}} / {{apps_total}}</span><span class=\"word\">{{#if apps_all}}ok{{else}}drift{{/if}}</span></div>\n    <div class=\"check\"><span class=\"dot {{#if vault}}ok{{else}}crit{{/if}}\"></span><span class=\"name\">Vault</span><span class=\"num\">{{#if vault}}unsealed{{else}}sealed{{/if}}</span><span class=\"word\">{{#if vault}}ok{{else}}act{{/if}}</span></div>\n    <div class=\"check\"><span class=\"dot {{#if alerts_ok}}ok{{else}}crit{{/if}}\"></span><span class=\"name\">Alerts firing</span><span class=\"num\">{{alerts}}</span><span class=\"word\">{{#if alerts_ok}}none{{else}}firing{{/if}}</span></div>\n  </div>\n</div>",
+        "defaultContent": "<div class=\"cr\"><div class=\"checks\"><div class=\"lbl\">Estate health</div>\n<div class=\"name\">No data: Prometheus answered nothing for the checks in this range.</div></div></div>",
+        "helpers": "",
+        "styles": "\n.cr { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; height: 100%;\n  font-family: Inter, sans-serif; color: #E7ECF3; }\n.lbl { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #8D99AB; font-weight: 600; }\n.num { font-family: 'Roboto Mono', 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }\n.ring { position: relative; width: 168px; height: 168px; flex: none; }\n.ring svg { width: 168px; height: 168px; }\n.track { fill: none; stroke: #1A222D; stroke-width: 12; }\n.arc { fill: none; stroke-width: 12; stroke-linecap: round; }\n.arc.ok { stroke: #34D399; } .arc.warn { stroke: #FBBF24; } .arc.crit { stroke: #FB7185; }\n.mid { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }\n.mid .num { font-size: 44px; font-weight: 600; line-height: 1; }\n.mid .lbl { margin-top: 6px; }\n.lbl.ok { color: #34D399; } .lbl.warn { color: #FBBF24; } .lbl.crit { color: #FB7185; }\n.checks { flex: 1 1 200px; display: flex; flex-direction: column; gap: 12px; }\n.check { display: flex; align-items: center; gap: 10px; font-size: 14px; }\n.check .name { flex: 1; color: #C9D2DE; }\n.check .word { font-size: 11px; color: #8D99AB; width: 44px; text-align: right; }\n.dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }\n.dot.ok { background: #34D399; } .dot.warn { background: #FBBF24; } .dot.crit { background: #FB7185; }\n",
+        "wrap": false,
+        "contentPartials": [],
+        "externalStyles": [],
+        "externalScripts": [],
+        "afterRender": ""
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "Value #A": "score",
+              "Value #B": "score_ok",
+              "Value #C": "score_warn",
+              "Value #D": "nodes_ready",
+              "Value #E": "nodes_total",
+              "Value #F": "nodes_ok",
+              "Value #G": "apps_ok",
+              "Value #H": "apps_total",
+              "Value #I": "apps_all",
+              "Value #J": "vault",
+              "Value #K": "alerts",
+              "Value #L": "alerts_ok"
+            }
+          }
+        }
+      ],
+      "id": 1,
+      "gridPos": {
+        "h": 10,
+        "w": 9,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Requests / s",
+      "description": "Every request Traefik's entrypoints took (websecure and internal). The delta is the change across the range.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(rate(traefik_entrypoint_requests_total[$__rate_interval]))",
+          "legendFormat": "__auto",
+          "range": true,
+          "instant": false,
+          "editorMode": "code",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "decimals": 2,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#60A5FA"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
           ],
           "fields": "",
           "values": false
-        }
-      },
-      "links": [
-        {
-          "title": "Alert rules",
-          "url": "/alerting/list"
-        }
-      ]
-    },
-    {
-      "id": 5,
-      "type": "stat",
-      "title": "Longhorn volumes not healthy",
-      "description": "Volumes whose robustness is not healthy (degraded, faulted or unknown).",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "x": 15,
-        "y": 0,
-        "w": 3,
-        "h": 5
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "count(longhorn_volume_robustness != 1) or vector(0)",
-          "instant": false,
-          "range": true,
-          "legendFormat": "Longhorn volumes not healthy"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "#EAB839",
-                "value": 1
-              },
-              {
-                "color": "red",
-                "value": 3
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "noValue": "0"
         },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "background",
+        "colorMode": "value",
         "graphMode": "area",
+        "justifyMode": "auto",
         "textMode": "value",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
+        "wideLayout": true,
+        "orientation": "auto",
+        "showPercentChange": true,
+        "percentChangeColorMode": "standard",
+        "text": {
+          "titleSize": 11,
+          "valueSize": 34
         }
       },
-      "links": [
-        {
-          "title": "Longhorn",
-          "url": "/d/longhorn"
-        }
-      ]
-    },
-    {
-      "id": 6,
-      "type": "stat",
-      "title": "Vault sealed",
-      "description": "Vault pods that are sealed. Any is an incident.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "id": 2,
       "gridPos": {
-        "x": 18,
-        "y": 0,
-        "w": 3,
-        "h": 5
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "count(vault_core_unsealed == 0) or vector(0)",
-          "instant": false,
-          "range": true,
-          "legendFormat": "Vault sealed"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 1
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "noValue": "0"
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "textMode": "value",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        }
-      },
-      "links": [
-        {
-          "title": "Vault",
-          "url": "/d/vault"
-        }
-      ]
+        "h": 5,
+        "w": 5,
+        "x": 9,
+        "y": 0
+      }
     },
     {
-      "id": 7,
       "type": "stat",
-      "title": "Sites availability",
-      "description": "Share of the public sites' requests that did not end in a 5xx, from Traefik's metrics: no external probe exists.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "x": 21,
-        "y": 0,
-        "w": 3,
-        "h": 5
-      },
+      "title": "Error rate",
+      "description": "5xx responses as a share of every request at the entrypoints.",
+      "transparent": true,
       "targets": [
         {
-          "refId": "A",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "1 - (sum(rate(traefik_service_requests_total{exported_service=~\".*(offby1-cc|artistlabco-com|mautic).*\",code=~\"5..\"}[5m])) or vector(0)) / sum(rate(traefik_service_requests_total{exported_service=~\".*(offby1-cc|artistlabco-com|mautic).*\"}[5m]))",
-          "instant": false,
+          "expr": "sum(rate(traefik_entrypoint_requests_total{code=~\"5..\"}[$__rate_interval])) / sum(rate(traefik_entrypoint_requests_total[$__rate_interval]))",
+          "legendFormat": "__auto",
           "range": true,
-          "legendFormat": "Sites availability"
+          "instant": false,
+          "editorMode": "code",
+          "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "percentunit",
           "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "red",
+                "color": "#34D399",
                 "value": null
               },
               {
-                "color": "#EAB839",
-                "value": 0.99
+                "color": "#FBBF24",
+                "value": 0.01
               },
               {
-                "color": "green",
-                "value": 0.999
+                "color": "#FB7185",
+                "value": 0.05
               }
             ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "noValue": "0"
+          }
         },
         "overrides": []
       },
       "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "textMode": "value",
-        "justifyMode": "center",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
           ],
           "fields": "",
           "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "orientation": "auto",
+        "showPercentChange": true,
+        "percentChangeColorMode": "inverted",
+        "text": {
+          "titleSize": 11,
+          "valueSize": 34
         }
       },
-      "links": [
-        {
-          "title": "Apps",
-          "url": "/d/apps"
-        }
-      ]
-    },
-    {
-      "id": 8,
-      "type": "nodeGraph",
-      "title": "Service map",
-      "description": "Services and the calls between them, from Tempo's service graph; click a node for its traces.",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 5,
-        "w": 12,
-        "h": 11
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "serviceMap"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "options": {},
-      "links": [
-        {
-          "title": "Traces overall",
-          "url": "/d/traces-overall"
-        }
-      ]
-    },
-    {
-      "id": 9,
-      "type": "timeseries",
-      "title": "Request rate by service",
-      "description": "Calls received per service, from the service graph metrics.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "id": 3,
       "gridPos": {
-        "x": 12,
-        "y": 5,
-        "w": 12,
-        "h": 5
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum by (server) (rate(traces_service_graph_request_total[5m]))",
-          "legendFormat": "{{server}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps",
-          "decimals": 2,
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "fillOpacity": 20,
-            "gradientMode": "opacity",
-            "lineWidth": 1,
-            "showPoints": "never",
-            "stacking": {
-              "mode": "normal"
-            }
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
+        "h": 5,
+        "w": 5,
+        "x": 14,
+        "y": 0
       }
     },
     {
-      "id": 10,
-      "type": "timeseries",
-      "title": "Error rate by service",
-      "description": "Failed calls per second per service, from the service graph metrics.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "x": 12,
-        "y": 10,
-        "w": 12,
-        "h": 6
-      },
+      "type": "stat",
+      "title": "p95 latency",
+      "description": "95th percentile of the time Traefik's services took to answer.",
+      "transparent": true,
       "targets": [
         {
-          "refId": "A",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (server) (rate(traces_service_graph_request_failed_total[5m]))",
-          "legendFormat": "{{server}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps",
-          "decimals": 2,
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "fillOpacity": 20,
-            "gradientMode": "opacity",
-            "lineWidth": 1,
-            "showPoints": "never",
-            "stacking": {
-              "mode": "none"
-            }
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 0.1
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "id": 11,
-      "type": "heatmap",
-      "title": "p95 latency by service",
-      "description": "Distribution of the service graph's server-side request duration over time; hot cells are slow.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 16,
-        "w": 12,
-        "h": 9
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "format": "heatmap",
-          "legendFormat": "{{le}}",
-          "expr": "sum by (le) (rate(traces_service_graph_request_server_seconds_bucket[$__rate_interval]))"
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(traefik_service_request_duration_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "__auto",
+          "range": true,
+          "instant": false,
+          "editorMode": "code",
+          "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "s",
-          "custom": {
-            "scaleDistribution": {
-              "type": "linear"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "calculate": false,
-        "color": {
-          "mode": "scheme",
-          "scheme": "Spectral",
-          "scale": "exponential",
-          "fill": "dark-orange",
-          "steps": 64,
-          "reverse": false
-        },
-        "yAxis": {
-          "unit": "s"
-        },
-        "cellGap": 1,
-        "legend": {
-          "show": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "yHistogram": false
-        },
-        "rowsFrame": {
-          "layout": "auto"
-        }
-      }
-    },
-    {
-      "id": 12,
-      "type": "bargauge",
-      "title": "Busiest namespaces by CPU",
-      "description": "CPU cores used per namespace, top 8.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "x": 12,
-        "y": 16,
-        "w": 6,
-        "h": 9
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
+          "decimals": 3,
+          "color": {
+            "mode": "thresholds"
           },
-          "expr": "topk(8, sum by (namespace) (rate(container_cpu_usage_seconds_total{container!=\"\"}[5m])))",
-          "legendFormat": "{{namespace}}",
-          "instant": true,
-          "range": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "cores",
-          "decimals": 1,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#F59E0B",
                 "value": null
               },
               {
-                "color": "#EAB839",
-                "value": 2
+                "color": "#FBBF24",
+                "value": 0.5
               },
               {
-                "color": "red",
-                "value": 4
+                "color": "#FB7185",
+                "value": 1
               }
             ]
-          },
-          "color": {
-            "mode": "thresholds"
           }
         },
         "overrides": []
       },
       "options": {
-        "displayMode": "gradient",
-        "orientation": "horizontal",
-        "showUnfilled": true,
-        "valueMode": "color",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
           ],
           "fields": "",
           "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "orientation": "auto",
+        "showPercentChange": true,
+        "percentChangeColorMode": "inverted",
+        "text": {
+          "titleSize": 11,
+          "valueSize": 34
         }
-      }
-    },
-    {
-      "id": 13,
-      "type": "bargauge",
-      "title": "Busiest namespaces by memory",
-      "description": "Working-set memory per namespace, top 8.",
+      },
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "id": 4,
       "gridPos": {
-        "x": 18,
-        "y": 16,
-        "w": 6,
-        "h": 9
-      },
+        "h": 5,
+        "w": 5,
+        "x": 19,
+        "y": 0
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Sites up · 30 d",
+      "description": "The public sites (offby1.cc, artistlabco.com): requests that did not end in a 5xx over the last 30 days, at Traefik.",
+      "transparent": true,
       "targets": [
         {
-          "refId": "A",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "topk(8, sum by (namespace) (container_memory_working_set_bytes{container!=\"\"}))",
-          "legendFormat": "{{namespace}}",
-          "instant": true,
-          "range": false
+          "expr": "1 - (sum(increase(traefik_service_requests_total{exported_service=~\"httproute-(offby1-cc|artistlabco-com)-.*\", exported_service!~\".*otel-gateway.*\", code=~\"5..\"}[30d])) or vector(0)) / sum(increase(traefik_service_requests_total{exported_service=~\"httproute-(offby1-cc|artistlabco-com)-.*\", exported_service!~\".*otel-gateway.*\"}[30d]))",
+          "legendFormat": "__auto",
+          "range": true,
+          "instant": false,
+          "editorMode": "code",
+          "interval": "1h",
+          "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "bytes",
-          "decimals": 1,
+          "unit": "percentunit",
+          "decimals": 3,
+          "color": {
+            "mode": "thresholds"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#FB7185",
                 "value": null
               },
               {
-                "color": "#EAB839",
-                "value": 4294967296
+                "color": "#FBBF24",
+                "value": 0.995
               },
               {
-                "color": "red",
-                "value": 8589934592
+                "color": "#34D399",
+                "value": 0.999
               }
             ]
-          },
-          "color": {
-            "mode": "thresholds"
           }
         },
         "overrides": []
       },
       "options": {
-        "displayMode": "gradient",
-        "orientation": "horizontal",
-        "showUnfilled": true,
-        "valueMode": "color",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
           ],
           "fields": "",
           "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "orientation": "auto",
+        "showPercentChange": false,
+        "percentChangeColorMode": "standard",
+        "text": {
+          "titleSize": 11,
+          "valueSize": 34
         }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "maxDataPoints": 48,
+      "id": 5,
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 9,
+        "y": 5
       }
     },
     {
-      "id": 14,
-      "type": "timeseries",
-      "title": "Log volume by level",
-      "description": "Lines per second in Loki by detected level.",
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
+      "type": "stat",
+      "title": "Pods not running",
+      "description": "Pods Pending, Failed or Unknown (kube-state-metrics). 0 is a real count.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(kube_pod_status_phase{phase=~\"Pending|Failed|Unknown\"})",
+          "legendFormat": "__auto",
+          "range": true,
+          "instant": false,
+          "editorMode": "code",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#34D399",
+                "value": null
+              },
+              {
+                "color": "#FBBF24",
+                "value": 1
+              },
+              {
+                "color": "#FB7185",
+                "value": 3
+              }
+            ]
+          }
+        },
+        "overrides": []
       },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "orientation": "auto",
+        "showPercentChange": true,
+        "percentChangeColorMode": "inverted",
+        "text": {
+          "titleSize": 11,
+          "valueSize": 34
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "id": 6,
       "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 14,
+        "y": 5
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Volumes degraded",
+      "description": "Longhorn volumes degraded or faulted, each counted once. A detached volume reports unknown and is not counted. 0 is a real count.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "count(max by (volume) (longhorn_volume_robustness{state=~\"degraded|faulted\"}) == 1) or vector(0)",
+          "legendFormat": "__auto",
+          "range": true,
+          "instant": false,
+          "editorMode": "code",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#34D399",
+                "value": null
+              },
+              {
+                "color": "#FBBF24",
+                "value": 1
+              },
+              {
+                "color": "#FB7185",
+                "value": 3
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "orientation": "auto",
+        "showPercentChange": true,
+        "percentChangeColorMode": "inverted",
+        "text": {
+          "titleSize": 11,
+          "valueSize": 34
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "id": 7,
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 19,
+        "y": 5
+      }
+    },
+    {
+      "type": "row",
+      "title": "Estate and traffic",
+      "collapsed": false,
+      "panels": [],
+      "id": 8,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
         "x": 0,
-        "y": 25,
-        "w": 16,
-        "h": 8
-      },
+        "y": 10
+      }
+    },
+    {
+      "type": "canvas",
+      "title": "Estate",
+      "description": "2 hosts · 3 pools · 6 cluster nodes · 7 guests outside the cluster. CPU and memory from node-exporter, pods running and Ready from kube-state-metrics. The placement is the pools' (0xc0.cc/pool); the guests outside the cluster report nothing here.",
+      "transparent": true,
       "targets": [
         {
-          "refId": "A",
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "prometheus",
+            "uid": "prometheus"
           },
-          "expr": "sum by (detected_level) (rate({k8s_namespace_name=~\".+\"}[$__auto]))",
-          "legendFormat": "{{detected_level}}",
-          "queryType": "range"
+          "expr": "(1 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m]))) * on (instance) group_left (nodename) node_uname_info",
+          "legendFormat": "cpu {{nodename}}",
+          "range": false,
+          "instant": true,
+          "editorMode": "code",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * on (instance) group_left (nodename) node_uname_info",
+          "legendFormat": "mem {{nodename}}",
+          "range": false,
+          "instant": true,
+          "editorMode": "code",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "count by (node) (kube_pod_info{node!=\"\"} * on (namespace, pod) group_left () (kube_pod_status_phase{phase=\"Running\"} == 1))",
+          "legendFormat": "pods {{node}}",
+          "range": false,
+          "instant": true,
+          "editorMode": "code",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "max by (node) (kube_node_status_condition{condition=\"Ready\", status=\"true\"})",
+          "legendFormat": "ready {{node}}",
+          "range": false,
+          "instant": true,
+          "editorMode": "code",
+          "refId": "D"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "logs/s",
-          "decimals": 2,
           "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "fillOpacity": 20,
-            "gradientMode": "opacity",
-            "lineWidth": 1,
-            "showPoints": "never",
-            "stacking": {
-              "mode": "normal"
-            }
+            "mode": "thresholds"
           },
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#E7ECF3",
                 "value": null
               }
             ]
@@ -977,120 +921,142 @@
         "overrides": [
           {
             "matcher": {
-              "id": "byName",
-              "options": "error"
+              "id": "byRegexp",
+              "options": "^cpu .*"
             },
             "properties": [
               {
-                "id": "color",
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "thresholds",
                 "value": {
-                  "mode": "fixed",
-                  "fixedColor": "red"
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#60A5FA",
+                      "value": null
+                    },
+                    {
+                      "color": "#FBBF24",
+                      "value": 0.7
+                    },
+                    {
+                      "color": "#FB7185",
+                      "value": 0.9
+                    }
+                  ]
                 }
               }
             ]
           },
           {
             "matcher": {
-              "id": "byName",
-              "options": "fatal"
+              "id": "byRegexp",
+              "options": "^mem .*"
             },
             "properties": [
               {
-                "id": "color",
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "thresholds",
                 "value": {
-                  "mode": "fixed",
-                  "fixedColor": "dark-red"
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#F59E0B",
+                      "value": null
+                    },
+                    {
+                      "color": "#FBBF24",
+                      "value": 0.8
+                    },
+                    {
+                      "color": "#FB7185",
+                      "value": 0.9
+                    }
+                  ]
                 }
               }
             ]
           },
           {
             "matcher": {
-              "id": "byName",
-              "options": "critical"
+              "id": "byRegexp",
+              "options": "^pods .*"
             },
             "properties": [
               {
-                "id": "color",
+                "id": "unit",
+                "value": "suffix: pods"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "thresholds",
                 "value": {
-                  "mode": "fixed",
-                  "fixedColor": "dark-red"
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#8D99AB",
+                      "value": null
+                    }
+                  ]
                 }
               }
             ]
           },
           {
             "matcher": {
-              "id": "byName",
-              "options": "warn"
+              "id": "byRegexp",
+              "options": "^ready .*"
             },
             "properties": [
               {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#EAB839"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "warning"
-            },
-            "properties": [
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "● ready",
+                        "color": "#34D399"
+                      },
+                      "0": {
+                        "text": "● not ready",
+                        "color": "#FB7185"
+                      }
+                    }
+                  }
+                ]
+              },
               {
-                "id": "color",
+                "id": "thresholds",
                 "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#EAB839"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "info"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "green"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "debug"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "blue"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "unknown"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "text"
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#FB7185",
+                      "value": null
+                    },
+                    {
+                      "color": "#34D399",
+                      "value": 1
+                    }
+                  ]
                 }
               }
             ]
@@ -1098,32 +1064,3947 @@
         ]
       },
       "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
+        "inlineEditing": false,
+        "showAdvancedTypes": true,
+        "panZoom": false,
+        "infinitePan": false,
+        "root": {
+          "type": "frame",
+          "name": "Element root",
+          "elements": [
+            {
+              "type": "rectangle",
+              "name": "pve-2",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#E7ECF3"
+                },
+                "size": 12,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "#0D1218"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#243042"
+                },
+                "width": 1,
+                "radius": 14
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 0,
+                "top": 0,
+                "width": 590,
+                "height": 410,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "pve-2 title",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "pve-2"
+                },
+                "color": {
+                  "fixed": "#E7ECF3"
+                },
+                "size": 13,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 14,
+                "top": 8,
+                "width": 200,
+                "height": 22,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "pve-2 note",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "main · 2 votes"
+                },
+                "color": {
+                  "fixed": "#8D99AB"
+                },
+                "size": 11,
+                "align": "right",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 380,
+                "top": 8,
+                "width": 196,
+                "height": 22,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "rectangle",
+              "name": "infra pool",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#E7ECF3"
+                },
+                "size": 12,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#7DD3FC"
+                },
+                "width": 1,
+                "radius": 12
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 12,
+                "top": 38,
+                "width": 566,
+                "height": 122,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "infra label",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "INFRA"
+                },
+                "color": {
+                  "fixed": "#7DD3FC"
+                },
+                "size": 11,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 24,
+                "top": 42,
+                "width": 200,
+                "height": 20,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "infra note",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "servers · shared services"
+                },
+                "color": {
+                  "fixed": "#8D99AB"
+                },
+                "size": 10,
+                "align": "right",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 330,
+                "top": 42,
+                "width": 236,
+                "height": 20,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "rectangle",
+              "name": "vm-rke2-01 card",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#E7ECF3"
+                },
+                "size": 12,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "#131A23"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#222C39"
+                },
+                "width": 1,
+                "radius": 10
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 24,
+                "top": 66,
+                "width": 176,
+                "height": 84,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "vm-rke2-01 name",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "vm-rke2-01"
+                },
+                "color": {
+                  "fixed": "#E7ECF3"
+                },
+                "size": 12,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 34,
+                "top": 72,
+                "width": 86,
+                "height": 18,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "vm-rke2-01 ready",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "ready vm-rke2-01",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#34D399",
+                  "field": "ready vm-rke2-01"
+                },
+                "size": 10,
+                "align": "right",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 118,
+                "top": 72,
+                "width": 72,
+                "height": 18,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "vm-rke2-01 cpu label",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "cpu"
+                },
+                "color": {
+                  "fixed": "#8D99AB"
+                },
+                "size": 10,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 34,
+                "top": 94,
+                "width": 34,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "vm-rke2-01 cpu",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "cpu vm-rke2-01",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#60A5FA",
+                  "field": "cpu vm-rke2-01"
+                },
+                "size": 11,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 68,
+                "top": 94,
+                "width": 122,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "vm-rke2-01 mem label",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "mem"
+                },
+                "color": {
+                  "fixed": "#8D99AB"
+                },
+                "size": 10,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 34,
+                "top": 112,
+                "width": 34,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "vm-rke2-01 mem",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "mem vm-rke2-01",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#F59E0B",
+                  "field": "mem vm-rke2-01"
+                },
+                "size": 11,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 68,
+                "top": 112,
+                "width": 122,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "vm-rke2-01 pods",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "pods vm-rke2-01",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#8D99AB"
+                },
+                "size": 10,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 34,
+                "top": 130,
+                "width": 156,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "rectangle",
+              "name": "vm-rke2-02 card",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#E7ECF3"
+                },
+                "size": 12,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "#131A23"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#222C39"
+                },
+                "width": 1,
+                "radius": 10
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 210,
+                "top": 66,
+                "width": 176,
+                "height": 84,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "vm-rke2-02 name",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "vm-rke2-02"
+                },
+                "color": {
+                  "fixed": "#E7ECF3"
+                },
+                "size": 12,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 220,
+                "top": 72,
+                "width": 86,
+                "height": 18,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "vm-rke2-02 ready",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "ready vm-rke2-02",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#34D399",
+                  "field": "ready vm-rke2-02"
+                },
+                "size": 10,
+                "align": "right",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 304,
+                "top": 72,
+                "width": 72,
+                "height": 18,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "vm-rke2-02 cpu label",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "cpu"
+                },
+                "color": {
+                  "fixed": "#8D99AB"
+                },
+                "size": 10,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 220,
+                "top": 94,
+                "width": 34,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "vm-rke2-02 cpu",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "cpu vm-rke2-02",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#60A5FA",
+                  "field": "cpu vm-rke2-02"
+                },
+                "size": 11,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 254,
+                "top": 94,
+                "width": 122,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "vm-rke2-02 mem label",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "mem"
+                },
+                "color": {
+                  "fixed": "#8D99AB"
+                },
+                "size": 10,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 220,
+                "top": 112,
+                "width": 34,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "vm-rke2-02 mem",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "mem vm-rke2-02",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#F59E0B",
+                  "field": "mem vm-rke2-02"
+                },
+                "size": 11,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 254,
+                "top": 112,
+                "width": 122,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "vm-rke2-02 pods",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "pods vm-rke2-02",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#8D99AB"
+                },
+                "size": 10,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 220,
+                "top": 130,
+                "width": 156,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "rectangle",
+              "name": "vm-rke2-03 card",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#E7ECF3"
+                },
+                "size": 12,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "#131A23"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#222C39"
+                },
+                "width": 1,
+                "radius": 10
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 396,
+                "top": 66,
+                "width": 176,
+                "height": 84,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "vm-rke2-03 name",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "vm-rke2-03"
+                },
+                "color": {
+                  "fixed": "#E7ECF3"
+                },
+                "size": 12,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 406,
+                "top": 72,
+                "width": 86,
+                "height": 18,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "vm-rke2-03 ready",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "ready vm-rke2-03",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#34D399",
+                  "field": "ready vm-rke2-03"
+                },
+                "size": 10,
+                "align": "right",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 490,
+                "top": 72,
+                "width": 72,
+                "height": 18,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "vm-rke2-03 cpu label",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "cpu"
+                },
+                "color": {
+                  "fixed": "#8D99AB"
+                },
+                "size": 10,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 406,
+                "top": 94,
+                "width": 34,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "vm-rke2-03 cpu",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "cpu vm-rke2-03",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#60A5FA",
+                  "field": "cpu vm-rke2-03"
+                },
+                "size": 11,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 440,
+                "top": 94,
+                "width": 122,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "vm-rke2-03 mem label",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "mem"
+                },
+                "color": {
+                  "fixed": "#8D99AB"
+                },
+                "size": 10,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 406,
+                "top": 112,
+                "width": 34,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "vm-rke2-03 mem",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "mem vm-rke2-03",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#F59E0B",
+                  "field": "mem vm-rke2-03"
+                },
+                "size": 11,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 440,
+                "top": 112,
+                "width": 122,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "vm-rke2-03 pods",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "pods vm-rke2-03",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#8D99AB"
+                },
+                "size": 10,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 406,
+                "top": 130,
+                "width": 156,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "rectangle",
+              "name": "apps pool",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#E7ECF3"
+                },
+                "size": 12,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#F59E0B"
+                },
+                "width": 1,
+                "radius": 12
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 12,
+                "top": 170,
+                "width": 566,
+                "height": 122,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "apps label",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "APPS"
+                },
+                "color": {
+                  "fixed": "#F59E0B"
+                },
+                "size": 11,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 24,
+                "top": 174,
+                "width": 200,
+                "height": 20,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "apps note",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "tainted · every application"
+                },
+                "color": {
+                  "fixed": "#8D99AB"
+                },
+                "size": 10,
+                "align": "right",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 330,
+                "top": 174,
+                "width": 236,
+                "height": 20,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "rectangle",
+              "name": "vm-rke2-04 card",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#E7ECF3"
+                },
+                "size": 12,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "#131A23"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#222C39"
+                },
+                "width": 1,
+                "radius": 10
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 24,
+                "top": 198,
+                "width": 176,
+                "height": 84,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "vm-rke2-04 name",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "vm-rke2-04"
+                },
+                "color": {
+                  "fixed": "#E7ECF3"
+                },
+                "size": 12,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 34,
+                "top": 204,
+                "width": 86,
+                "height": 18,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "vm-rke2-04 ready",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "ready vm-rke2-04",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#34D399",
+                  "field": "ready vm-rke2-04"
+                },
+                "size": 10,
+                "align": "right",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 118,
+                "top": 204,
+                "width": 72,
+                "height": 18,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "vm-rke2-04 cpu label",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "cpu"
+                },
+                "color": {
+                  "fixed": "#8D99AB"
+                },
+                "size": 10,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 34,
+                "top": 226,
+                "width": 34,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "vm-rke2-04 cpu",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "cpu vm-rke2-04",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#60A5FA",
+                  "field": "cpu vm-rke2-04"
+                },
+                "size": 11,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 68,
+                "top": 226,
+                "width": 122,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "vm-rke2-04 mem label",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "mem"
+                },
+                "color": {
+                  "fixed": "#8D99AB"
+                },
+                "size": 10,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 34,
+                "top": 244,
+                "width": 34,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "vm-rke2-04 mem",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "mem vm-rke2-04",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#F59E0B",
+                  "field": "mem vm-rke2-04"
+                },
+                "size": 11,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 68,
+                "top": 244,
+                "width": 122,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "vm-rke2-04 pods",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "pods vm-rke2-04",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#8D99AB"
+                },
+                "size": 10,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 34,
+                "top": 262,
+                "width": 156,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "rectangle",
+              "name": "vm-rke2-05 card",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#E7ECF3"
+                },
+                "size": 12,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "#131A23"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#222C39"
+                },
+                "width": 1,
+                "radius": 10
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 210,
+                "top": 198,
+                "width": 176,
+                "height": 84,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "vm-rke2-05 name",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "vm-rke2-05"
+                },
+                "color": {
+                  "fixed": "#E7ECF3"
+                },
+                "size": 12,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 220,
+                "top": 204,
+                "width": 86,
+                "height": 18,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "vm-rke2-05 ready",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "ready vm-rke2-05",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#34D399",
+                  "field": "ready vm-rke2-05"
+                },
+                "size": 10,
+                "align": "right",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 304,
+                "top": 204,
+                "width": 72,
+                "height": 18,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "vm-rke2-05 cpu label",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "cpu"
+                },
+                "color": {
+                  "fixed": "#8D99AB"
+                },
+                "size": 10,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 220,
+                "top": 226,
+                "width": 34,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "vm-rke2-05 cpu",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "cpu vm-rke2-05",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#60A5FA",
+                  "field": "cpu vm-rke2-05"
+                },
+                "size": 11,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 254,
+                "top": 226,
+                "width": 122,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "vm-rke2-05 mem label",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "mem"
+                },
+                "color": {
+                  "fixed": "#8D99AB"
+                },
+                "size": 10,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 220,
+                "top": 244,
+                "width": 34,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "vm-rke2-05 mem",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "mem vm-rke2-05",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#F59E0B",
+                  "field": "mem vm-rke2-05"
+                },
+                "size": 11,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 254,
+                "top": 244,
+                "width": 122,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "vm-rke2-05 pods",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "pods vm-rke2-05",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#8D99AB"
+                },
+                "size": 10,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 220,
+                "top": 262,
+                "width": 156,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "guests label",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "OUTSIDE THE CLUSTER"
+                },
+                "color": {
+                  "fixed": "#8D99AB"
+                },
+                "size": 10,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 14,
+                "top": 306,
+                "width": 300,
+                "height": 18,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "rectangle",
+              "name": "vm-lb-01",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "vm-lb-01"
+                },
+                "color": {
+                  "fixed": "#C9D2DE"
+                },
+                "size": 11,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "#131A23"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#222C39"
+                },
+                "width": 1,
+                "radius": 6
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 14,
+                "top": 330,
+                "width": 132,
+                "height": 26,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "rectangle",
+              "name": "vm-lb-02",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "vm-lb-02"
+                },
+                "color": {
+                  "fixed": "#C9D2DE"
+                },
+                "size": 11,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "#131A23"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#222C39"
+                },
+                "width": 1,
+                "radius": 6
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 156,
+                "top": 330,
+                "width": 132,
+                "height": 26,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "rectangle",
+              "name": "vm-ci-01",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "vm-ci-01"
+                },
+                "color": {
+                  "fixed": "#C9D2DE"
+                },
+                "size": 11,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "#131A23"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#222C39"
+                },
+                "width": 1,
+                "radius": 6
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 298,
+                "top": 330,
+                "width": 132,
+                "height": 26,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "rectangle",
+              "name": "vm-ci-02",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "vm-ci-02"
+                },
+                "color": {
+                  "fixed": "#C9D2DE"
+                },
+                "size": 11,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "#131A23"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#222C39"
+                },
+                "width": 1,
+                "radius": 6
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 440,
+                "top": 330,
+                "width": 132,
+                "height": 26,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "rectangle",
+              "name": "vm-access-01",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "vm-access-01"
+                },
+                "color": {
+                  "fixed": "#C9D2DE"
+                },
+                "size": 11,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "#131A23"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#222C39"
+                },
+                "width": 1,
+                "radius": 6
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 14,
+                "top": 364,
+                "width": 132,
+                "height": 26,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "rectangle",
+              "name": "vm-access-02",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "vm-access-02"
+                },
+                "color": {
+                  "fixed": "#C9D2DE"
+                },
+                "size": 11,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "#131A23"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#222C39"
+                },
+                "width": 1,
+                "radius": 6
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 156,
+                "top": 364,
+                "width": 132,
+                "height": 26,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "rectangle",
+              "name": "ct-base-01",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "ct-base-01"
+                },
+                "color": {
+                  "fixed": "#C9D2DE"
+                },
+                "size": 11,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "#131A23"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#222C39"
+                },
+                "width": 1,
+                "radius": 6
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 298,
+                "top": 364,
+                "width": 132,
+                "height": 26,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "rectangle",
+              "name": "pve-1",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#E7ECF3"
+                },
+                "size": 12,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "#0D1218"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#243042"
+                },
+                "width": 1,
+                "radius": 14
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 602,
+                "top": 0,
+                "width": 212,
+                "height": 410,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "pve-1 title",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "pve-1"
+                },
+                "color": {
+                  "fixed": "#E7ECF3"
+                },
+                "size": 13,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 616,
+                "top": 8,
+                "width": 100,
+                "height": 22,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "pve-1 note",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "1 vote"
+                },
+                "color": {
+                  "fixed": "#8D99AB"
+                },
+                "size": 11,
+                "align": "right",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 716,
+                "top": 8,
+                "width": 86,
+                "height": 22,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "rectangle",
+              "name": "sandbox pool",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#E7ECF3"
+                },
+                "size": 12,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#C4B5FD"
+                },
+                "width": 1,
+                "radius": 12
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 614,
+                "top": 38,
+                "width": 188,
+                "height": 122,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "sandbox label",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "SANDBOX"
+                },
+                "color": {
+                  "fixed": "#C4B5FD"
+                },
+                "size": 11,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 626,
+                "top": 42,
+                "width": 90,
+                "height": 20,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "sandbox note",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "gVisor"
+                },
+                "color": {
+                  "fixed": "#8D99AB"
+                },
+                "size": 10,
+                "align": "right",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 716,
+                "top": 42,
+                "width": 76,
+                "height": 20,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "rectangle",
+              "name": "vm-rke2-06 card",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#E7ECF3"
+                },
+                "size": 12,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "#131A23"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#222C39"
+                },
+                "width": 1,
+                "radius": 10
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 620,
+                "top": 66,
+                "width": 176,
+                "height": 84,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "vm-rke2-06 name",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "vm-rke2-06"
+                },
+                "color": {
+                  "fixed": "#E7ECF3"
+                },
+                "size": 12,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 630,
+                "top": 72,
+                "width": 86,
+                "height": 18,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "vm-rke2-06 ready",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "ready vm-rke2-06",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#34D399",
+                  "field": "ready vm-rke2-06"
+                },
+                "size": 10,
+                "align": "right",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 714,
+                "top": 72,
+                "width": 72,
+                "height": 18,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "vm-rke2-06 cpu label",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "cpu"
+                },
+                "color": {
+                  "fixed": "#8D99AB"
+                },
+                "size": 10,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 630,
+                "top": 94,
+                "width": 34,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "vm-rke2-06 cpu",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "cpu vm-rke2-06",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#60A5FA",
+                  "field": "cpu vm-rke2-06"
+                },
+                "size": 11,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 664,
+                "top": 94,
+                "width": 122,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "vm-rke2-06 mem label",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "mem"
+                },
+                "color": {
+                  "fixed": "#8D99AB"
+                },
+                "size": 10,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 630,
+                "top": 112,
+                "width": 34,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "vm-rke2-06 mem",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "mem vm-rke2-06",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#F59E0B",
+                  "field": "mem vm-rke2-06"
+                },
+                "size": 11,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 664,
+                "top": 112,
+                "width": 122,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "vm-rke2-06 pods",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "pods vm-rke2-06",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#8D99AB"
+                },
+                "size": 10,
+                "align": "left",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 630,
+                "top": 130,
+                "width": 156,
+                "height": 16,
+                "rotation": 0
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "pve-1 foot",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "Layer 2 only for the zones; no Longhorn replicas here."
+                },
+                "color": {
+                  "fixed": "#8D99AB"
+                },
+                "size": 10,
+                "align": "left",
+                "valign": "top"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 616,
+                "top": 176,
+                "width": 186,
+                "height": 60,
+                "rotation": 0
+              },
+              "connections": []
+            }
+          ],
+          "background": {
+            "color": {
+              "fixed": "transparent"
+            }
+          },
+          "border": {
+            "color": {
+              "fixed": "transparent"
+            }
+          },
+          "constraint": {
+            "horizontal": "left",
+            "vertical": "top"
+          },
+          "placement": {
+            "left": 0,
+            "top": 0,
+            "width": 100,
+            "height": 100,
+            "rotation": 0
+          }
         }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "id": 9,
+      "gridPos": {
+        "h": 15,
+        "w": 14,
+        "x": 0,
+        "y": 11
       }
     },
     {
-      "id": 15,
-      "type": "text",
-      "title": "Dashboards",
-      "description": "Links to every other dashboard.",
-      "gridPos": {
-        "x": 16,
-        "y": 25,
-        "w": 8,
-        "h": 8
+      "type": "volkovlabs-echarts-panel",
+      "title": "Traffic",
+      "description": "Requests per second over the range, entrypoint to service. websecure is the public tunnel (blue), internal is WARP only (amber). The service is Traefik's backend, <namespace>-<service>.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (entrypoint, service) (label_replace(label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\"}[$__range]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\"), \"entrypoint\", \"$1\", \"exported_service\", \".*-ep-(websecure|internal|web)-.*\"))",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "editorMode": "code",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
       },
       "options": {
-        "mode": "markdown",
-        "content": "**Applications**\n- [Apps](/d/apps)\n- [Matchmark](/d/matchmark)\n- [RUM](/d/applications-rum)\n\n**Platform**\n- [Argo CD](/d/argocd)\n- [Traefik](/d/traefik)\n- [Longhorn](/d/longhorn)\n- [Vault](/d/vault)\n- [CrowdSec](/d/crowdsec)\n\n**Traces and events**\n- [Traces overall](/d/traces-overall)\n- [Traces by service](/d/traces-by-service)\n- [Kubernetes events](/d/kubernetes-events)\n\n[All dashboards](/dashboards?tag=0xc0)"
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "getOption": "const rows = [];\ncontext.panel.data.series.forEach((s) => {\n  const ep = s.fields.find((f) => f.name === 'entrypoint');\n  const sv = s.fields.find((f) => f.name === 'service');\n  const v = s.fields.find((f) => f.type === 'number');\n  if (!ep || !sv || !v) return;\n  for (let i = 0; i < v.values.length; i++) rows.push([ep.values[i], sv.values[i], v.values[i]]);\n});\nconst live = rows.filter((r) => r[0] && r[1] && r[2] > 0);\nif (!live.length) {\n  return { title: { text: 'No requests in this range', left: 'center', top: 'middle',\n    textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } };\n}\nconst colour = { websecure: '#60A5FA', internal: '#F59E0B', web: '#8D99AB' };\nconst entry = new Set(live.map((r) => r[0]));\nconst names = new Set();\nlive.forEach((r) => { names.add(r[0]); names.add(r[1]); });\nconst nodes = [...names].map((n) => ({\n  name: n,\n  itemStyle: { color: colour[n] || '#C4B5FD', borderWidth: 0 },\n  label: { position: entry.has(n) ? 'left' : 'right' },\n}));\nreturn {\n  backgroundColor: 'transparent',\n  tooltip: { trigger: 'item', valueFormatter: (x) => Number(x).toFixed(3) + ' req/s' },\n  series: [{\n    type: 'sankey', left: 100, right: 230, top: 8, bottom: 8, nodeWidth: 10, nodeGap: 10,\n    draggable: false, emphasis: { focus: 'adjacency' },\n    label: { color: '#C9D2DE', fontFamily: 'Inter, sans-serif', fontSize: 12,\n      formatter: (p) => p.name + '  ' + Number(p.value).toFixed(2) },\n    lineStyle: { color: 'source', opacity: 0.35, curveness: 0.5 },\n    data: nodes,\n    links: live.map((r) => ({ source: r[0], target: r[1], value: r[2] })),\n  }],\n};",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "id": 10,
+      "gridPos": {
+        "h": 15,
+        "w": 10,
+        "x": 14,
+        "y": 11
+      }
+    },
+    {
+      "type": "row",
+      "title": "Services",
+      "collapsed": false,
+      "panels": [],
+      "id": 11,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      }
+    },
+    {
+      "type": "table",
+      "title": "Golden signals",
+      "description": "Every service behind Traefik's Gateway, worst first: req/s, 5xx share and p95 over the range, the request rate as a sparkline, and a state (ok under 1% errors, warning under 5%, critical above). A row of an application opens its App board.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (service, app) (label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\"}[$__range]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\"))",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "editorMode": "code",
+          "format": "table",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "((sum by (service, app) (label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\", code=~\"5..\"}[$__range]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\"))) or (sum by (service, app) (label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\"}[$__range]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\"))) * 0) / (sum by (service, app) (label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\"}[$__range]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\")))",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "editorMode": "code",
+          "format": "table",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "histogram_quantile(0.95, sum by (service, app, le) (label_replace(label_replace(rate(traefik_service_request_duration_seconds_bucket{exported_service=~\"httproute-.*\"}[$__range]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\")))",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "editorMode": "code",
+          "format": "table",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (service, app) (label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\"}[$__rate_interval]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\"))",
+          "legendFormat": "__auto",
+          "range": true,
+          "instant": false,
+          "editorMode": "code",
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "clamp_max(floor((((sum by (service, app) (label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\", code=~\"5..\"}[$__range]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\"))) or (sum by (service, app) (label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\"}[$__range]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\"))) * 0) / (sum by (service, app) (label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\"}[$__range]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\")))) / 0.01), 1) + clamp_max(floor((((sum by (service, app) (label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\", code=~\"5..\"}[$__range]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\"))) or (sum by (service, app) (label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\"}[$__range]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\"))) * 0) / (sum by (service, app) (label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\"}[$__range]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\")))) / 0.05), 1)",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "editorMode": "code",
+          "format": "table",
+          "refId": "E"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "service"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open the App board",
+                    "url": "/d/apps?var-app=${__data.fields.app}&${__url_time_range}"
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 260
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "app"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "app"
+              },
+              {
+                "id": "custom.width",
+                "value": 190
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "req/s"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "reqps"
+              },
+              {
+                "id": "decimals",
+                "value": 3
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#60A5FA"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "errors"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#34D399",
+                      "value": null
+                    },
+                    {
+                      "color": "#FBBF24",
+                      "value": 0.01
+                    },
+                    {
+                      "color": "#FB7185",
+                      "value": 0.05
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p95"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "decimals",
+                "value": 3
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#E7ECF3",
+                      "value": null
+                    },
+                    {
+                      "color": "#FBBF24",
+                      "value": 0.5
+                    },
+                    {
+                      "color": "#FB7185",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "trend"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "sparkline",
+                  "hideValue": true,
+                  "lineWidth": 1,
+                  "fillOpacity": 15,
+                  "drawStyle": "line",
+                  "gradientMode": "opacity"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#60A5FA"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "state"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "● ok",
+                        "color": "#34D399",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "● warning",
+                        "color": "#FBBF24",
+                        "index": 1
+                      },
+                      "2": {
+                        "text": "● critical",
+                        "color": "#FB7185",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        },
+        "sortBy": [
+          {
+            "displayName": "state",
+            "desc": true
+          }
+        ]
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "transformations": [
+        {
+          "id": "timeSeriesTable",
+          "options": {}
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "service": 0,
+              "app": 1,
+              "Value #A": 2,
+              "Value #B": 3,
+              "Value #C": 4,
+              "Trend #D": 5,
+              "Value #E": 6
+            },
+            "renameByName": {
+              "Value #A": "req/s",
+              "Value #B": "errors",
+              "Value #C": "p95",
+              "Trend #D": "trend",
+              "Value #E": "state"
+            }
+          }
+        }
+      ],
+      "id": 12,
+      "gridPos": {
+        "h": 12,
+        "w": 16,
+        "x": 0,
+        "y": 27
+      }
+    },
+    {
+      "type": "volkovlabs-echarts-panel",
+      "title": "Memory by pool",
+      "description": "Working set of every container, pool then namespace; the total in the middle. The pool is the node's 0xc0.cc/pool label, from kube-state-metrics.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (pool, namespace) (label_replace(sum by (namespace, pod) (container_memory_working_set_bytes{container!=\"\", image!=\"\"}) * on (namespace, pod) group_left (node) max by (namespace, pod, node) (kube_pod_info{node!=\"\"}) * on (node) group_left (label_0xc0_cc_pool) max by (node, label_0xc0_cc_pool) (kube_node_labels), \"pool\", \"$1\", \"label_0xc0_cc_pool\", \"(.+)\"))",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "editorMode": "code",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "getOption": "const colour = { infra: '#7DD3FC', apps: '#F59E0B', sandbox: '#C4B5FD' };\nconst tree = {};\nlet total = 0;\ncontext.panel.data.series.forEach((s) => {\n  const pool = s.fields.find((f) => f.name === 'pool');\n  const ns = s.fields.find((f) => f.name === 'namespace');\n  const v = s.fields.find((f) => f.type === 'number');\n  if (!ns || !v) return;\n  for (let i = 0; i < v.values.length; i++) {\n    const p = (pool && pool.values[i]) || 'no pool label';\n    (tree[p] = tree[p] || []).push({ name: ns.values[i], value: v.values[i] });\n    total += v.values[i];\n  }\n});\nif (!total) {\n  return { title: { text: 'No memory reported in this range', left: 'center', top: 'middle',\n    textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } };\n}\nconst gib = (b) => (b / 2 ** 30).toFixed(2) + ' GiB';\nconst data = Object.keys(tree).sort().map((p) => ({\n  name: p,\n  itemStyle: { color: colour[p] || '#8D99AB' },\n  children: tree[p].sort((a, b) => b.value - a.value).map((k) => ({\n    ...k, itemStyle: { color: colour[p] || '#8D99AB', opacity: 0.55 },\n  })),\n}));\nreturn {\n  backgroundColor: 'transparent',\n  tooltip: { trigger: 'item', formatter: (p) => p.name + ': ' + gib(p.value) },\n  graphic: [{ type: 'text', left: 'center', top: 'middle',\n    style: { text: (total / 2 ** 30).toFixed(1) + '\\nGiB in use', fill: '#E7ECF3', align: 'center',\n      font: '600 18px \"Roboto Mono\", ui-monospace, monospace', lineHeight: 22 } }],\n  series: [{\n    type: 'sunburst', radius: ['34%', '92%'], data, sort: null,\n    itemStyle: { borderColor: '#0D1218', borderWidth: 2 },\n    label: { color: '#0D1218', fontSize: 11, minAngle: 14, rotate: 'tangential' },\n    levels: [{}, { label: { color: '#0D1218', fontWeight: 600 } }, { label: { color: '#E7ECF3' } }],\n  }],\n};",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "id": 13,
+      "gridPos": {
+        "h": 12,
+        "w": 8,
+        "x": 16,
+        "y": 27
+      }
+    },
+    {
+      "type": "row",
+      "title": "Logs and capacity",
+      "collapsed": false,
+      "panels": [],
+      "id": 14,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 39
+      }
+    },
+    {
+      "type": "heatmap",
+      "title": "Log pulse",
+      "description": "Lines per interval by level, every service, the levels normalised to lower case (Loki's detected_level).",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum by (level) (count_over_time({service_name=~\".+\"} | label_format level=\"{{ ToLower .detected_level }}\" [$__auto]))",
+          "queryType": "range",
+          "editorMode": "code",
+          "legendFormat": "{{level}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "calculate": false,
+        "cellGap": 2,
+        "cellValues": {
+          "unit": "short"
+        },
+        "color": {
+          "mode": "scheme",
+          "scheme": "Oranges",
+          "steps": 64,
+          "exponent": 0.5,
+          "fill": "#60A5FA",
+          "scale": "exponential",
+          "reverse": false
+        },
+        "exemplars": {
+          "color": "#F59E0B"
+        },
+        "filterValues": {
+          "le": 1e-09
+        },
+        "legend": {
+          "show": false
+        },
+        "rowsFrame": {
+          "layout": "unknown",
+          "value": "lines"
+        },
+        "tooltip": {
+          "mode": "single",
+          "yHistogram": false,
+          "showColorScale": false
+        },
+        "yAxis": {
+          "axisPlacement": "left",
+          "reverse": false,
+          "unit": "short",
+          "axisLabel": ""
+        }
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "id": 15,
+      "gridPos": {
+        "h": 7,
+        "w": 16,
+        "x": 0,
+        "y": 40
+      }
+    },
+    {
+      "type": "bargauge",
+      "title": "Pool capacity",
+      "description": "Resource requests of the running and pending pods against what each pool's nodes can allocate, CPU and memory.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (label_0xc0_cc_pool) (kube_pod_container_resource_requests{resource=\"cpu\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=~\"Running|Pending\"} == 1) * on (node) group_left (label_0xc0_cc_pool) max by (node, label_0xc0_cc_pool) (kube_node_labels)) / sum by (label_0xc0_cc_pool) (kube_node_status_allocatable{resource=\"cpu\"} * on (node) group_left (label_0xc0_cc_pool) max by (node, label_0xc0_cc_pool) (kube_node_labels))",
+          "legendFormat": "{{label_0xc0_cc_pool}} · cpu",
+          "range": false,
+          "instant": true,
+          "editorMode": "code",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (label_0xc0_cc_pool) (kube_pod_container_resource_requests{resource=\"memory\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=~\"Running|Pending\"} == 1) * on (node) group_left (label_0xc0_cc_pool) max by (node, label_0xc0_cc_pool) (kube_node_labels)) / sum by (label_0xc0_cc_pool) (kube_node_status_allocatable{resource=\"memory\"} * on (node) group_left (label_0xc0_cc_pool) max by (node, label_0xc0_cc_pool) (kube_node_labels))",
+          "legendFormat": "{{label_0xc0_cc_pool}} · mem",
+          "range": false,
+          "instant": true,
+          "editorMode": "code",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#34D399",
+                "value": null
+              },
+              {
+                "color": "#FBBF24",
+                "value": 0.7
+              },
+              {
+                "color": "#FB7185",
+                "value": 0.9
+              }
+            ]
+          },
+          "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "lcd",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "top",
+        "sizing": "auto",
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "maxVizHeight": 24
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "id": 16,
+      "gridPos": {
+        "h": 14,
+        "w": 8,
+        "x": 16,
+        "y": 40
+      }
+    },
+    {
+      "type": "logs",
+      "title": "Latest errors",
+      "description": "The latest lines at error and above, every service.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{service_name=~\".+\"} | detected_level=~\"(?i)(error|fatal|critical)\"",
+          "queryType": "range",
+          "editorMode": "code",
+          "maxLines": 50,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none",
+        "prettifyLogMessage": false,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "enableInfiniteScrolling": false
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "id": 17,
+      "gridPos": {
+        "h": 7,
+        "w": 16,
+        "x": 0,
+        "y": 47
+      }
+    },
+    {
+      "type": "row",
+      "title": "Changes",
+      "collapsed": false,
+      "panels": [],
+      "id": 18,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 54
+      }
+    },
+    {
+      "type": "state-timeline",
+      "title": "Changes",
+      "description": "Argo CD syncs per application (argocd_app_sync_total), and which release of ours runs in each app namespace (the image tag, from kube-state-metrics): a new row is a release or a promotion. OpenTofu applies leave no metric and are not shown.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (name) (increase(argocd_app_sync_total[$__interval])) > 0",
+          "legendFormat": "sync · {{name}}",
+          "range": true,
+          "instant": false,
+          "editorMode": "code",
+          "interval": "5m",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "count by (namespace, version) (label_replace(kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}, \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\"))",
+          "legendFormat": "{{namespace}} · {{version}}",
+          "range": true,
+          "instant": false,
+          "editorMode": "code",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0,
+            "spanNulls": false
+          },
+          "noValue": "No syncs or releases in this range"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#7DD3FC"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "range",
+                    "options": {
+                      "from": 0.0001,
+                      "to": 1000000000.0,
+                      "result": {
+                        "text": "synced",
+                        "color": "#7DD3FC"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#C4B5FD"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "range",
+                    "options": {
+                      "from": 1,
+                      "to": 1000000000.0,
+                      "result": {
+                        "text": "running",
+                        "color": "#C4B5FD"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showValue": "never",
+        "mergeValues": true,
+        "alignValue": "left",
+        "rowHeight": 0.8,
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "id": 19,
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 55
       }
     }
-  ]
+  ],
+  "refresh": "1m",
+  "schemaVersion": 41,
+  "tags": [
+    "0xc0",
+    "estate"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Estate",
+  "uid": "home",
+  "version": 1,
+  "weekStart": ""
 }
