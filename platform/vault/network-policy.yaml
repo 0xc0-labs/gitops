@@ -44,6 +44,12 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/component: opentelemetry-collector
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
         # The sites' CMS writes its integrations' keys with its own identity
         # (apps/artistlabco-com/README.md, The CMS).
         - namespaceSelector:

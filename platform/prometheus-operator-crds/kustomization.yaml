@@ -1,5 +1,5 @@
-# CRDs only: the collectors' target allocator reads the ServiceMonitors. No
-# Prometheus runs here.
+# CRDs only, for the collectors' target allocator and for kube-prometheus-stack,
+# which leaves its own off. Keep it on the operator's version there.
 #
 # Backups: no volumes.
 apiVersion: kustomize.config.k8s.io/v1beta1
@@ -7,7 +7,7 @@ kind: Kustomization
 helmCharts:
   - name: prometheus-operator-crds
     repo: https://prometheus-community.github.io/helm-charts
-    version: 32.0.1
+    version: 33.0.2
     releaseName: prometheus-operator-crds
     kubeVersion: "1.36.4"
     includeCRDs: true
