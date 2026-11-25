@@ -75,10 +75,19 @@ spec:
             # it empty they go to stdout, where the node collector reads them.
             - name: RUSTFS_OBS_LOG_DIRECTORY
               value: ""
+            # With a root OTLP endpoint set, RustFS sends its telemetry there.
+            # Without one it forces USE_STDOUT on, and USE_STDOUT mirrors every
+            # signal to stdout: about 318 lines a second of metric dumps (#673).
+            - name: RUSTFS_OBS_ENDPOINT
+              value: http://otel-gateway.opentelemetry.svc.cluster.local:4318
             - name: RUSTFS_OBS_USE_STDOUT
+              value: "false"
+            # Only the JSON log layer stays on stdout, at warn and above.
+            - name: RUSTFS_OBS_LOG_STDOUT_ENABLED
               value: "true"
-            # Metrics are pushed over OTLP/HTTP; the namespace is admitted in
-            # the collector's `otlp-from-senders`.
+            - name: RUSTFS_OBS_LOGGER_LEVEL
+              value: warn
+            # The namespace is admitted in the collector's `otlp-from-senders`.
             - name: RUSTFS_OBS_METRICS_EXPORT_ENABLED
               value: "true"
             - name: RUSTFS_OBS_METRIC_ENDPOINT
