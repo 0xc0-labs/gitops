@@ -200,8 +200,9 @@ as removed, which only happens when *Remove Snapshots During Filesystem Trim*
 or the volume's `unmapMarkSnapChainRemoved` asks for it; OpenObserve's volume
 is `ignored` and the setting off.
 
-The job names the volume (`pvc-96a82cef-…`). A replaced volume has a new name,
-and the job answers `404` until it is changed here.
+The job names the volume (`pvc-6905cde8-…`, replaced on 2026-11-25: data
+dropped, operator's decision). A replaced volume has a new name, and the job
+answers `404` until it is changed here.
 
 ### Replacing the recurring job
 
@@ -240,7 +241,7 @@ kubectl -n longhorn-system get recurringjob
 kubectl -n longhorn-system get events --field-selector reason=FailedFilesystemTrim
 
 # The volume's size: actual (Longhorn's count) against what the filesystem uses.
-kubectl -n longhorn-system get volume pvc-96a82cef-3be6-4ad2-afba-b8172b092c73 \
+kubectl -n longhorn-system get volume pvc-6905cde8-b942-42fc-be87-7584bdc1f727 \
   -o jsonpath='{.status.actualSize}{"\n"}'
 ```
 

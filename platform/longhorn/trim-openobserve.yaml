@@ -53,7 +53,7 @@ spec:
                 - "trimFilesystem answered HTTP %{http_code} after %{time_total}s\\n"
                 - --request
                 - POST
-                - http://longhorn-backend:9500/v1/volumes/pvc-96a82cef-3be6-4ad2-afba-b8172b092c73?action=trimFilesystem
+                - http://longhorn-backend:9500/v1/volumes/pvc-6905cde8-b942-42fc-be87-7584bdc1f727?action=trimFilesystem
               securityContext:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: true
