@@ -59,7 +59,7 @@ spec:
             - name: tmp
               mountPath: /tmp
         # The logs to stdout, where the cluster's collector takes every pod's
-        # log to OpenObserve, and what bounds them: the readiness probe opens
+        # log to Loki, and what bounds them: the readiness probe opens
         # and closes a connection, which Squid logs as a request that never
         # was, so those lines are dropped here; and each file is emptied once
         # it passes 10 MiB (Squid appends, and `tail -F` follows the

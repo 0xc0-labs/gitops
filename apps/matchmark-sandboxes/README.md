@@ -77,7 +77,7 @@ is reachable by the worker too, which holds the GitHub App's key.
 - Its access log (when, client, method, host, result: `TCP_TUNNEL/200` allowed,
   `TCP_DENIED/403` refused) goes to stdout, from a sidecar following the log
   file (the pod's user cannot open the container's stdout), so the collector
-  takes it to OpenObserve as every pod's log. The sidecar drops the lines of
+  takes it to Loki as every pod's log. The sidecar drops the lines of
   the readiness probe (a connection with no request,
   `host=error:transaction-end-before-headers`: the kubelet's address changes
   with the node, so no Squid ACL can name it), so the log is the sandboxes'

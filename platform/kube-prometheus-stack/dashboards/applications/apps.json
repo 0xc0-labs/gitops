@@ -244,7 +244,7 @@
     {
       "type": "timeseries",
       "title": "Memory",
-      "description": "OpenObserve's panel summed the collector's k8s_pod_memory_usage; this is the working set from cAdvisor.",
+      "description": "The working set from cAdvisor, summed per pod.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -299,7 +299,7 @@
     {
       "type": "timeseries",
       "title": "CPU (cores)",
-      "description": "OpenObserve's panel summed the collector's k8s_pod_cpu_usage; this is cAdvisor's CPU time.",
+      "description": "cAdvisor's CPU time, summed per pod.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"

@@ -2,8 +2,8 @@
 
 The offby1.cc landing page: the Node server of 0xc0-labs/offby1.cc, public
 at `https://offby1.cc`; `www.offby1.cc` redirects there (`httproute.yaml`).
-No volumes and no secret. It sends no RUM until Faro replaces OpenObserve's
-(workspace#290): the site stays off without `OPENOBSERVE_RUM_CLIENT_TOKEN`.
+No volumes and no secret. It sends no RUM until Faro is wired in
+(workspace#290).
 
 ## Upgrades
 

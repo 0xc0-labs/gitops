@@ -1,4 +1,4 @@
-# Logs, monolithic, beside OpenObserve (workspace#290, phase 2). Chunks and
+# Logs, monolithic (workspace#290). Chunks and
 # index live in R2.
 #
 # Backups: storage-loki-0 (Longhorn, 10 Gi, the WAL alone), in PBS's nightly

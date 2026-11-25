@@ -85,7 +85,7 @@ Every bump of Plane's version compares both files with upstream's
   NetworkPolicy admitting its namespace.
 - More than one replica of anything.
 
-Logs go to OpenObserve with every pod's, through the cluster's collector.
+Logs go to Loki with every pod's, through the cluster's collector.
 Plane exposes no metrics endpoint.
 
 [vault-write]: https://github.com/0xc0-labs/vault/blob/main/README.md#writing-or-rotating-a-secret

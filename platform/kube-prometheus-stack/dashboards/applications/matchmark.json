@@ -1876,7 +1876,7 @@
     {
       "type": "table",
       "title": "Tools with the most failures and refusals",
-      "description": "A failed, B refused, C calls; OpenObserve's kept the 20 worst, sort by A here.",
+      "description": "A failed, B refused, C calls; sort by A for the worst.",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"

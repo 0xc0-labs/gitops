@@ -1,5 +1,5 @@
-# Longhorn otherwise keeps every block ever written: OpenObserve's volume used
-# 2 GB but held 12 GiB per replica (2026-10-02). The default group covers every
+# Longhorn otherwise keeps every block ever written: a volume that used 2 GB
+# held 12 GiB per replica (2026-10-02). The default group covers every
 # volume that has no recurring job of its own.
 apiVersion: longhorn.io/v1beta2
 kind: RecurringJob

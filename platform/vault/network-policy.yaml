@@ -37,13 +37,7 @@ spec:
             matchLabels:
               app.kubernetes.io/name: vault-secrets-operator
               control-plane: controller-manager
-        # OpenObserve's collector: metrics share the API's port.
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: openobserve-collector
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/component: opentelemetry-collector
+        # Prometheus: metrics share the API's port.
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: monitoring

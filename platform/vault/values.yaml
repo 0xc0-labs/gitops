@@ -50,7 +50,7 @@ server:
         ui = true
         disable_mlock = true
 
-        # Prometheus metrics at /v1/sys/metrics for OpenObserve's collector
+        # Prometheus metrics at /v1/sys/metrics for Prometheus
         # (the ServiceMonitor below). Unauthenticated, as it cannot hold a
         # Vault token. It shares the API's port, so whoever may reach 8200
         # (Traefik's WARP-only route included) can read it too.

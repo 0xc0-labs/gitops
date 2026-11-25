@@ -1,4 +1,4 @@
-# Traces, monolithic, beside OpenObserve (workspace#290, phase 2). Blocks live
+# Traces, monolithic (workspace#290). Blocks live
 # in R2.
 #
 # Backups: storage-tempo-0 (Longhorn, 10 Gi, the WAL alone), in PBS's nightly

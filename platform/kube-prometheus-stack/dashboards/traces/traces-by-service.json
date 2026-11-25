@@ -323,7 +323,7 @@
     {
       "type": "timeseries",
       "title": "Max duration",
-      "description": "OpenObserve drew this one as a scatter of the maximum.",
+      "description": "A scatter of the maximum.",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"

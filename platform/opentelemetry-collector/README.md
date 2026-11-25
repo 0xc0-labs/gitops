@@ -1,9 +1,8 @@
 # opentelemetry-collector
 
-The cluster's collector, in the `opentelemetry` namespace, beside
-`openobserve-collector` (workspace#290). It is named after no backend: the
-applications send OTLP to one address and never know Loki, Tempo or
-Prometheus. It sends nothing to OpenObserve.
+The cluster's collector, in the `opentelemetry` namespace (workspace#290). It
+is named after no backend: the applications send OTLP to one address and never
+know Loki, Tempo or Prometheus.
 
 ## The one entry point
 
@@ -13,8 +12,7 @@ otel-gateway.opentelemetry.svc.cluster.local   gRPC 4317, HTTP 4318
 
 A sender's namespace needs an egress rule to the pods labelled
 `app.kubernetes.io/instance: opentelemetry.otel-gateway`, and an entry in
-`otlp-from-senders` (`network-policy.yaml`). `apps/` and `platform/traefik` send here;
-`openobserve-collector` stays open until it goes.
+`otlp-from-senders` (`network-policy.yaml`). `apps/` and `platform/traefik` send here.
 
 The operator names the Service it creates `otel-gateway-collector`; the
 `otel-gateway` Service in `gateway.yaml` carries the agreed name.
@@ -80,8 +78,7 @@ against `otelcol_exporter_queue_capacity` shows a backend that is slow.
 The namespace denies ingress and egress by default. The collectors reach DNS,
 the Kubernetes API (the three RKE2 servers, since Canal translates a Service
 address first), Loki on 3100 and, the gateway only, Tempo on 4317 and
-Prometheus on 9090. Loki, Tempo and Prometheus admit `opentelemetry` beside
-`openobserve-collector`.
+Prometheus on 9090. Loki, Tempo and Prometheus admit `opentelemetry`.
 
 ## Matchmark's usage record
 

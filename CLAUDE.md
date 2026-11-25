@@ -51,8 +51,9 @@ ArgoCD syncs `bootstrap/prod/`, and through it `platform/` and `apps/`, from
 One RKE2 cluster, in the `platform` zone, holds every shared service and
 application:
 
-- **Shared services**: ArgoCD, Vault, OpenObserve (metrics, logs, traces), and
-  the data services: one shared MariaDB and one shared PostgreSQL.
+- **Shared services**: ArgoCD, Vault, Prometheus, Loki and Tempo with Grafana
+  (metrics, logs, traces), and the data services: one shared MariaDB and one
+  shared PostgreSQL.
 - **Applications**.
 
 They are separated by namespace and NetworkPolicy. Traffic enters through the
@@ -111,7 +112,7 @@ repo's own.
   secret. It reads only `platform/<namespace>/*` (an application,
   `apps/<namespace>/*`), and the `shared/<name>` secrets its policy grants by
   name. Paths are kebab-case, keys inside snake_case.
-- **Portals** (OpenObserve, ArgoCD) are internal: reached only over WARP, never
+- **Portals** (Grafana, ArgoCD) are internal: reached only over WARP, never
   published (operator decision, 2026-09-29). **Vault, the Kubernetes API and
   other admin interfaces are never published** either.
 

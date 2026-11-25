@@ -56,7 +56,7 @@ prometheus:
     scrapeInterval: 60s
     evaluationInterval: 60s
     # The applications' metrics arrive over OTLP from the collectors' gateway
-    # (openobserve-collector, kustomization.yaml).
+    # (platform/opentelemetry-collector).
     enableOTLPReceiver: true
     # The resource attributes Grafana filters by become labels; the rest stay
     # in target_info. Temporality is cumulative, the SDKs' default.

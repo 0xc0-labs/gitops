@@ -9,7 +9,7 @@ spec:
     - Ingress
     - Egress
 ---
-# The namespaces that send OTLP: the ones `openobserve-collector` admits today.
+# The namespaces that send OTLP.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
