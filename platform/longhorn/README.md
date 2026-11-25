@@ -1,7 +1,83 @@
 # Longhorn
 
-Block storage for the cluster's volumes, three replicas each, on the data disks
+Block storage for the cluster's volumes, two replicas each, on the data disks
 `infrastructure`'s `longhorn_node` joins into `/var/lib/longhorn`.
+
+## Two replicas
+
+Operator decision, 2026-11-25 (workspace#285): `defaultSettings.defaultReplicaCount`
+and `persistence.defaultClassReplicaCount` in `values.yaml` are both 2.
+
+- **Why two.** Every Longhorn node is a VM on one host, on RAID 1. A third
+  replica would not survive anything the second does not: replicas cover a VM
+  that reboots or breaks, and PBS covers the host.
+- **What two does not cover.** While a node reboots, the volumes with a
+  replica on it run on one copy until it is rebuilt. A second failure in that
+  window, of the node holding the other copy, makes the volume unavailable
+  until one of the two nodes is back; it is lost only if both disks are, and
+  then PBS restores it.
+- **Replicas go on different nodes** (`replica-soft-anti-affinity` is false),
+  so a volume needs two schedulable nodes with room.
+
+### Moving to two, once, after the merge
+
+Neither the setting nor the StorageClass reaches what exists, and the
+operator runs these steps by hand, in this order.
+
+**1. The default StorageClass.** The chart renders its parameters inside the
+`longhorn-storageclass` ConfigMap, not as a `StorageClass`, so Argo CD never
+replaces the existing one, and its parameters cannot change in place. Delete
+it and create it again from the ConfigMap. Volumes already bound keep
+working: a PV carries its own attributes and does not read the class again.
+
+```sh
+kubectl get storageclass longhorn -o jsonpath='{.parameters.numberOfReplicas}{"\n"}'   # 3
+kubectl delete storageclass longhorn
+kubectl -n longhorn-system get configmap longhorn-storageclass \
+  -o jsonpath='{.data.storageclass\.yaml}' | kubectl apply -f -
+kubectl get storageclass longhorn -o jsonpath='{.parameters.numberOfReplicas}{"\n"}'   # 2
+```
+
+**2. The existing volumes.** One loop, which stops at the first error. An
+attached volume is patched, then waited on until it is `healthy` with two
+replicas, so at no point two volumes are rebuilding at once. A detached one
+(`status.state` is `detached`) reports `unknown` robustness and would never
+pass that wait: it is patched and the loop goes on without waiting.
+
+```sh
+set -e
+for v in $(kubectl -n longhorn-system get volumes.longhorn.io -o name); do
+  kubectl -n longhorn-system patch "$v" --type merge -p '{"spec":{"numberOfReplicas":2}}'
+  if [ "$(kubectl -n longhorn-system get "$v" -o jsonpath='{.status.state}')" = detached ]; then
+    echo "$v: detached, patched, not waited on"
+    continue
+  fi
+  until [ "$(kubectl -n longhorn-system get "$v" -o jsonpath='{.status.robustness}')" = healthy ] \
+    && [ "$(kubectl -n longhorn-system get replicas.longhorn.io \
+         -l "longhornvolume=${v#*/}" -o name | wc -l | tr -d ' ')" = 2 ]; do
+    sleep 5
+  done
+  echo "$v: healthy, 2 replicas"
+done
+```
+
+Longhorn removes the surplus replica of an attached volume by itself once it
+is healthy. A detached volume (`mariadb-dumps` and `postgres-dumps` on
+2026-11-25) keeps its third replica until it is attached, and Longhorn trims
+it then. The loop is safe to repeat.
+
+**3. Check.** Read-only. Every volume has `2` in its spec, and every attached
+one is `healthy` with no replica left over:
+
+```sh
+kubectl -n longhorn-system get volumes.longhorn.io \
+  -o custom-columns=NAME:.metadata.name,SPEC:.spec.numberOfReplicas,STATE:.status.state,ROBUSTNESS:.status.robustness
+kubectl -n longhorn-system get replicas.longhorn.io \
+  -o custom-columns=VOLUME:.spec.volumeName --no-headers | sort | uniq -c
+```
+
+The last command counts replicas per volume: every attached volume says `2`.
+A detached one still says `3` until it is attached.
 
 ## Recurring trims
 
