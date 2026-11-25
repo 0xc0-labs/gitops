@@ -41,7 +41,7 @@ extraEnv:
 
 persistence:
   enabled: true
-  size: 50Gi
+  size: 80Gi
   storageClass: longhorn
 
 # The default, Always, makes the kubelet chown every file of the volume on
