@@ -37,11 +37,45 @@ Pipelines:
 | gateway `metrics` | OTLP, `servicegraph` | Prometheus (`/api/v1/otlp`) |
 | gateway `logs` | OTLP | Loki |
 | gateway `logs/k8s_events` | `k8sobjects/events` | Loki |
+| gateway `logs/faro` | `faro` | Loki |
+| gateway `traces/faro` | `faro` | Tempo |
 
 The agent keeps how far it read each file in `/var/lib/otelcol` on the node
 (`file_storage`), and its exporter queue too. A restart goes on from there;
 without it, the agent read every file again and Loki rejected the old lines as
 "too far behind". With no offset (a node's first run) it starts at the end.
+
+## Faro
+
+The sites' browsers send RUM with Grafana's Faro SDK, as JSON, to the contrib
+distribution's `faro` receiver (alpha; the OTLP of a browser is not used). The
+receiver listens on `8886` of `otel-gateway`, on any path, and takes `POST`
+with `Content-Type: application/json` alone; its body is limited to 1 MiB
+(`max_request_body_size`). It has no token: the rate limit and CrowdSec are
+the protection.
+
+```
+browser -> POST https://<site>/rum/faro -> Traefik (CrowdSec, rate limit) -> otel-gateway:8886
+```
+
+Each site's routes carry the rule (`apps/*/*/httproute.yaml`): `POST` on the
+prefix `/rum/faro`, rewritten to `/`, with that namespace's `rum-rate-limit`
+middleware, to `otel-gateway` in this namespace. `reference-grant.yaml` admits
+the sites' namespaces to it, and `faro-from-traefik` admits Traefik to the port.
+The CORS and the preflight never come into play: the intake is same-origin.
+POST responses are not cached by Cloudflare, so nothing is set for it.
+
+The `logs/faro` and `traces/faro` pipelines have no `k8sattributes`: the
+connection is Traefik's, and the processor would stamp the browser's records
+with Traefik's pod. A record's `service.name` is the app name the site's SDK
+sets, which Loki indexes as `service_name`; its `kind` (`log`, `exception`,
+`measurement`, `event`) is structured metadata, and the rest of Faro's meta
+(page, session, browser) is in the logfmt body. The dashboard `Applications /
+RUM` (`platform/kube-prometheus-stack`) reads them.
+
+Faro's intake can be written to by anyone, and `service.name` comes from the
+payload: the rate limit bounds how fast a stream label could be invented,
+not which.
 
 ## No scraping here
 
@@ -78,7 +112,7 @@ against `otelcol_exporter_queue_capacity` shows a backend that is slow.
 The namespace denies ingress and egress by default. The collectors reach DNS,
 the Kubernetes API (the three RKE2 servers, since Canal translates a Service
 address first), Loki on 3100 and, the gateway only, Tempo on 4317 and
-Prometheus on 9090. Loki, Tempo and Prometheus admit `opentelemetry`.
+Prometheus on 9090. Traefik reaches the gateway's Faro port, 8886. Loki, Tempo and Prometheus admit `opentelemetry`.
 
 ## Matchmark's usage record
 

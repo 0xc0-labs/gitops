@@ -1,0 +1,21 @@
+# The sites' routes to the Faro intake (README.md, Faro).
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: faro-from-sites
+  namespace: opentelemetry
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: offby1-cc
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: artistlabco-com
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: artistlabco-com-staging
+  to:
+    - group: ""
+      kind: Service
+      name: otel-gateway

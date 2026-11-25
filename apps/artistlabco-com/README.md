@@ -138,6 +138,17 @@ and `PREVIEW_SECRET` on the CMS (the front's public URL, and the secret at
 `apps/<namespace>/preview` that the front reads too). Both URLs are each
 overlay's literals.
 
+## RUM
+
+`RUM_ENABLED=true` in the front's and the CMS's Deployments turns Faro on in
+their pages. The intake is on each page's own origin, so the CSP keeps
+`connect-src 'self'`: `POST /rum/faro` on every host of `httproute.yaml`
+(the apex, `www`, `cms`, and in staging `staging`, `cms-staging` and the
+internal host) goes to the OpenTelemetry gateway's Faro receiver
+(`platform/opentelemetry-collector`, Faro), behind a `rum-rate-limit`
+middleware: 1 request a second per visitor, burst 20. Any other method falls
+through to the app.
+
 ## The way out
 
 Default deny, and then: traces to the collector, DNS, the CMS's pods on

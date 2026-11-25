@@ -29,6 +29,12 @@ spec:
             endpoint: 0.0.0.0:4317
           http:
             endpoint: 0.0.0.0:4318
+      # The browsers' RUM, which Faro sends as JSON; Traefik's routes on the
+      # sites' origins forward it here (README.md, Faro). The receiver answers
+      # on any path.
+      faro:
+        endpoint: 0.0.0.0:8886
+        max_request_body_size: 1048576
       k8sobjects/events:
         auth_type: serviceAccount
         objects:
@@ -193,6 +199,16 @@ spec:
           receivers: [otlp]
           processors: [memory_limiter, filter/matchmark_usage, batch]
           exporters: [otlphttp/matchmark_api]
+        # No `k8sattributes`: the connection is Traefik's, and it would stamp
+        # the browser's records with Traefik's pod.
+        logs/faro:
+          receivers: [faro]
+          processors: [memory_limiter, resourcedetection, attributes, batch]
+          exporters: [otlphttp/loki]
+        traces/faro:
+          receivers: [faro]
+          processors: [memory_limiter, resourcedetection, attributes, batch]
+          exporters: [otlp/tempo]
         logs/k8s_events:
           receivers: [k8sobjects/events]
           processors: [memory_limiter, resourcedetection, attributes, k8sattributes, batch]
@@ -219,4 +235,8 @@ spec:
     - name: otlp-http
       port: 4318
       targetPort: 4318
+      protocol: TCP
+    - name: faro
+      port: 8886
+      targetPort: 8886
       protocol: TCP

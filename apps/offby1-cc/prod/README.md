@@ -2,8 +2,8 @@
 
 The offby1.cc landing page: the Node server of 0xc0-labs/offby1.cc, public
 at `https://offby1.cc`; `www.offby1.cc` redirects there (`httproute.yaml`).
-No volumes and no secret. It sends no RUM until Faro is wired in
-(workspace#290).
+No volumes and no secret. The browsers send RUM through Faro to this origin's
+`/rum/faro` (RUM, below), once the site's code does.
 
 ## Upgrades
 
@@ -41,5 +41,14 @@ Traefik sets the baseline on every entrypoint
 and this route adds its own (`security-headers` in `httproute.yaml`: no
 framing, Permissions-Policy, COOP/CORP). The app sets its own
 Content-Security-Policy, with a nonce per request.
+
+## RUM
+
+`RUM_ENABLED=true` in the Deployment turns Faro on in the page. Its intake is
+on this origin, so the CSP keeps `connect-src 'self'`: `POST /rum/faro`, on
+`offby1.cc` and `www.offby1.cc` (`httproute.yaml`), goes to the OpenTelemetry
+gateway's Faro receiver (`platform/opentelemetry-collector`, Faro), behind the
+`rum-rate-limit` middleware (1 request a second per visitor, burst 20). Any
+other method falls through to the app.
 
 [github-apps]: https://github.com/0xc0-labs/.github/blob/main/README.md#application-repos
