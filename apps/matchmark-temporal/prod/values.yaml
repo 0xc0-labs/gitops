@@ -31,6 +31,10 @@ server:
   metrics:
     annotations:
       enabled: true
+    # Prometheus selects ServiceMonitors and PodMonitors only
+    # (platform/kube-prometheus-stack), never the pods' annotations.
+    serviceMonitor:
+      enabled: true
   additionalEnv:
     # No authorizer: the frontend allows every request. Network policies and
     # WARP stand in its place (../README.md, Temporal).
