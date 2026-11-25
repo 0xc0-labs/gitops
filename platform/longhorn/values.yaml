@@ -46,10 +46,10 @@ preUpgradeChecker:
   jobEnabled: false
 persistence:
   defaultClass: true
-  defaultClassReplicaCount: 3
+  defaultClassReplicaCount: 2
 defaultSettings:
   defaultDataPath: /var/lib/longhorn
-  defaultReplicaCount: 3
+  defaultReplicaCount: 2
 # Empty CIDRs: under Canal the API server and iSCSI initiators come from each
 # node's pod-network address (10.42.N.0), not 10.10.4.0/24; filtering on it
 # blocked every webhook call across nodes.

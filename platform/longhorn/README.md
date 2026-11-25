@@ -1,7 +1,73 @@
 # Longhorn
 
-Block storage for the cluster's volumes, three replicas each, on the data disks
+Block storage for the cluster's volumes, two replicas each, on the data disks
 `infrastructure`'s `longhorn_node` joins into `/var/lib/longhorn`.
+
+## Two replicas
+
+Operator decision, 2026-11-25 (workspace#285): `defaultSettings.defaultReplicaCount`
+and `persistence.defaultClassReplicaCount` in `values.yaml` are both 2.
+
+- **Why two.** Every Longhorn node is a VM on one host, on RAID 1. A third
+  replica would not survive anything the second does not: replicas cover a VM
+  that reboots or breaks, and PBS covers the host.
+- **What two does not cover.** While a node reboots, the volumes with a
+  replica on it run on one copy until it is rebuilt. A second failure in that
+  window loses the volume, to be restored from PBS.
+- **Replicas go on different nodes** (`replica-soft-anti-affinity` is false),
+  so a volume needs two schedulable nodes with room.
+
+### Moving to two, once, after the merge
+
+Neither the setting nor the StorageClass reaches what exists, and the
+operator runs these steps by hand, in this order.
+
+**1. The default StorageClass.** The chart renders its parameters inside the
+`longhorn-storageclass` ConfigMap, not as a `StorageClass`, so Argo CD never
+replaces the existing one, and its parameters cannot change in place. Delete
+it and create it again from the ConfigMap. Volumes already bound keep
+working: a PV carries its own attributes and does not read the class again.
+
+```sh
+kubectl get storageclass longhorn -o jsonpath='{.parameters.numberOfReplicas}{"\n"}'   # 3
+kubectl delete storageclass longhorn
+kubectl -n longhorn-system get configmap longhorn-storageclass \
+  -o jsonpath='{.data.storageclass\.yaml}' | kubectl apply -f -
+kubectl get storageclass longhorn -o jsonpath='{.parameters.numberOfReplicas}{"\n"}'   # 2
+```
+
+**2. The existing volumes.** One loop, which stops at the first error and
+waits for each volume to be `healthy` with two replicas before it takes the
+next, so at no point two volumes are rebuilding at once:
+
+```sh
+set -e
+for v in $(kubectl -n longhorn-system get volumes.longhorn.io -o name); do
+  kubectl -n longhorn-system patch "$v" --type merge -p '{"spec":{"numberOfReplicas":2}}'
+  until [ "$(kubectl -n longhorn-system get "$v" -o jsonpath='{.status.robustness}')" = healthy ] \
+    && [ "$(kubectl -n longhorn-system get replicas.longhorn.io \
+         -l "longhornvolume=${v#*/}" -o name | wc -l | tr -d ' ')" = 2 ]; do
+    sleep 5
+  done
+  echo "$v: healthy, 2 replicas"
+done
+```
+
+Longhorn removes the surplus replica by itself once the volume is healthy. A
+detached volume reports `unknown` robustness: attach it, or wait, and run the
+loop again, which is safe to repeat.
+
+**3. Check.** Read-only. Every volume is `healthy` with `2` in its spec, and
+no replica is left over:
+
+```sh
+kubectl -n longhorn-system get volumes.longhorn.io \
+  -o custom-columns=NAME:.metadata.name,SPEC:.spec.numberOfReplicas,STATE:.status.state,ROBUSTNESS:.status.robustness
+kubectl -n longhorn-system get replicas.longhorn.io \
+  -o custom-columns=VOLUME:.spec.volumeName --no-headers | sort | uniq -c
+```
+
+The last command counts replicas per volume: every line says `2`.
 
 ## Recurring trims
 
