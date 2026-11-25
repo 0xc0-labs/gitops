@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: gvisor-proof-2
+  name: gvisor-proof-3
   namespace: gvisor
 spec:
   backoffLimit: 0
@@ -9,8 +9,6 @@ spec:
     spec:
       restartPolicy: Never
       runtimeClassName: gvisor
-      nodeSelector:
-        kubernetes.io/hostname: vm-rke2-04
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true

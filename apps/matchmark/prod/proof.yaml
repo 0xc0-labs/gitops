@@ -211,9 +211,9 @@ data:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  # The last segment is replaced with APP_VERSION (kustomization.yaml): Jobs are
+  # The third segment is replaced with APP_VERSION (kustomization.yaml): Jobs are
   # immutable, so a release is a new Job and Argo CD prunes the previous one.
-  name: gateway-proof-version
+  name: gateway-proof-version-r2
   namespace: matchmark
   annotations:
     # After the API's new pods are Healthy: the last step reads the usage

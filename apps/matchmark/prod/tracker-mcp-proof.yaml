@@ -10,7 +10,7 @@ metadata:
   # immutable, so a release is a new Job and Argo CD prunes the previous one.
   # A Job that reruns on the same version needs a new name, so the suffix
   # moves when the proof changes (#631).
-  name: tracker-mcp-proof-version-r3
+  name: tracker-mcp-proof-version-r4
   namespace: matchmark
   annotations:
     # After the API's and the server's new pods are Healthy.

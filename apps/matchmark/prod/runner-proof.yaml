@@ -17,6 +17,9 @@ metadata:
   # Job a changed spec needs is a new name (#511, #533).
   name: runner-proof-version-r3
   namespace: matchmark
+  labels:
+    # The gvisor RuntimeClass places the pod (apps/_components/pool-apps).
+    0xc0.cc/placement: runtime-class
   annotations:
     argocd.argoproj.io/sync-wave: "2"
 spec:

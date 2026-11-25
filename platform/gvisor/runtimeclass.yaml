@@ -1,5 +1,6 @@
-# runsc exists on vm-rke2-04 alone (infrastructure#268): the nodeSelector
-# keeps a gvisor pod from landing where the runtime is missing.
+# runsc exists on the `sandbox` pool alone (vm-rke2-06): the class places every
+# pod that asks for it, so a workload sets only `runtimeClassName`
+# (workspace#288).
 apiVersion: node.k8s.io/v1
 kind: RuntimeClass
 metadata:
@@ -7,4 +8,9 @@ metadata:
 handler: runsc
 scheduling:
   nodeSelector:
-    kubernetes.io/hostname: vm-rke2-04
+    0xc0.cc/pool: sandbox
+  tolerations:
+    - key: 0xc0.cc/pool
+      operator: Equal
+      value: sandbox
+      effect: NoSchedule

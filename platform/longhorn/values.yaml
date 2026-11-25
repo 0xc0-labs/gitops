@@ -41,6 +41,15 @@ image:
     livenessProbe:
       repository: longhornio/livenessprobe
       tag: "v2.20.0@sha256:d1199b77452bfc11cfc62feb8a266758fe8d72953e97faac8065941e3767f1a3"
+# The apps pool's taint (workspace#288), for the components the chart deploys.
+# The system-managed ones take defaultSettings.taintToleration (README.md,
+# The apps taint).
+global:
+  tolerations:
+    - key: 0xc0.cc/pool
+      operator: Equal
+      value: apps
+      effect: NoSchedule
 # Requests only: a manager or UI OOM-killed mid-operation touches storage.
 longhornManager:
   resources:
@@ -64,6 +73,7 @@ persistence:
   defaultClass: true
   defaultClassReplicaCount: 2
 defaultSettings:
+  taintToleration: 0xc0.cc/pool=apps:NoSchedule
   defaultDataPath: /var/lib/longhorn
   defaultReplicaCount: 2
 # Empty CIDRs: under Canal the API server and iSCSI initiators come from each
