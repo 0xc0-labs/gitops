@@ -10,3 +10,4 @@ resources:
   - gateway.yaml
   - servicemonitor.yaml
   - network-policy.yaml
+  - reference-grant.yaml

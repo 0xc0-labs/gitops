@@ -95,6 +95,9 @@ spec:
                   key: secret
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: service.version=$(APP_VERSION),deployment.environment=$(APP_ENVIRONMENT)
+            # The sites read it to run Faro (README.md, RUM).
+            - name: RUM_ENABLED
+              value: "true"
             - name: VAULT_ADDR
               value: http://vault-active.vault.svc.cluster.local:8200
             - name: VAULT_AUTH_ROLE

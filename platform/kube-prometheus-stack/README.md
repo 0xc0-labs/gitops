@@ -115,6 +115,12 @@ Where each dashboard of OpenObserve, which these replaced (workspace#290), went:
 | `kubernetes-events` | Rebuilt: `kubernetes/kubernetes-events.json`, LogQL | Kubernetes |
 | `openobserve` | Dropped: OpenObserve watching itself | |
 
+Beyond those, `applications/rum.json`, `Applications / RUM`, is new: the sites'
+RUM from Faro (`platform/opentelemetry-collector`, Faro), as LogQL on its
+records in Loki and TraceQL on its spans in Tempo. It is ours: Grafana's
+published Faro dashboards read the labels Alloy gives and Grafana Cloud's
+Frontend Observability, which this stack has neither of.
+
 ### Imported ones
 
 Each was edited only to take our data source (`__inputs` removed, `"id": null`,
