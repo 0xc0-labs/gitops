@@ -7,6 +7,15 @@ defaultRules:
   rules:
     # Switched off below: nothing scrapes it, so its rules would only fire.
     kubeProxy: false
+    # Alertmanager is off (below): its rules would only fire.
+    alertmanager: false
+  # About Alertmanager itself, or only there to be watched by it.
+  disabled:
+    Watchdog: true
+    InfoInhibitor: true
+    PrometheusNotConnectedToAlertmanagers: true
+    PrometheusErrorSendingAlertsToSomeAlertmanagers: true
+    PrometheusErrorSendingAlertsToAnyAlertmanager: true
 
 # The operator has no webhooks: no certgen Job, no port for the API server.
 prometheusOperator:
@@ -71,29 +80,10 @@ prometheus:
             requests:
               storage: 20Gi
 
+# Alerting lives in Grafana (alerting-rules.yaml, workspace#290): no
+# Alertmanager, and Prometheus has none to send to.
 alertmanager:
-  # Where alerts go is a later choice (workspace#290): the chart's rules
-  # evaluate and show in Alertmanager's UI and Grafana, and reach nothing.
-  config:
-    route:
-      receiver: "null"
-      group_by: [namespace]
-      group_wait: 30s
-      group_interval: 5m
-      repeat_interval: 12h
-    receivers:
-      - name: "null"
-  alertmanagerSpec:
-    image:
-      tag: v0.35.1
-      sha: 03d4e362b9948eee910802ddac55f9175b320862a2de1fdef5206c3213875a09
-    replicas: 1
-    resources:
-      requests:
-        cpu: 10m
-        memory: 48Mi
-      limits:
-        memory: 128Mi
+  enabled: false
 
 grafana:
   image:
@@ -156,6 +146,10 @@ grafana:
     limits:
       memory: 512Mi
   sidecar:
+    # The chart adds one for the Alertmanager it no longer runs.
+    datasources:
+      alertmanager:
+        enabled: false
     image:
       tag: 2.14.3
       sha: 52d311dcedd587421a236c4d6c621f05614c40a51386e955e0699dca97ec0880

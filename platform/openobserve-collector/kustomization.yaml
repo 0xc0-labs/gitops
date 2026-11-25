@@ -14,6 +14,7 @@ helmCharts:
 resources:
   - namespace.yaml
   - network-policy.yaml
+  - pod-monitor.yaml
   - vault-secrets.yaml
 patches:
   # The chart takes the Authorization header as a literal only.

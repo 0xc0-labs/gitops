@@ -1,0 +1,509 @@
+# Grafana-managed alert rules, provisioned from git (workspace#290). Each
+# rule is a query (A), the last value of each series (B) and a threshold (C).
+# Provisioning files go through Helm's tpl and Grafana's own `$` expansion:
+# no pair of braces and no dollar sign below. The expressions come from the
+# chart's default rules or the components' metrics, each rule says which.
+grafana:
+  alerting:
+    rules.yaml:
+      apiVersion: 1
+      groups:
+        - orgId: 1
+          name: platform
+          folder: Platform
+          interval: 1m
+          rules:
+            # kubelet_volume_stats_*, as the chart's KubePersistentVolumeFillingUp.
+            - uid: volume-bytes-above-80
+              title: Volume above 80% of its bytes
+              condition: C
+              for: 5m
+              noDataState: OK
+              execErrState: Error
+              labels: {severity: warning}
+              annotations:
+                summary: A PersistentVolume has used more than 80% of its capacity.
+                runbook_url: https://github.com/0xc0-labs/gitops/blob/main/platform/longhorn/README.md
+              data:
+                - refId: A
+                  relativeTimeRange: &range {from: 600, to: 0}
+                  datasourceUid: prometheus
+                  model:
+                    refId: A
+                    instant: true
+                    expr: >-
+                      max by (namespace, persistentvolumeclaim) (1 -
+                      kubelet_volume_stats_available_bytes{job="kubelet",metrics_path="/metrics"} /
+                      kubelet_volume_stats_capacity_bytes{job="kubelet",metrics_path="/metrics"})
+                - refId: B
+                  datasourceUid: __expr__
+                  model: &reduce
+                    refId: B
+                    type: reduce
+                    expression: A
+                    reducer: last
+                    settings: {mode: dropNN}
+                    datasource: {type: __expr__, uid: __expr__}
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    refId: C
+                    type: threshold
+                    expression: B
+                    conditions: [{evaluator: {type: gt, params: [0.8]}}]
+                    datasource: {type: __expr__, uid: __expr__}
+
+            # kubelet_volume_stats_inodes*, as KubePersistentVolumeInodesFillingUp.
+            - uid: volume-inodes-above-80
+              title: Volume above 80% of its inodes
+              condition: C
+              for: 5m
+              noDataState: OK
+              execErrState: Error
+              labels: {severity: warning}
+              annotations:
+                summary: A PersistentVolume has used more than 80% of its inodes.
+                runbook_url: https://github.com/0xc0-labs/gitops/blob/main/platform/openobserve/README.md
+              data:
+                - refId: A
+                  relativeTimeRange: *range
+                  datasourceUid: prometheus
+                  model:
+                    refId: A
+                    instant: true
+                    expr: >-
+                      max by (namespace, persistentvolumeclaim) (1 -
+                      kubelet_volume_stats_inodes_free{job="kubelet",metrics_path="/metrics"} /
+                      kubelet_volume_stats_inodes{job="kubelet",metrics_path="/metrics"})
+                - {refId: B, datasourceUid: __expr__, model: *reduce}
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    refId: C
+                    type: threshold
+                    expression: B
+                    conditions: [{evaluator: {type: gt, params: [0.8]}}]
+                    datasource: {type: __expr__, uid: __expr__}
+
+            # kube-state-metrics, as KubeNodeNotReady.
+            - uid: node-not-ready
+              title: Node NotReady for 5 minutes
+              condition: C
+              for: 5m
+              noDataState: OK
+              execErrState: Error
+              labels: {severity: critical}
+              annotations:
+                summary: A node has not been Ready for 5 minutes.
+                runbook_url: https://github.com/0xc0-labs/infrastructure/blob/main/README.md
+              data:
+                - refId: A
+                  relativeTimeRange: *range
+                  datasourceUid: prometheus
+                  model:
+                    refId: A
+                    instant: true
+                    expr: kube_node_status_condition{job="kube-state-metrics",condition="Ready",status="true"}
+                - {refId: B, datasourceUid: __expr__, model: *reduce}
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    refId: C
+                    type: threshold
+                    expression: B
+                    conditions: [{evaluator: {type: lt, params: [1]}}]
+                    datasource: {type: __expr__, uid: __expr__}
+
+            # kube-state-metrics' restart counter, over the window KubePodCrashLooping uses.
+            - uid: pod-restarting
+              title: Pod restarted more than 3 times in 15 minutes
+              condition: C
+              for: 0s
+              noDataState: OK
+              execErrState: Error
+              labels: {severity: warning}
+              annotations:
+                summary: A pod's containers restarted more than 3 times in 15 minutes.
+                runbook_url: https://github.com/0xc0-labs/gitops/blob/main/platform/kube-prometheus-stack/README.md#alert-rules
+              data:
+                - refId: A
+                  relativeTimeRange: *range
+                  datasourceUid: prometheus
+                  model:
+                    refId: A
+                    instant: true
+                    expr: >-
+                      sum by (namespace, pod)
+                      (increase(kube_pod_container_status_restarts_total{job="kube-state-metrics"}[15m]))
+                - {refId: B, datasourceUid: __expr__, model: *reduce}
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    refId: C
+                    type: threshold
+                    expression: B
+                    conditions: [{evaluator: {type: gt, params: [3]}}]
+                    datasource: {type: __expr__, uid: __expr__}
+
+            # A container restarted after an OOM kill: what hurt on 2026-11-25.
+            - uid: container-oom-killed
+              title: Container OOMKilled
+              condition: C
+              for: 0s
+              noDataState: OK
+              execErrState: Error
+              labels: {severity: warning}
+              annotations:
+                summary: A container restarted in the last 15 minutes after being OOMKilled.
+                runbook_url: https://github.com/0xc0-labs/gitops/blob/main/platform/kube-prometheus-stack/README.md#alert-rules
+              data:
+                - refId: A
+                  relativeTimeRange: *range
+                  datasourceUid: prometheus
+                  model:
+                    refId: A
+                    instant: true
+                    expr: >-
+                      max by (namespace, pod, container)
+                      (increase(kube_pod_container_status_restarts_total{job="kube-state-metrics"}[15m]))
+                      and on (namespace, pod, container)
+                      (kube_pod_container_status_last_terminated_reason{job="kube-state-metrics",reason="OOMKilled"} == 1)
+                - {refId: B, datasourceUid: __expr__, model: *reduce}
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    refId: C
+                    type: threshold
+                    expression: B
+                    conditions: [{evaluator: {type: gt, params: [0]}}]
+                    datasource: {type: __expr__, uid: __expr__}
+
+            # Vault's telemetry (serverTelemetry's ServiceMonitor): 1 unsealed, 0 sealed.
+            - uid: vault-sealed
+              title: Vault pod sealed
+              condition: C
+              for: 2m
+              noDataState: OK
+              execErrState: Error
+              labels: {severity: critical}
+              annotations:
+                summary: A Vault pod is sealed.
+                runbook_url: https://github.com/0xc0-labs/gitops/blob/main/platform/vault/README.md
+              data:
+                - refId: A
+                  relativeTimeRange: *range
+                  datasourceUid: prometheus
+                  model:
+                    refId: A
+                    instant: true
+                    expr: vault_core_unsealed
+                - {refId: B, datasourceUid: __expr__, model: *reduce}
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    refId: C
+                    type: threshold
+                    expression: B
+                    conditions: [{evaluator: {type: lt, params: [1]}}]
+                    datasource: {type: __expr__, uid: __expr__}
+
+            # cert-manager's metric, as the cert-manager mixin's CertManagerCertExpirySoon.
+            - uid: certificate-expiring
+              title: Certificate expires in less than 14 days
+              condition: C
+              for: 5m
+              noDataState: OK
+              execErrState: Error
+              labels: {severity: warning}
+              annotations:
+                summary: A cert-manager Certificate expires in less than 14 days.
+                runbook_url: https://github.com/0xc0-labs/gitops/blob/main/platform/kube-prometheus-stack/README.md#alert-rules
+              data:
+                - refId: A
+                  relativeTimeRange: *range
+                  datasourceUid: prometheus
+                  model:
+                    refId: A
+                    instant: true
+                    expr: certmanager_certificate_expiration_timestamp_seconds - time()
+                - {refId: B, datasourceUid: __expr__, model: *reduce}
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    refId: C
+                    type: threshold
+                    expression: B
+                    conditions: [{evaluator: {type: lt, params: [1209600]}}]
+                    datasource: {type: __expr__, uid: __expr__}
+
+            # Longhorn's robustness: 1 healthy, 2 degraded, 3 faulted.
+            - uid: longhorn-volume-degraded
+              title: Longhorn volume degraded or faulted for 10 minutes
+              condition: C
+              for: 10m
+              noDataState: OK
+              execErrState: Error
+              labels: {severity: warning}
+              annotations:
+                summary: A Longhorn volume is degraded or faulted.
+                runbook_url: https://github.com/0xc0-labs/gitops/blob/main/platform/longhorn/README.md
+              data:
+                - refId: A
+                  relativeTimeRange: *range
+                  datasourceUid: prometheus
+                  model:
+                    refId: A
+                    instant: true
+                    expr: longhorn_volume_robustness
+                - {refId: B, datasourceUid: __expr__, model: *reduce}
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    refId: C
+                    type: threshold
+                    expression: B
+                    conditions: [{evaluator: {type: gt, params: [1]}}]
+                    datasource: {type: __expr__, uid: __expr__}
+
+            # As etcdNoLeader.
+            - uid: etcd-no-leader
+              title: etcd member without a leader
+              condition: C
+              for: 1m
+              noDataState: OK
+              execErrState: Error
+              labels: {severity: critical}
+              annotations:
+                summary: An etcd member sees no leader.
+                runbook_url: https://github.com/0xc0-labs/infrastructure/blob/main/README.md
+              data:
+                - refId: A
+                  relativeTimeRange: *range
+                  datasourceUid: prometheus
+                  model:
+                    refId: A
+                    instant: true
+                    expr: etcd_server_has_leader{job=~".*etcd.*"}
+                - {refId: B, datasourceUid: __expr__, model: *reduce}
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    refId: C
+                    type: threshold
+                    expression: B
+                    conditions: [{evaluator: {type: lt, params: [1]}}]
+                    datasource: {type: __expr__, uid: __expr__}
+
+            # The etcd targets, as etcdMembersDown.
+            - uid: etcd-member-down
+              title: etcd member down
+              condition: C
+              for: 5m
+              noDataState: OK
+              execErrState: Error
+              labels: {severity: critical}
+              annotations:
+                summary: An etcd member's metrics target is down.
+                runbook_url: https://github.com/0xc0-labs/infrastructure/blob/main/README.md
+              data:
+                - refId: A
+                  relativeTimeRange: *range
+                  datasourceUid: prometheus
+                  model:
+                    refId: A
+                    instant: true
+                    expr: up{job=~".*etcd.*"}
+                - {refId: B, datasourceUid: __expr__, model: *reduce}
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    refId: C
+                    type: threshold
+                    expression: B
+                    conditions: [{evaluator: {type: lt, params: [1]}}]
+                    datasource: {type: __expr__, uid: __expr__}
+
+            # node-exporter, as NodeFilesystemSpaceFillingUp on the root filesystem.
+            - uid: node-root-filesystem-above-85
+              title: Node root filesystem above 85%
+              condition: C
+              for: 5m
+              noDataState: OK
+              execErrState: Error
+              labels: {severity: warning}
+              annotations:
+                summary: A node's root filesystem is above 85% used.
+                runbook_url: https://github.com/0xc0-labs/infrastructure/blob/main/README.md
+              data:
+                - refId: A
+                  relativeTimeRange: *range
+                  datasourceUid: prometheus
+                  model:
+                    refId: A
+                    instant: true
+                    expr: >-
+                      1 - node_filesystem_avail_bytes{job="node-exporter",mountpoint="/",fstype!=""} /
+                      node_filesystem_size_bytes{job="node-exporter",mountpoint="/",fstype!=""}
+                - {refId: B, datasourceUid: __expr__, model: *reduce}
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    refId: C
+                    type: threshold
+                    expression: B
+                    conditions: [{evaluator: {type: gt, params: [0.85]}}]
+                    datasource: {type: __expr__, uid: __expr__}
+
+            # As KubeDeploymentReplicasMismatch.
+            - uid: deployment-replicas-missing
+              title: Deployment with fewer ready replicas than desired
+              condition: C
+              for: 15m
+              noDataState: OK
+              execErrState: Error
+              labels: {severity: warning}
+              annotations:
+                summary: A Deployment has had fewer ready replicas than desired for 15 minutes.
+                runbook_url: https://github.com/0xc0-labs/gitops/blob/main/platform/kube-prometheus-stack/README.md#alert-rules
+              data:
+                - refId: A
+                  relativeTimeRange: *range
+                  datasourceUid: prometheus
+                  model:
+                    refId: A
+                    instant: true
+                    expr: >-
+                      kube_deployment_spec_replicas{job="kube-state-metrics"} -
+                      kube_deployment_status_replicas_available{job="kube-state-metrics"}
+                - {refId: B, datasourceUid: __expr__, model: *reduce}
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    refId: C
+                    type: threshold
+                    expression: B
+                    conditions: [{evaluator: {type: gt, params: [0]}}]
+                    datasource: {type: __expr__, uid: __expr__}
+
+            # As KubeStatefulSetReplicasNotReady.
+            - uid: statefulset-replicas-missing
+              title: StatefulSet with fewer ready replicas than desired
+              condition: C
+              for: 15m
+              noDataState: OK
+              execErrState: Error
+              labels: {severity: warning}
+              annotations:
+                summary: A StatefulSet has had fewer ready replicas than desired for 15 minutes.
+                runbook_url: https://github.com/0xc0-labs/gitops/blob/main/platform/kube-prometheus-stack/README.md#alert-rules
+              data:
+                - refId: A
+                  relativeTimeRange: *range
+                  datasourceUid: prometheus
+                  model:
+                    refId: A
+                    instant: true
+                    expr: >-
+                      kube_statefulset_replicas{job="kube-state-metrics"} -
+                      kube_statefulset_status_replicas_ready{job="kube-state-metrics"}
+                - {refId: B, datasourceUid: __expr__, model: *reduce}
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    refId: C
+                    type: threshold
+                    expression: B
+                    conditions: [{evaluator: {type: gt, params: [0]}}]
+                    datasource: {type: __expr__, uid: __expr__}
+
+            # As TargetDown, per target; node-exporter's are left out (README, Alert rules).
+            - uid: target-down
+              title: Prometheus target down for 10 minutes
+              condition: C
+              for: 10m
+              noDataState: OK
+              execErrState: Error
+              labels: {severity: warning}
+              annotations:
+                summary: A Prometheus scrape target has been down for 10 minutes.
+                runbook_url: https://github.com/0xc0-labs/gitops/blob/main/platform/kube-prometheus-stack/README.md#alert-rules
+              data:
+                - refId: A
+                  relativeTimeRange: *range
+                  datasourceUid: prometheus
+                  model:
+                    refId: A
+                    instant: true
+                    expr: 1 - up{job!="node-exporter"}
+                - {refId: B, datasourceUid: __expr__, model: *reduce}
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    refId: C
+                    type: threshold
+                    expression: B
+                    conditions: [{evaluator: {type: gt, params: [0]}}]
+                    datasource: {type: __expr__, uid: __expr__}
+
+            # The collectors' own metrics (a PodMonitor in openobserve-collector).
+            - uid: collector-export-failing
+              title: Collectors failing to export
+              condition: C
+              for: 10m
+              noDataState: OK
+              execErrState: Error
+              labels: {severity: warning}
+              annotations:
+                summary: A collector's exporter has been failing to send telemetry for 10 minutes.
+                runbook_url: https://github.com/0xc0-labs/gitops/blob/main/platform/openobserve/README.md
+              data:
+                - refId: A
+                  relativeTimeRange: *range
+                  datasourceUid: prometheus
+                  model:
+                    refId: A
+                    instant: true
+                    expr: >-
+                      sum by (namespace, pod, exporter)
+                      (rate({__name__=~"otelcol_exporter_send_failed_.+_total"}[5m]))
+                - {refId: B, datasourceUid: __expr__, model: *reduce}
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    refId: C
+                    type: threshold
+                    expression: B
+                    conditions: [{evaluator: {type: gt, params: [0]}}]
+                    datasource: {type: __expr__, uid: __expr__}
+
+            # An example of a log rule: error lines per namespace, over the
+            # labels the collectors set (platform/loki).
+            - uid: namespace-error-logs
+              title: Error log lines from one namespace above 100 in 10 minutes
+              condition: C
+              for: 5m
+              noDataState: OK
+              execErrState: Error
+              labels: {severity: warning}
+              annotations:
+                summary: A namespace logged more than 100 lines containing "error" in 10 minutes.
+                runbook_url: https://github.com/0xc0-labs/gitops/blob/main/platform/loki/README.md
+              data:
+                - refId: A
+                  relativeTimeRange: {from: 600, to: 0}
+                  datasourceUid: loki
+                  model:
+                    refId: A
+                    queryType: instant
+                    expr: >-
+                      sum by (k8s_namespace_name)
+                      (count_over_time({k8s_namespace_name=~".+"} |= "error" [10m]))
+                - {refId: B, datasourceUid: __expr__, model: *reduce}
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    refId: C
+                    type: threshold
+                    expression: B
+                    conditions: [{evaluator: {type: gt, params: [100]}}]
+                    datasource: {type: __expr__, uid: __expr__}
