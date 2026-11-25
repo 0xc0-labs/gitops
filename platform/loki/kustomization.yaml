@@ -1,0 +1,25 @@
+# Logs, monolithic, beside OpenObserve (workspace#290, phase 2). Chunks and
+# index live in R2.
+#
+# Backups: storage-loki-0 (Longhorn, 10 Gi, the WAL alone), in PBS's nightly
+# backup of the RKE2 VMs. The logs are in R2 (bucket loki-chunks), not backed up
+# here.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: loki
+helmCharts:
+  - name: loki
+    repo: https://grafana.github.io/helm-charts
+    version: 7.7.0
+    releaseName: loki
+    namespace: loki
+    kubeVersion: "1.36.4"
+    skipTests: true
+    valuesFile: values.yaml
+resources:
+  - namespace.yaml
+  - network-policy.yaml
+  - vault-secrets.yaml
+# No pruning: it holds data.
+commonAnnotations:
+  argocd.argoproj.io/sync-options: Prune=false

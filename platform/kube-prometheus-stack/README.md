@@ -11,7 +11,7 @@ this stack takes nothing from it.
 | Prometheus | One replica, 30 days of retention (`retentionSize` 16 GB, under the 20 Gi Longhorn volume), a scrape every minute. Selects every ServiceMonitor, PodMonitor, Probe and PrometheusRule in the cluster, not only the chart's. Requests 200m / 1.5 Gi, memory limit 3 Gi |
 | OTLP | Prometheus's OTLP receiver is on. The collectors' gateway (`openobserve-collector`) sends it the metrics it receives over OTLP, the applications', as well as to OpenObserve. What the collectors scrape is not forwarded: Prometheus scrapes the same ServiceMonitors itself |
 | Alertmanager | One replica, the chart's default rules, a `null` receiver |
-| Grafana | `https://grafana.int.0xc0.cc`, WARP only; the chart's default Kubernetes dashboards; Prometheus and Alertmanager as data sources; no persistence |
+| Grafana | `https://grafana.int.0xc0.cc`, WARP only; the chart's default Kubernetes dashboards; Prometheus, Alertmanager, Loki and Tempo (`platform/loki`, `platform/tempo`) as data sources, Tempo and Loki linked by trace ID; no persistence |
 | node-exporter, kube-state-metrics | As the chart ships them. node-exporter tolerates the `apps` and `sandbox` pool taints, so every node reports |
 | The operator | No admission webhooks |
 

@@ -1,0 +1,60 @@
+replicas: 1
+
+tempo:
+  tag: 2.9.0@sha256:65a5789759435f1ef696f1953258b9bbdb18eb571d5ce711ff812d2e128288a4
+  # No ballast: the memory limit is small and the chart's 1024 MB would eat it.
+  memBallastSizeMbs: 0
+  reportingEnabled: false
+  # 14 days, enforced by the compactor on the bucket.
+  retention: 336h
+  storage:
+    trace:
+      backend: s3
+      s3:
+        bucket: tempo-blocks
+        # From r2-vault (vault-secrets.yaml), expanded at start.
+        endpoint: ${R2_HOST}
+        region: auto
+        access_key: ${R2_ACCESS_KEY_ID}
+        secret_key: ${R2_SECRET_ACCESS_KEY}
+        forcepathstyle: true
+      wal:
+        path: /var/tempo/wal
+  # The chart's Service template reads the Jaeger receivers, so they stay
+  # configured; the NetworkPolicy admits OTLP alone.
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+  extraArgs:
+    config.expand-env: "true"
+  extraEnvFrom:
+    - secretRef:
+        name: r2-vault
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: [ALL]
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      memory: 1536Mi
+
+# The chart's, with the seccomp profile the namespace's restricted level asks.
+securityContext:
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# The WAL alone: the blocks live in R2.
+persistence:
+  enabled: true
+  size: 10Gi

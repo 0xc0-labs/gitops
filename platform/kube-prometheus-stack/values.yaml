@@ -108,6 +108,40 @@ grafana:
   persistence:
     enabled: false
   defaultDashboardsEnabled: true
+  # Loki and Tempo (workspace#290, phase 2), linked both ways by trace ID. Loki
+  # turns the OTLP attributes into the labels service_name,
+  # k8s_namespace_name and k8s_pod_name; trace_id is structured metadata.
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      uid: loki
+      url: http://loki.loki.svc.cluster.local:3100
+      access: proxy
+      jsonData:
+        derivedFields:
+          - name: trace
+            matcherType: label
+            matcherRegex: trace_id
+            url: "$${__value.raw}"
+            datasourceUid: tempo
+    - name: Tempo
+      type: tempo
+      uid: tempo
+      url: http://tempo.tempo.svc.cluster.local:3200
+      access: proxy
+      jsonData:
+        tracesToLogsV2:
+          datasourceUid: loki
+          filterByTraceID: true
+          tags:
+            - key: k8s.namespace.name
+              value: k8s_namespace_name
+            - key: k8s.pod.name
+              value: k8s_pod_name
+        serviceMap:
+          datasourceUid: prometheus
+        nodeGraph:
+          enabled: true
   grafana.ini:
     server:
       domain: grafana.int.0xc0.cc

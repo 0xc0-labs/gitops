@@ -83,6 +83,59 @@ patches:
           receivers: [otlp]
           processors: [memory_limiter, resourcedetection, attributes, k8sattributes, batch]
           exporters: [otlphttp/prometheus]
+  # Every container's logs to Loki as well (workspace#290, phase 2), from the
+  # agent that reads them: the gateway has no pipeline of them. OpenObserve's
+  # exporter stays. The queue is small and never blocks, so a slow Loki drops
+  # its own copy and holds back neither OpenObserve nor the agent's memory.
+  - target:
+      kind: OpenTelemetryCollector
+      name: openobserve-collector-agent
+    patch: |-
+      - op: add
+        path: /spec/config/exporters/otlphttp~1loki
+        value:
+          endpoint: http://loki.loki.svc.cluster.local:3100/otlp
+          encoding: proto
+          compression: gzip
+          timeout: 10s
+          retry_on_failure:
+            enabled: true
+            initial_interval: 5s
+            max_interval: 30s
+            max_elapsed_time: 120s
+          sending_queue:
+            enabled: true
+            queue_size: 100
+            block_on_overflow: false
+      - op: add
+        path: /spec/config/service/pipelines/logs/exporters/-
+        value: otlphttp/loki
+  # The traces to Tempo as well; OpenObserve's exporter and the service graph
+  # stay.
+  - target:
+      kind: OpenTelemetryCollector
+      name: openobserve-collector-gateway
+    patch: |-
+      - op: add
+        path: /spec/config/exporters/otlp~1tempo
+        value:
+          endpoint: tempo.tempo.svc.cluster.local:4317
+          tls:
+            insecure: true
+          compression: gzip
+          timeout: 10s
+          retry_on_failure:
+            enabled: true
+            initial_interval: 5s
+            max_interval: 30s
+            max_elapsed_time: 120s
+          sending_queue:
+            enabled: true
+            queue_size: 1000
+            block_on_overflow: false
+      - op: add
+        path: /spec/config/service/pipelines/traces/exporters/-
+        value: otlp/tempo
   # The usage record: the log records of a model call, from the OTLP receiver,
   # to Matchmark's API (apps/matchmark/README.md, The usage record). No other
   # pipeline takes logs from that receiver, so a slow or failing API holds back
