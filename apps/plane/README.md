@@ -56,11 +56,24 @@ restorable on its own.
 
 ## Hardening
 
-The namespace is `baseline`, not `restricted`: Plane's images declare no user
-and run as root, and the chart sets no security context on any workload.
-Tightening it is a later change, with an issue of its own. Its NetworkPolicies
-deny by default and open only Traefik to the six routed Services, Plane's pods
-to each other, DNS and PostgreSQL.
+The namespace enforces `restricted`, as the org's other applications do. The
+chart sets no security context, and Plane's images declare no user and run as
+root, so `prod/kustomization.yaml` patches the render: every container,
+init containers included, runs `runAsNonRoot` with no privilege escalation,
+every capability dropped and the `RuntimeDefault` seccomp profile.
+
+| Workload | Runs as |
+|---|---|
+| `api`, `worker`, `beat-worker`, `web`, `space`, `admin`, `live`, the migrate and bucket Jobs | uid/gid 1000 (the images ship no user) |
+| `minio` | uid/gid 1000, `fsGroup` 1000 (the image runs as any uid) |
+| `rabbitmq` | the image's `rabbitmq`, uid 100, gid 101, `fsGroup` 101 |
+| `redis` (Valkey) | the image's `valkey`, uid 999, gid 1000, `fsGroup` 1000 |
+
+Every pod has an `emptyDir` on `/tmp`, since the images' own directories belong
+to root. Caddy's state (`XDG_*`), `mc`'s and RabbitMQ's `HOME` point there: the
+Erlang cookie RabbitMQ wrote on its volume as root cannot be read by its own
+user. Its NetworkPolicies deny by default and open only Traefik to the six
+routed Services, Plane's pods to each other, DNS and PostgreSQL.
 
 ## The frontends' rate limit
 
