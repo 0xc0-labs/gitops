@@ -25,3 +25,98 @@ resources:
 # No pruning: it holds data.
 commonAnnotations:
   argocd.argoproj.io/sync-options: Prune=false
+# One ConfigMap per dashboard, which Grafana's sidecar loads into the folder
+# named by grafana_folder. Never one per folder: Argo CD's last-applied
+# annotation caps a ConfigMap near 256 KiB. The names carry no hash, so an
+# edit replaces the dashboard instead of leaving the old one behind.
+configMapGenerator:
+  - name: grafana-dashboard-kubernetes-events
+    files:
+      - dashboards/kubernetes/kubernetes-events.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: Kubernetes
+  - name: grafana-dashboard-argocd
+    files:
+      - dashboards/platform/argocd.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: Platform
+  - name: grafana-dashboard-crowdsec
+    files:
+      - dashboards/platform/crowdsec.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: Platform
+  - name: grafana-dashboard-longhorn
+    files:
+      - dashboards/platform/longhorn.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: Platform
+  - name: grafana-dashboard-traefik
+    files:
+      - dashboards/platform/traefik.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: Platform
+  - name: grafana-dashboard-vault
+    files:
+      - dashboards/platform/vault.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: Platform
+  - name: grafana-dashboard-apps
+    files:
+      - dashboards/applications/apps.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: Applications
+  - name: grafana-dashboard-matchmark
+    files:
+      - dashboards/applications/matchmark.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: Applications
+  - name: grafana-dashboard-traces-overall
+    files:
+      - dashboards/traces/traces-overall.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: Traces
+  - name: grafana-dashboard-traces-by-service
+    files:
+      - dashboards/traces/traces-by-service.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: Traces

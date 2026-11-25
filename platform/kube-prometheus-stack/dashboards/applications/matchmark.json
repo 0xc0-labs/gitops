@@ -1,0 +1,2083 @@
+{
+  "uid": "matchmark",
+  "title": "Matchmark",
+  "tags": [
+    "matchmark",
+    "traces"
+  ],
+  "description": "Matchmark's tasks, attempts, waits, agents, models and tools, from its spans in Tempo.",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "graphTooltip": 1,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "refresh": "1m",
+  "templating": {
+    "list": [
+      {
+        "name": "app",
+        "label": "App",
+        "type": "query",
+        "datasource": {
+          "type": "tempo",
+          "uid": "tempo"
+        },
+        "query": {
+          "refId": "var",
+          "type": 1,
+          "label": "span.matchmark.app"
+        },
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".+",
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "sort": 1
+      },
+      {
+        "name": "project",
+        "label": "Project",
+        "type": "query",
+        "datasource": {
+          "type": "tempo",
+          "uid": "tempo"
+        },
+        "query": {
+          "refId": "var",
+          "type": 1,
+          "label": "span.matchmark.project"
+        },
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".+",
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "sort": 1
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "type": "row",
+      "title": "Tasks",
+      "id": 1,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Tasks ended by outcome",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name = \"matchmark.task\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | rate() by (span.matchmark.task.outcome)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "fillOpacity": 30,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 2,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 1
+      }
+    },
+    {
+      "type": "piechart",
+      "title": "Tasks by outcome, for the range",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name = \"matchmark.task\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.matchmark.task.outcome)",
+          "metricsQueryType": "instant"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "pieType": "donut",
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value"
+          ]
+        },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        }
+      },
+      "id": 3,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 1
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Task duration, p50 and p95",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name = \"matchmark.task\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | quantile_over_time(duration, .5, .95)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "fillOpacity": 10,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 4,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      }
+    },
+    {
+      "type": "barchart",
+      "title": "Attempts per task",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name = \"matchmark.task\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.matchmark.task.attempts)",
+          "metricsQueryType": "instant"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "xTickLabelRotation": 0
+      },
+      "id": 5,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 9
+      }
+    },
+    {
+      "type": "barchart",
+      "title": "Restorations per task",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name = \"matchmark.task\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.matchmark.task.restorations)",
+          "metricsQueryType": "instant"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "xTickLabelRotation": 0
+      },
+      "id": 6,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 17
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Attempts ended by outcome",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name = \"matchmark.attempt\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | rate() by (span.matchmark.attempt.outcome)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "fillOpacity": 30,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 7,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 17
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Attempt duration, p50 and p95",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name = \"matchmark.attempt\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | quantile_over_time(duration, .5, .95)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "fillOpacity": 10,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 8,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 25
+      }
+    },
+    {
+      "type": "table",
+      "title": "Stage time, the attempt and the QA",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"matchmark.attempt|matchmark.qa\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | quantile_over_time(duration, .5, .95) by (name, span.matchmark.stage)",
+          "metricsQueryType": "instant"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 9,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 33
+      }
+    },
+    {
+      "type": "row",
+      "title": "Waits",
+      "id": 10,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 41
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Waits by stage",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name = \"matchmark.wait\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | rate() by (span.matchmark.wait.stage)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "fillOpacity": 30,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 11,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 42
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Time waited, by stage",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name = \"matchmark.wait\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(duration) by (span.matchmark.wait.stage)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "fillOpacity": 30,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 12,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 42
+      }
+    },
+    {
+      "type": "table",
+      "title": "Waits, for the range",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name = \"matchmark.wait\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | quantile_over_time(duration, .5, .95) by (span.matchmark.wait.stage)",
+          "metricsQueryType": "instant"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 13,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 50
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Wait p50, by stage",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name = \"matchmark.wait\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | quantile_over_time(duration, .5) by (span.matchmark.wait.stage)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "fillOpacity": 10,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 14,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 58
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Wait p95, by stage",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name = \"matchmark.wait\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | quantile_over_time(duration, .95) by (span.matchmark.wait.stage)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "fillOpacity": 10,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 15,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 58
+      }
+    },
+    {
+      "type": "row",
+      "title": "Agents and models",
+      "id": 16,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 66
+      },
+      "panels": []
+    },
+    {
+      "type": "table",
+      "title": "Agents, for the range",
+      "description": "Columns by query: A runs, B errors, C calls, D input, E output, F cache read tokens. Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"invoke_agent.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.matchmark.agent)",
+          "metricsQueryType": "instant"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"invoke_agent.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && status = error } | count_over_time() by (span.matchmark.agent)",
+          "metricsQueryType": "instant"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"chat.*\" && span.gen_ai.usage.input_tokens > 0 && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.matchmark.agent)",
+          "metricsQueryType": "instant"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.input_tokens) by (span.matchmark.agent)",
+          "metricsQueryType": "instant"
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.output_tokens) by (span.matchmark.agent)",
+          "metricsQueryType": "instant"
+        },
+        {
+          "refId": "F",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.cache_read.input_tokens) by (span.matchmark.agent)",
+          "metricsQueryType": "instant"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "span.matchmark.agent",
+            "mode": "outer"
+          }
+        }
+      ],
+      "id": 17,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 67
+      }
+    },
+    {
+      "type": "table",
+      "title": "Runs by model",
+      "description": "A runs, B errors. Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"invoke_agent.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.gen_ai.request.model)",
+          "metricsQueryType": "instant"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"invoke_agent.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && status = error } | count_over_time() by (span.gen_ai.request.model)",
+          "metricsQueryType": "instant"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "span.gen_ai.request.model",
+            "mode": "outer"
+          }
+        }
+      ],
+      "id": 18,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 75
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Runs by agent",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"invoke_agent.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | rate() by (span.matchmark.agent)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "fillOpacity": 30,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 19,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 75
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Runs in error, by agent",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"invoke_agent.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && status = error } | rate() by (span.matchmark.agent)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "fillOpacity": 30,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 20,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 83
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Model calls, by model",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"chat.*\" && span.gen_ai.usage.input_tokens > 0 && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | rate() by (span.gen_ai.request.model)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "fillOpacity": 30,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 21,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 83
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Input tokens, by model",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.input_tokens) by (span.gen_ai.request.model)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "fillOpacity": 30,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 22,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 91
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Output tokens, by model",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.output_tokens) by (span.gen_ai.request.model)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "fillOpacity": 30,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 23,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 91
+      }
+    },
+    {
+      "type": "table",
+      "title": "Tokens by model, for the range",
+      "description": "A calls, B input, C output, D cache read, E cache creation tokens. Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"chat.*\" && span.gen_ai.usage.input_tokens > 0 && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.gen_ai.request.model)",
+          "metricsQueryType": "instant"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.input_tokens) by (span.gen_ai.request.model)",
+          "metricsQueryType": "instant"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.output_tokens) by (span.gen_ai.request.model)",
+          "metricsQueryType": "instant"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.cache_read.input_tokens) by (span.gen_ai.request.model)",
+          "metricsQueryType": "instant"
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.cache_creation.input_tokens) by (span.gen_ai.request.model)",
+          "metricsQueryType": "instant"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "span.gen_ai.request.model",
+            "mode": "outer"
+          }
+        }
+      ],
+      "id": 24,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 99
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Model calls, by agent",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"chat.*\" && span.gen_ai.usage.input_tokens > 0 && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | rate() by (span.matchmark.agent)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "fillOpacity": 30,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 25,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 99
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Input tokens, by agent",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.input_tokens) by (span.matchmark.agent)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "fillOpacity": 30,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 26,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 107
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Output tokens, by agent",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.output_tokens) by (span.matchmark.agent)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "fillOpacity": 30,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 27,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 107
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Cache read tokens, by agent",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.cache_read.input_tokens) by (span.matchmark.agent)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "fillOpacity": 30,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 28,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 115
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Cache creation tokens, by agent",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"chat.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | sum_over_time(span.gen_ai.usage.cache_creation.input_tokens) by (span.matchmark.agent)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "fillOpacity": 30,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 29,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 115
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Calls by finish reason",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"chat.*\" && span.gen_ai.usage.input_tokens > 0 && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | rate() by (span.gen_ai.response.finish_reasons)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "fillOpacity": 30,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 30,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 123
+      }
+    },
+    {
+      "type": "row",
+      "title": "Tools",
+      "id": 31,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 123
+      },
+      "panels": []
+    },
+    {
+      "type": "table",
+      "title": "Calls by agent and tool, for the range",
+      "description": "A calls, B failed, C refused, D p95 duration. Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.matchmark.agent, span.gen_ai.tool.name)",
+          "metricsQueryType": "instant"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && status = error } | count_over_time() by (span.matchmark.agent, span.gen_ai.tool.name)",
+          "metricsQueryType": "instant"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && span.matchmark.tool.refused = true } | count_over_time() by (span.matchmark.agent, span.gen_ai.tool.name)",
+          "metricsQueryType": "instant"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | quantile_over_time(duration, .95) by (span.matchmark.agent, span.gen_ai.tool.name)",
+          "metricsQueryType": "instant"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "span.gen_ai.tool.name",
+            "mode": "outer"
+          }
+        }
+      ],
+      "id": 32,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 124
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Calls, by tool",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | rate() by (span.gen_ai.tool.name)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "fillOpacity": 30,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 33,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 132
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Failed calls, by tool",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && status = error } | rate() by (span.gen_ai.tool.name)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "fillOpacity": 30,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 34,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 132
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Refused calls, by tool",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && span.matchmark.tool.refused = true } | rate() by (span.gen_ai.tool.name)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "fillOpacity": 30,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 35,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 140
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Tool duration p95, by tool",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | quantile_over_time(duration, .95) by (span.gen_ai.tool.name)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "fillOpacity": 10,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 36,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 140
+      }
+    },
+    {
+      "type": "table",
+      "title": "Tools with the most failures and refusals",
+      "description": "A failed, B refused, C calls; OpenObserve's kept the 20 worst, sort by A here. Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && status = error } | count_over_time() by (span.gen_ai.tool.name)",
+          "metricsQueryType": "instant"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && span.matchmark.tool.refused = true } | count_over_time() by (span.gen_ai.tool.name)",
+          "metricsQueryType": "instant"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" } | count_over_time() by (span.gen_ai.tool.name)",
+          "metricsQueryType": "instant"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "span.gen_ai.tool.name",
+            "mode": "outer"
+          }
+        }
+      ],
+      "id": 37,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 148
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Failed calls, by agent",
+      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name =~ \"execute_tool.*\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && status = error } | rate() by (span.matchmark.agent)",
+          "metricsQueryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "fillOpacity": 30,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 38,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 148
+      }
+    },
+    {
+      "type": "row",
+      "title": "Failures",
+      "id": 39,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 156
+      },
+      "panels": []
+    },
+    {
+      "type": "table",
+      "title": "Latest tasks that failed or escalated",
+      "description": "A TraceQL search: it works without Tempo's metrics generator. Click a trace ID to open it.",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name = \"matchmark.task\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && span.matchmark.task.outcome =~ \"failed|escalated\" } | select(span.matchmark.app, span.matchmark.project, span.matchmark.task, span.matchmark.task.outcome)",
+          "limit": 50,
+          "tableType": "spans"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 40,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 157
+      }
+    },
+    {
+      "type": "table",
+      "title": "Latest attempts that did not finish",
+      "description": "A TraceQL search: it works without Tempo's metrics generator. Click a trace ID to open it.",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ name = \"matchmark.attempt\" && span.matchmark.app =~ \"${app:regex}\" && span.matchmark.project =~ \"${project:regex}\" && span.matchmark.attempt.outcome != \"finished\" } | select(span.matchmark.app, span.matchmark.project, span.matchmark.task, span.matchmark.attempt, span.matchmark.attempt.outcome, span.matchmark.attempt.restorations)",
+          "limit": 50,
+          "tableType": "spans"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 41,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 165
+      }
+    }
+  ]
+}
