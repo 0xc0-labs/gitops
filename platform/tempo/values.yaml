@@ -29,6 +29,31 @@ tempo:
           endpoint: 0.0.0.0:4317
         http:
           endpoint: 0.0.0.0:4318
+  # TraceQL metrics (Grafana's trace and Matchmark time series) read the
+  # local-blocks processor alone. service-graphs and span-metrics stay off: the
+  # gateway's servicegraph connector feeds Prometheus, and span metrics would
+  # duplicate series. Nothing is remote-written. Its WAL and blocks live under
+  # /var/tempo, on the volume.
+  metricsGenerator:
+    enabled: true
+    # Unused: no processor writes series. The chart wants an endpoint.
+    remoteWriteUrl: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/write
+    processor:
+      local_blocks:
+        # Every span, not the server spans alone: the panels also count
+        # client and internal ones.
+        filter_server_spans: false
+        # Blocks reach the bucket, so a range beyond the last hour answers.
+        flush_to_storage: true
+    storage:
+      path: /var/tempo/generator/wal
+    traces_storage:
+      path: /var/tempo/generator/traces
+  overrides:
+    defaults:
+      metrics_generator:
+        processors:
+          - local-blocks
   extraArgs:
     config.expand-env: "true"
   extraEnvFrom:
@@ -41,9 +66,9 @@ tempo:
   resources:
     requests:
       cpu: 100m
-      memory: 512Mi
+      memory: 768Mi
     limits:
-      memory: 1536Mi
+      memory: 2Gi
 
 # The chart's, with the seccomp profile the namespace's restricted level asks.
 securityContext:

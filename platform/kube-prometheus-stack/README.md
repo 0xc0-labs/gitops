@@ -131,26 +131,24 @@ a fixed `uid`); Traefik's keeps its own data source variable.
 | `traefik.json` | [grafana.com 17347](https://grafana.com/grafana/dashboards/17347), revision 9, published by Traefik Labs | none stated on the page |
 | `longhorn.json` | [grafana.com 17626](https://grafana.com/grafana/dashboards/17626), revision 1, the Longhorn example for v1.4.0 | none stated on the page |
 
-### Panels without data yet
+### Panels with a caveat
 
-A panel whose data does not exist yet says so in its description, rather than
-being dropped:
+A panel whose data differs from what the old OpenObserve one read says so in
+its description:
 
 - **Matchmark and the trace dashboards, their time series and aggregate
-  tables.** They are TraceQL metrics queries, which Tempo answers only with its
-  metrics generator's `local-blocks` processor on: it is off
-  (`platform/tempo`). The two TraceQL search tables of `Failures` and the
-  `Latest traces` tables work without it.
+  tables** are TraceQL metrics queries, which Tempo answers with its metrics
+  generator's `local-blocks` processor (`platform/tempo`). The TraceQL search
+  tables of `Failures` and the `Latest traces` tables do not need it.
 - **The service maps** read `traces_service_graph_*`, which the collectors'
-  gateway makes (its `servicegraph` connector) and Prometheus does not receive
-  yet (gitops#661).
-- **`Kubernetes / Events`**: the gateway sends the events to OpenObserve alone,
-  so Loki holds none. Its queries assume the events arrive as JSON lines with
-  `service_name` `unknown_service`.
+  gateway makes (its `servicegraph` connector) and sends to Prometheus.
+- **`Kubernetes / Events`**: the gateway sends the events to Loki. Its queries
+  assume they arrive as JSON lines with `service_name` `unknown_service`.
 - **`Apps`' memory and CPU** read cAdvisor in Prometheus, where OpenObserve's
   read the collector's `k8s_pod_*` series.
-- **Argo CD's panels** need its metrics in Prometheus: no `ServiceMonitor` for
-  it lives here (Argo CD comes from RKE2's helm-controller, `infrastructure`).
+- **Argo CD's panels** read the four `ServiceMonitor`s in `argocd`, which
+  `infrastructure`'s role installs with Argo CD (RKE2's helm-controller) and
+  Prometheus scrapes.
 
 ## Control plane
 

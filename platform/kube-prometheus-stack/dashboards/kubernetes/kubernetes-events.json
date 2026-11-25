@@ -25,7 +25,7 @@
     {
       "type": "piechart",
       "title": "Severity",
-      "description": "Source data not in Loki yet: the collectors' gateway sends the Kubernetes events to OpenObserve alone. Assumes they arrive as JSON log lines with service_name unknown_service. Severity is the event's type, Normal or Warning.",
+      "description": "The collectors' gateway sends the Kubernetes events to Loki. Assumes they arrive as JSON log lines with service_name unknown_service. Severity is the event's type, Normal or Warning.",
       "datasource": {
         "type": "loki",
         "uid": "loki"
@@ -73,7 +73,7 @@
     {
       "type": "barchart",
       "title": "Severity by namespace",
-      "description": "Source data not in Loki yet: the collectors' gateway sends the Kubernetes events to OpenObserve alone. Assumes they arrive as JSON log lines with service_name unknown_service.",
+      "description": "The collectors' gateway sends the Kubernetes events to Loki. Assumes they arrive as JSON log lines with service_name unknown_service.",
       "datasource": {
         "type": "loki",
         "uid": "loki"
@@ -112,7 +112,7 @@
     {
       "type": "timeseries",
       "title": "Event reason by namespace",
-      "description": "Source data not in Loki yet: the collectors' gateway sends the Kubernetes events to OpenObserve alone. Assumes they arrive as JSON log lines with service_name unknown_service.",
+      "description": "The collectors' gateway sends the Kubernetes events to Loki. Assumes they arrive as JSON log lines with service_name unknown_service.",
       "datasource": {
         "type": "loki",
         "uid": "loki"
@@ -166,7 +166,7 @@
     {
       "type": "table",
       "title": "Events",
-      "description": "Source data not in Loki yet: the collectors' gateway sends the Kubernetes events to OpenObserve alone. Assumes they arrive as JSON log lines with service_name unknown_service. Counts for the range, by namespace, type and reason.",
+      "description": "The collectors' gateway sends the Kubernetes events to Loki. Assumes they arrive as JSON log lines with service_name unknown_service. Counts for the range, by namespace, type and reason.",
       "datasource": {
         "type": "loki",
         "uid": "loki"

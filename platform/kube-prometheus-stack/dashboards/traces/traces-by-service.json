@@ -43,7 +43,7 @@
     {
       "type": "timeseries",
       "title": "Count",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -97,7 +97,7 @@
     {
       "type": "timeseries",
       "title": "Count by http status",
-      "description": "A is the current semantic convention, B the older http.status_code. Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "A is the current semantic convention, B the older http.status_code.",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -161,7 +161,7 @@
     {
       "type": "timeseries",
       "title": "Count by route",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -215,7 +215,7 @@
     {
       "type": "timeseries",
       "title": "Errors",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -269,7 +269,7 @@
     {
       "type": "timeseries",
       "title": "Latency",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -323,7 +323,7 @@
     {
       "type": "timeseries",
       "title": "Max duration",
-      "description": "OpenObserve drew this one as a scatter of the maximum. Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "OpenObserve drew this one as a scatter of the maximum.",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -409,7 +409,7 @@
     {
       "type": "table",
       "title": "Latest traces",
-      "description": "A TraceQL search: it works without Tempo's metrics generator.",
+      "description": "A TraceQL search.",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"

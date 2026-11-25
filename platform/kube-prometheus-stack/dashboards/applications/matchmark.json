@@ -87,7 +87,7 @@
     {
       "type": "timeseries",
       "title": "Tasks ended by outcome",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -141,7 +141,7 @@
     {
       "type": "piechart",
       "title": "Tasks by outcome, for the range",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -189,7 +189,7 @@
     {
       "type": "timeseries",
       "title": "Task duration, p50 and p95",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -243,7 +243,7 @@
     {
       "type": "barchart",
       "title": "Attempts per task",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -282,7 +282,7 @@
     {
       "type": "barchart",
       "title": "Restorations per task",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -321,7 +321,7 @@
     {
       "type": "timeseries",
       "title": "Attempts ended by outcome",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -375,7 +375,7 @@
     {
       "type": "timeseries",
       "title": "Attempt duration, p50 and p95",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -429,7 +429,7 @@
     {
       "type": "table",
       "title": "Stage time, the attempt and the QA",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -478,7 +478,7 @@
     {
       "type": "timeseries",
       "title": "Waits by stage",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -532,7 +532,7 @@
     {
       "type": "timeseries",
       "title": "Time waited, by stage",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -586,7 +586,7 @@
     {
       "type": "table",
       "title": "Waits, for the range",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -622,7 +622,7 @@
     {
       "type": "timeseries",
       "title": "Wait p50, by stage",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -676,7 +676,7 @@
     {
       "type": "timeseries",
       "title": "Wait p95, by stage",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -743,7 +743,7 @@
     {
       "type": "table",
       "title": "Agents, for the range",
-      "description": "Columns by query: A runs, B errors, C calls, D input, E output, F cache read tokens. Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "Columns by query: A runs, B errors, C calls, D input, E output, F cache read tokens.",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -838,7 +838,7 @@
     {
       "type": "table",
       "title": "Runs by model",
-      "description": "A runs, B errors. Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "A runs, B errors.",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -893,7 +893,7 @@
     {
       "type": "timeseries",
       "title": "Runs by agent",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -947,7 +947,7 @@
     {
       "type": "timeseries",
       "title": "Runs in error, by agent",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -1001,7 +1001,7 @@
     {
       "type": "timeseries",
       "title": "Model calls, by model",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -1055,7 +1055,7 @@
     {
       "type": "timeseries",
       "title": "Input tokens, by model",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -1109,7 +1109,7 @@
     {
       "type": "timeseries",
       "title": "Output tokens, by model",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -1163,7 +1163,7 @@
     {
       "type": "table",
       "title": "Tokens by model, for the range",
-      "description": "A calls, B input, C output, D cache read, E cache creation tokens. Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "A calls, B input, C output, D cache read, E cache creation tokens.",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -1248,7 +1248,7 @@
     {
       "type": "timeseries",
       "title": "Model calls, by agent",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -1302,7 +1302,7 @@
     {
       "type": "timeseries",
       "title": "Input tokens, by agent",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -1356,7 +1356,7 @@
     {
       "type": "timeseries",
       "title": "Output tokens, by agent",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -1410,7 +1410,7 @@
     {
       "type": "timeseries",
       "title": "Cache read tokens, by agent",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -1464,7 +1464,7 @@
     {
       "type": "timeseries",
       "title": "Cache creation tokens, by agent",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -1518,7 +1518,7 @@
     {
       "type": "timeseries",
       "title": "Calls by finish reason",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -1585,7 +1585,7 @@
     {
       "type": "table",
       "title": "Calls by agent and tool, for the range",
-      "description": "A calls, B failed, C refused, D p95 duration. Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "A calls, B failed, C refused, D p95 duration.",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -1660,7 +1660,7 @@
     {
       "type": "timeseries",
       "title": "Calls, by tool",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -1714,7 +1714,7 @@
     {
       "type": "timeseries",
       "title": "Failed calls, by tool",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -1768,7 +1768,7 @@
     {
       "type": "timeseries",
       "title": "Refused calls, by tool",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -1822,7 +1822,7 @@
     {
       "type": "timeseries",
       "title": "Tool duration p95, by tool",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -1876,7 +1876,7 @@
     {
       "type": "table",
       "title": "Tools with the most failures and refusals",
-      "description": "A failed, B refused, C calls; OpenObserve's kept the 20 worst, sort by A here. Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "A failed, B refused, C calls; OpenObserve's kept the 20 worst, sort by A here.",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -1941,7 +1941,7 @@
     {
       "type": "timeseries",
       "title": "Failed calls, by agent",
-      "description": "Needs TraceQL metrics: Tempo's metrics generator is off, so this panel stays empty until its local-blocks processor is on (see the README).",
+      "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -2008,7 +2008,7 @@
     {
       "type": "table",
       "title": "Latest tasks that failed or escalated",
-      "description": "A TraceQL search: it works without Tempo's metrics generator. Click a trace ID to open it.",
+      "description": "A TraceQL search. Click a trace ID to open it.",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -2045,7 +2045,7 @@
     {
       "type": "table",
       "title": "Latest attempts that did not finish",
-      "description": "A TraceQL search: it works without Tempo's metrics generator. Click a trace ID to open it.",
+      "description": "A TraceQL search. Click a trace ID to open it.",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
