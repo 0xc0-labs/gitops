@@ -1,0 +1,125 @@
+deploymentMode: SingleBinary
+
+loki:
+  auth_enabled: false
+  image:
+    tag: 3.6.20
+    digest: sha256:be040ec94865dabe4821ce1c0f109452bd4b5acb566ae376672696eb43caedb7
+  commonConfig:
+    replication_factor: 1
+  schemaConfig:
+    configs:
+      - from: "2024-04-01"
+        store: tsdb
+        object_store: s3
+        schema: v13
+        index:
+          prefix: loki_index_
+          period: 24h
+  storage:
+    type: s3
+    bucketNames:
+      chunks: loki-chunks
+      ruler: loki-chunks
+      admin: loki-chunks
+    s3:
+      # From r2-vault (vault-secrets.yaml), expanded at start.
+      endpoint: ${R2_HOST}
+      region: auto
+      accessKeyId: ${R2_ACCESS_KEY_ID}
+      secretAccessKey: ${R2_SECRET_ACCESS_KEY}
+      s3ForcePathStyle: true
+  # 30 days, enforced by the compactor on the same bucket.
+  limits_config:
+    retention_period: 720h
+    allow_structured_metadata: true
+    # Three labels, so the streams stay in the hundreds; every other resource
+    # attribute is structured metadata, still searchable.
+    otlp_config:
+      resource_attributes:
+        ignore_defaults: true
+        attributes_config:
+          - action: index_label
+            attributes: [service.name, k8s.namespace.name, k8s.pod.name]
+  # The chart's, with the seccomp profile the namespace's restricted level asks.
+  podSecurityContext:
+    fsGroup: 10001
+    fsGroupChangePolicy: OnRootMismatch
+    runAsGroup: 10001
+    runAsNonRoot: true
+    runAsUser: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  compactor:
+    retention_enabled: true
+    delete_request_store: s3
+    working_directory: /var/loki/compactor
+  ingester:
+    chunk_encoding: snappy
+  querier:
+    max_concurrent: 2
+  pattern_ingester:
+    enabled: false
+
+singleBinary:
+  replicas: 1
+  extraArgs:
+    - -config.expand-env=true
+  extraEnvFrom:
+    - secretRef:
+        name: r2-vault
+  extraEnv:
+    # Near 85% of the memory limit.
+    - name: GOMEMLIMIT
+      value: 1300MiB
+  # The WAL and the compactor's scratch space: chunks and index live in R2.
+  persistence:
+    enabled: true
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      memory: 1536Mi
+
+gateway:
+  enabled: false
+chunksCache:
+  enabled: false
+resultsCache:
+  enabled: false
+lokiCanary:
+  enabled: false
+test:
+  enabled: false
+sidecar:
+  rules:
+    enabled: false
+minio:
+  enabled: false
+
+backend:
+  replicas: 0
+read:
+  replicas: 0
+write:
+  replicas: 0
+ingester:
+  replicas: 0
+querier:
+  replicas: 0
+queryFrontend:
+  replicas: 0
+queryScheduler:
+  replicas: 0
+distributor:
+  replicas: 0
+compactor:
+  replicas: 0
+indexGateway:
+  replicas: 0
+bloomCompactor:
+  replicas: 0
+bloomGateway:
+  replicas: 0
