@@ -167,6 +167,130 @@ patches:
         value:
           requests: {cpu: 10m, memory: 64Mi}
           limits: {memory: 256Mi}
+  # What `restricted` asks of every container, init containers included: the
+  # chart has no value for any of it (../README.md, Hardening).
+  - target: {kind: "Deployment|StatefulSet|Job"}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/securityContext
+        value:
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
+          seccompProfile:
+            type: RuntimeDefault
+  - target: {kind: Job, name: plane-minio-bucket-1}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/initContainers/0/securityContext
+        value:
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
+          seccompProfile:
+            type: RuntimeDefault
+  # The Plane images ship no user of their own: a fixed numeric one.
+  - target: {name: "plane-(admin|api|beat-worker|live|space|web|worker)-wl|plane-api-migrate-1|plane-minio-bucket-1"}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/securityContext
+        value:
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          seccompProfile:
+            type: RuntimeDefault
+  # MinIO's image has no passwd entry and runs as any uid; fsGroup opens the
+  # volume's root-owned files to it.
+  - target: {kind: StatefulSet, name: plane-minio-wl}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/securityContext
+        value:
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          fsGroup: 1000
+          seccompProfile:
+            type: RuntimeDefault
+  # RabbitMQ's and Valkey's own users, from their images.
+  - target: {kind: StatefulSet, name: plane-rabbitmq-wl}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/securityContext
+        value:
+          runAsNonRoot: true
+          runAsUser: 100
+          runAsGroup: 101
+          fsGroup: 101
+          seccompProfile:
+            type: RuntimeDefault
+  - target: {kind: StatefulSet, name: plane-redis-wl}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/securityContext
+        value:
+          runAsNonRoot: true
+          runAsUser: 999
+          runAsGroup: 1000
+          fsGroup: 1000
+          seccompProfile:
+            type: RuntimeDefault
+  # Everything the containers write at start that is not a data volume goes to
+  # /tmp, an emptyDir: the images' own directories belong to root. The
+  # workloads that already have a `volumes` or `volumeMounts` list append.
+  - target: {name: "plane-(api|worker|beat-worker|live|space)-wl|plane-api-migrate-1|plane-minio-bucket-1|plane-(minio|rabbitmq|redis)-wl"}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/volumes
+        value:
+          - name: tmp
+            emptyDir: {}
+  - target: {name: "plane-(web|admin)-wl"}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: tmp
+          emptyDir: {}
+  - target: {name: "plane-(api|worker|beat-worker|live|space)-wl|plane-api-migrate-1|plane-minio-bucket-1"}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts
+        value:
+          - name: tmp
+            mountPath: /tmp
+  - target: {name: "plane-(web|admin)-wl|plane-(minio|rabbitmq|redis)-wl"}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value:
+          name: tmp
+          mountPath: /tmp
+  # Caddy and mc keep their state under $HOME, which these images leave unset
+  # for a numeric user; RabbitMQ keeps its Erlang cookie there, and the one
+  # on its volume belongs to root.
+  - target: {kind: Deployment, name: "plane-(web|admin|space)-wl"}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env
+        value:
+          - {name: XDG_DATA_HOME, value: /tmp/caddy-data}
+          - {name: XDG_CONFIG_HOME, value: /tmp/caddy-config}
+  - target: {kind: Job, name: plane-minio-bucket-1}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env
+        value:
+          - {name: MC_CONFIG_DIR, value: /tmp/.mc}
+  - target: {kind: StatefulSet, name: plane-rabbitmq-wl}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env
+        value:
+          - {name: HOME, value: /tmp}
   # The chart allows http:// too.
   - target: {kind: ConfigMap, name: plane-app-vars}
     patch: |-
