@@ -260,8 +260,8 @@ passes 1000 fields.
 
 ## Alerts
 
-There are none (operator decision, 2026-10-02). If any are added, mail can go
-to sergio@0xc0.cc, which Cloudflare Email Routing forwards.
+OpenObserve has none (operator decision, 2026-10-02). Alerts are Grafana's
+(`platform/kube-prometheus-stack`, README, Alert rules).
 
 ## Checking every target is up
 

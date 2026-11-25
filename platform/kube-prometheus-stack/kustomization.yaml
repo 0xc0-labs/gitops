@@ -1,9 +1,8 @@
-# Prometheus, Alertmanager and Grafana beside OpenObserve (workspace#290,
-# phase 1).
+# Prometheus and Grafana beside OpenObserve (workspace#290, phases 1 and 3).
 #
 # Backups: prometheus-kube-prometheus-stack-prometheus-db-prometheus-
 # kube-prometheus-stack-prometheus-0 (Longhorn, 20 Gi), in PBS's nightly backup
-# of the RKE2 VMs. Grafana and Alertmanager keep nothing.
+# of the RKE2 VMs. Grafana keeps nothing.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: monitoring
@@ -16,6 +15,8 @@ helmCharts:
     kubeVersion: "1.36.4"
     skipTests: true
     valuesFile: values.yaml
+    additionalValuesFiles:
+      - alerting-rules.yaml
 resources:
   - namespace.yaml
   - network-policy.yaml

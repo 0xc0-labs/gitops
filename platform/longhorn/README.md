@@ -263,8 +263,9 @@ outlive a minute: that is the point.
   kind (history limits of 1), so read them soon.
 - A volume that is not trimmed shows as `longhorn_volume_actual_size_bytes`
   growing past its used space, on the Longhorn dashboard of OpenObserve.
-- No alert covers any of it: OpenObserve has none (its README, Alerts), and
-  none is built here.
+- Grafana alerts on a volume's bytes and inodes and on a degraded or faulted
+  volume (`platform/kube-prometheus-stack`, README, Alert rules); none covers
+  the trim jobs.
 
 [l-settings]: https://longhorn.io/docs/1.13.0/references/settings/
 [l-taint]: https://longhorn.io/docs/1.13.0/advanced-resources/deploy/taint-toleration/
