@@ -75,6 +75,25 @@ Erlang cookie RabbitMQ wrote on its volume as root cannot be read by its own
 user. Its NetworkPolicies deny by default and open only Traefik to the six
 routed Services, Plane's pods to each other, DNS and PostgreSQL.
 
+### MinIO's data belongs to uid 1000
+
+The data MinIO wrote before 2026-11-25 belonged to root. Under `restricted`
+MinIO runs as uid 1000 and opens its files with `O_NOATIME`, which only the
+owner may do, so it failed with "Unable to write to the backend" even with
+`fsGroup` granting group write (0xc0-labs/gitops#418). The orchestrator ran
+`chown -R 1000:1000` on the volume's `.minio.sys` and `uploads` on
+2026-11-25. A volume restored from a backup older than that needs the same,
+by hand, from the node that runs `plane-minio-wl-0`:
+
+```sh
+cd /var/lib/kubelet/pods/*/volumes/kubernetes.io~csi/<pv>/mount
+chown -R 1000:1000 .minio.sys uploads
+```
+
+An init container cannot do it: it would need root, which `restricted`
+refuses. RabbitMQ's and Valkey's volumes needed nothing: they started under
+their image users.
+
 ## The frontends' rate limit
 
 The `web` and `admin` images serve their files with a Caddy that limits each
