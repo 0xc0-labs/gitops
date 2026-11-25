@@ -1,1667 +1,1905 @@
 {
-  "uid": "applications-rum",
-  "title": "Applications / RUM",
-  "tags": [
-    "applications",
-    "rum",
-    "faro",
-    "0xc0"
-  ],
-  "description": "The sites' real-user monitoring: what the browsers send through Faro to the OpenTelemetry gateway, from its records in Loki and its spans in Tempo.",
-  "schemaVersion": 39,
-  "version": 1,
-  "id": null,
-  "editable": false,
-  "graphTooltip": 1,
-  "time": {
-    "from": "now-6h",
-    "to": "now"
-  },
-  "refresh": "1m",
-  "templating": {
+  "annotations": {
     "list": [
       {
-        "name": "app",
-        "label": "App",
-        "type": "query",
+        "builtIn": 1,
         "datasource": {
-          "type": "loki",
-          "uid": "loki"
+          "type": "grafana",
+          "uid": "-- Grafana --"
         },
-        "query": {
-          "refId": "LokiVariableQueryEditor-VariableQuery",
-          "label": "service_name",
-          "stream": "",
-          "type": 1
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "name": "Argo CD syncs",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
         },
-        "refresh": 2,
-        "multi": true,
-        "includeAll": true,
-        "allValue": ".+",
-        "current": {
-          "selected": true,
-          "text": "All",
-          "value": "$__all"
+        "enable": true,
+        "hide": false,
+        "iconColor": "#7DD3FC",
+        "expr": "sum by (name) (increase(argocd_app_sync_total{phase=\"Succeeded\"}[2m])) > 0",
+        "step": "60s",
+        "titleFormat": "sync {{name}}",
+        "textFormat": "Argo CD synced {{name}}",
+        "tagKeys": "name",
+        "useValueForTime": false
+      },
+      {
+        "name": "Releases",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
         },
-        "sort": 1
+        "enable": true,
+        "hide": false,
+        "iconColor": "#34D399",
+        "expr": "label_replace(count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}) unless count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"} offset 10m), \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")",
+        "step": "60s",
+        "titleFormat": "{{namespace}} {{version}}",
+        "textFormat": "{{image_spec}}",
+        "tagKeys": "namespace,version",
+        "useValueForTime": false
       }
     ]
   },
-  "annotations": {
-    "list": []
-  },
+  "description": "Real-user web vitals across the sites, from Faro's lines in Loki.",
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "title": "Estate",
+      "type": "link",
+      "url": "/d/home",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Apps",
+      "type": "link",
+      "url": "/d/apps",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Matchmark",
+      "type": "link",
+      "url": "/d/matchmark",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Web vitals",
+      "type": "link",
+      "url": "/d/applications-rum",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Traces",
+      "type": "link",
+      "url": "/d/traces-overall",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Platform",
+      "type": "dashboards",
+      "tags": [
+        "platform"
+      ],
+      "asDropdown": true,
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    }
+  ],
   "panels": [
     {
       "type": "stat",
-      "title": "LCP",
-      "description": "Largest Contentful Paint, 75th percentile. Good below 2500, poor above 4000 (Google's thresholds). By app, from Faro's web-vitals measurements.",
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | unwrap value_lcp | __error__=\"\" [$__auto]) by (service_name)",
-          "legendFormat": "{{service_name}}",
-          "queryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ms",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "#EAB839",
-                "value": 2500
-              },
-              {
-                "color": "red",
-                "value": 4000
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "noValue": "-"
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        }
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 0,
-        "y": 0
-      },
-      "id": 1
-    },
-    {
-      "type": "stat",
-      "title": "INP",
-      "description": "Interaction to Next Paint, 75th percentile. Good below 200, poor above 500 (Google's thresholds). By app, from Faro's web-vitals measurements.",
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | unwrap value_inp | __error__=\"\" [$__auto]) by (service_name)",
-          "legendFormat": "{{service_name}}",
-          "queryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ms",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "#EAB839",
-                "value": 200
-              },
-              {
-                "color": "red",
-                "value": 500
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "noValue": "-"
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        }
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 3,
-        "y": 0
-      },
-      "id": 2
-    },
-    {
-      "type": "stat",
-      "title": "CLS",
-      "description": "Cumulative Layout Shift, 75th percentile. Good below 0.1, poor above 0.25 (Google's thresholds). By app, from Faro's web-vitals measurements.",
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | unwrap value_cls | __error__=\"\" [$__auto]) by (service_name)",
-          "legendFormat": "{{service_name}}",
-          "queryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "#EAB839",
-                "value": 0.1
-              },
-              {
-                "color": "red",
-                "value": 0.25
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 2,
-          "noValue": "-"
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        }
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 6,
-        "y": 0
-      },
-      "id": 3
-    },
-    {
-      "type": "stat",
-      "title": "FCP",
-      "description": "First Contentful Paint, 75th percentile. Good below 1800, poor above 3000 (Google's thresholds). By app, from Faro's web-vitals measurements.",
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | unwrap value_fcp | __error__=\"\" [$__auto]) by (service_name)",
-          "legendFormat": "{{service_name}}",
-          "queryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ms",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "#EAB839",
-                "value": 1800
-              },
-              {
-                "color": "red",
-                "value": 3000
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "noValue": "-"
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        }
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 9,
-        "y": 0
-      },
-      "id": 4
-    },
-    {
-      "type": "stat",
-      "title": "TTFB",
-      "description": "Time to First Byte, 75th percentile. Good below 800, poor above 1800 (Google's thresholds). By app, from Faro's web-vitals measurements.",
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | unwrap value_ttfb | __error__=\"\" [$__auto]) by (service_name)",
-          "legendFormat": "{{service_name}}",
-          "queryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ms",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "#EAB839",
-                "value": 800
-              },
-              {
-                "color": "red",
-                "value": 1800
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "noValue": "-"
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        }
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 12,
-        "y": 0
-      },
-      "id": 5
-    },
-    {
-      "type": "stat",
       "title": "Page loads",
-      "description": "Faro's navigation events over the range, by app.",
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
+      "description": "Navigations: one TTFB measurement each, from Faro.",
+      "transparent": true,
       "targets": [
         {
-          "refId": "A",
           "datasource": {
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "sum by (service_name) (count_over_time({service_name=~\"$app\"} | kind=\"event\" | logfmt | event_name=\"faro.performance.navigation\" [$__auto]))",
-          "legendFormat": "{{service_name}}",
-          "queryType": "range"
+          "expr": "sum(count_over_time({service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_ttfb!=\"\" [$__auto]))",
+          "queryType": "range",
+          "editorMode": "code",
+          "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#60A5FA"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "blue",
+                "color": "#E7ECF3",
                 "value": null
               }
             ]
           },
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "noValue": "0"
+          "noValue": "no visits in range"
         },
         "overrides": []
       },
       "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "textMode": "auto",
         "reduceOptions": {
           "calcs": [
             "sum"
           ],
           "fields": "",
           "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "orientation": "auto",
+        "showPercentChange": true,
+        "percentChangeColorMode": "standard",
+        "text": {
+          "titleSize": 11,
+          "valueSize": 34
         }
       },
-      "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 15,
-        "y": 0
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
       },
-      "id": 6
+      "id": 1,
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 0,
+        "y": 0
+      }
     },
     {
       "type": "stat",
       "title": "Sessions",
-      "description": "Distinct Faro sessions that sent anything, by app.",
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
+      "description": "Faro's session_start events.",
+      "transparent": true,
       "targets": [
         {
-          "refId": "A",
           "datasource": {
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "count by (service_name) (sum by (service_name, session_id) (count_over_time({service_name=~\"$app\"} | kind=~\".+\" | logfmt | session_id!=\"\" [$__auto])))",
-          "legendFormat": "{{service_name}}",
-          "queryType": "range"
+          "expr": "sum(count_over_time({service_name=~\"$app\"} | kind=\"event\" | logfmt | app_environment!=\"probe\" | event_name=\"session_start\" [$__auto]))",
+          "queryType": "range",
+          "editorMode": "code",
+          "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#7DD3FC"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "blue",
+                "color": "#E7ECF3",
                 "value": null
               }
             ]
           },
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "noValue": "0"
+          "noValue": "no sessions in range"
         },
         "overrides": []
       },
       "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        }
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 18,
-        "y": 0
-      },
-      "id": 7
-    },
-    {
-      "type": "stat",
-      "title": "JS errors",
-      "description": "Faro's exception records over the range, by app.",
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "sum by (service_name) (count_over_time({service_name=~\"$app\"} | kind=\"exception\" [$__auto]))",
-          "legendFormat": "{{service_name}}",
-          "queryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "#EAB839",
-                "value": 1
-              },
-              {
-                "color": "red",
-                "value": 20
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "noValue": "0"
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "textMode": "auto",
         "reduceOptions": {
           "calcs": [
             "sum"
           ],
           "fields": "",
           "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "orientation": "auto",
+        "showPercentChange": true,
+        "percentChangeColorMode": "standard",
+        "text": {
+          "titleSize": 11,
+          "valueSize": 34
         }
       },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "id": 2,
       "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 21,
+        "h": 5,
+        "w": 4,
+        "x": 4,
         "y": 0
-      },
-      "links": [
-        {
-          "title": "Exceptions",
-          "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{service_name%3D~%5C%22${app%3Aregex}%5C%22}%20%7C%20kind%3D%5C%22exception%5C%22%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
-          "targetBlank": false
-        }
-      ],
-      "id": 8
+      }
     },
     {
-      "type": "row",
-      "title": "Traffic",
-      "collapsed": true,
-      "panels": [
+      "type": "stat",
+      "title": "JS exceptions",
+      "description": "Exceptions the browsers reported.",
+      "transparent": true,
+      "targets": [
         {
-          "type": "timeseries",
-          "title": "Page loads",
-          "description": "Faro's navigation events, by app. Faro sends one per page load once its performance instrumentation is on. One per page load.",
-          "id": 10,
           "datasource": {
             "type": "loki",
             "uid": "loki"
           },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              },
-              "expr": "sum by (service_name) (count_over_time({service_name=~\"$app\"} | kind=\"event\" | logfmt | event_name=\"faro.performance.navigation\" [$__auto]))",
-              "legendFormat": "{{service_name}}",
-              "queryType": "range"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short",
-              "custom": {
-                "fillOpacity": 20,
-                "lineWidth": 1,
-                "stacking": {
-                  "mode": "normal"
-                },
-                "gradientMode": "opacity",
-                "showPoints": "never"
-              },
-              "color": {
-                "mode": "palette-classic"
-              },
-              "decimals": 2,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "table",
-              "placement": "bottom",
-              "calcs": [
-                "lastNotNull"
-              ]
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 5
-          }
-        },
-        {
-          "type": "timeseries",
-          "title": "Sessions",
-          "description": "Distinct Faro sessions that sent anything in the interval, by app.",
-          "id": 11,
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              },
-              "expr": "count by (service_name) (sum by (service_name, session_id) (count_over_time({service_name=~\"$app\"} | kind=~\".+\" | logfmt | session_id!=\"\" [$__auto])))",
-              "legendFormat": "{{service_name}}",
-              "queryType": "range"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short",
-              "custom": {
-                "fillOpacity": 20,
-                "lineWidth": 1,
-                "stacking": {
-                  "mode": "none"
-                },
-                "gradientMode": "opacity",
-                "showPoints": "never"
-              },
-              "color": {
-                "mode": "palette-classic"
-              },
-              "decimals": 2,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "table",
-              "placement": "bottom",
-              "calcs": [
-                "lastNotNull"
-              ]
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 5
-          }
-        },
-        {
-          "type": "bargauge",
-          "title": "Page loads by page",
-          "id": 12,
-          "description": "Page loads by page_url over the range (top 20). The URL is the browser's own, query string included. There is no map by country: Faro's records here carry no country field.",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              },
-              "expr": "topk(20, sum by (service_name, page_url) (count_over_time({service_name=~\"$app\"} | kind=\"event\" | logfmt | event_name=\"faro.performance.navigation\" [$__range])))",
-              "queryType": "instant",
-              "instant": true,
-              "range": false,
-              "format": "time_series",
-              "legendFormat": "{{service_name}} {{page_url}}"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short",
-              "decimals": 0,
-              "color": {
-                "mode": "continuous-BlPu"
-              },
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "blue",
-                    "value": null
-                  }
-                ]
-              },
-              "min": 0
-            },
-            "overrides": []
-          },
-          "options": {
-            "displayMode": "gradient",
-            "orientation": "horizontal",
-            "namePlacement": "left",
-            "valueMode": "color",
-            "showUnfilled": true,
-            "minVizHeight": 16,
-            "minVizWidth": 8,
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            }
-          },
-          "gridPos": {
-            "h": 10,
-            "w": 24,
-            "x": 0,
-            "y": 13
-          }
+          "expr": "sum(count_over_time({service_name=~\"$app\"} | kind=\"exception\" | logfmt | app_environment!=\"probe\" [$__auto]))",
+          "queryType": "range",
+          "editorMode": "code",
+          "refId": "A"
         }
       ],
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 4
-      },
-      "id": 9
-    },
-    {
-      "type": "row",
-      "title": "Web Vitals (75th percentile)",
-      "collapsed": true,
-      "panels": [
-        {
-          "type": "timeseries",
-          "title": "Largest Contentful Paint",
-          "description": "Good below 2500 ms. By app, from Faro's web-vitals measurements.",
-          "id": 14,
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#FB7185"
           },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              },
-              "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | unwrap value_lcp | __error__=\"\" [$__auto]) by (service_name)",
-              "legendFormat": "{{service_name}}",
-              "queryType": "range"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "unit": "ms",
-              "custom": {
-                "fillOpacity": 20,
-                "lineWidth": 1,
-                "stacking": {
-                  "mode": "none"
-                },
-                "gradientMode": "opacity",
-                "showPoints": "never",
-                "thresholdsStyle": {
-                  "mode": "line"
-                }
-              },
-              "color": {
-                "mode": "palette-classic"
-              },
-              "decimals": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "#EAB839",
-                    "value": 2500
-                  },
-                  {
-                    "color": "red",
-                    "value": 4000
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "table",
-              "placement": "bottom",
-              "calcs": [
-                "lastNotNull"
-              ]
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 6
-          }
-        },
-        {
-          "type": "timeseries",
-          "title": "Interaction to Next Paint",
-          "description": "Good below 200 ms. By app, from Faro's web-vitals measurements.",
-          "id": 15,
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              },
-              "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | unwrap value_inp | __error__=\"\" [$__auto]) by (service_name)",
-              "legendFormat": "{{service_name}}",
-              "queryType": "range"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "unit": "ms",
-              "custom": {
-                "fillOpacity": 20,
-                "lineWidth": 1,
-                "stacking": {
-                  "mode": "none"
-                },
-                "gradientMode": "opacity",
-                "showPoints": "never",
-                "thresholdsStyle": {
-                  "mode": "line"
-                }
-              },
-              "color": {
-                "mode": "palette-classic"
-              },
-              "decimals": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "#EAB839",
-                    "value": 200
-                  },
-                  {
-                    "color": "red",
-                    "value": 500
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "table",
-              "placement": "bottom",
-              "calcs": [
-                "lastNotNull"
-              ]
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 6
-          }
-        },
-        {
-          "type": "timeseries",
-          "title": "Cumulative Layout Shift",
-          "description": "Good below 0.1. By app, from Faro's web-vitals measurements.",
-          "id": 16,
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              },
-              "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | unwrap value_cls | __error__=\"\" [$__auto]) by (service_name)",
-              "legendFormat": "{{service_name}}",
-              "queryType": "range"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short",
-              "custom": {
-                "fillOpacity": 20,
-                "lineWidth": 1,
-                "stacking": {
-                  "mode": "none"
-                },
-                "gradientMode": "opacity",
-                "showPoints": "never",
-                "thresholdsStyle": {
-                  "mode": "line"
-                }
-              },
-              "color": {
-                "mode": "palette-classic"
-              },
-              "decimals": 2,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "#EAB839",
-                    "value": 0.1
-                  },
-                  {
-                    "color": "red",
-                    "value": 0.25
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "table",
-              "placement": "bottom",
-              "calcs": [
-                "lastNotNull"
-              ]
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 14
-          }
-        },
-        {
-          "type": "timeseries",
-          "title": "Time to First Byte",
-          "description": "Good below 800 ms. By app, from Faro's web-vitals measurements.",
-          "id": 17,
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              },
-              "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | unwrap value_ttfb | __error__=\"\" [$__auto]) by (service_name)",
-              "legendFormat": "{{service_name}}",
-              "queryType": "range"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "unit": "ms",
-              "custom": {
-                "fillOpacity": 20,
-                "lineWidth": 1,
-                "stacking": {
-                  "mode": "none"
-                },
-                "gradientMode": "opacity",
-                "showPoints": "never",
-                "thresholdsStyle": {
-                  "mode": "line"
-                }
-              },
-              "color": {
-                "mode": "palette-classic"
-              },
-              "decimals": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "#EAB839",
-                    "value": 800
-                  },
-                  {
-                    "color": "red",
-                    "value": 1800
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "table",
-              "placement": "bottom",
-              "calcs": [
-                "lastNotNull"
-              ]
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 14
-          }
-        },
-        {
-          "type": "timeseries",
-          "title": "First Contentful Paint",
-          "description": "Good below 1800 ms. By app, from Faro's web-vitals measurements.",
-          "id": 18,
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              },
-              "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | unwrap value_fcp | __error__=\"\" [$__auto]) by (service_name)",
-              "legendFormat": "{{service_name}}",
-              "queryType": "range"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "unit": "ms",
-              "custom": {
-                "fillOpacity": 20,
-                "lineWidth": 1,
-                "stacking": {
-                  "mode": "none"
-                },
-                "gradientMode": "opacity",
-                "showPoints": "never",
-                "thresholdsStyle": {
-                  "mode": "line"
-                }
-              },
-              "color": {
-                "mode": "palette-classic"
-              },
-              "decimals": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "#EAB839",
-                    "value": 1800
-                  },
-                  {
-                    "color": "red",
-                    "value": 3000
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "table",
-              "placement": "bottom",
-              "calcs": [
-                "lastNotNull"
-              ]
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 22
-          }
-        },
-        {
-          "type": "table",
-          "title": "Slowest pages (LCP, 75th percentile)",
-          "description": "Largest Contentful Paint by page over the range, pages with the slowest first.",
-          "id": 19,
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              },
-              "expr": "topk(20, quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | unwrap value_lcp | __error__=\"\" [$__range]) by (service_name, page_url))",
-              "queryType": "instant",
-              "instant": true,
-              "range": false,
-              "format": "table"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "custom": {
-                "cellOptions": {
-                  "type": "auto"
-                }
-              },
-              "unit": "ms",
-              "decimals": 0
-            },
-            "overrides": [
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
               {
-                "matcher": {
-                  "id": "byType",
-                  "options": "number"
-                },
-                "properties": [
-                  {
-                    "id": "custom.cellOptions",
-                    "value": {
-                      "type": "color-background",
-                      "mode": "gradient"
-                    }
-                  },
-                  {
-                    "id": "thresholds",
-                    "value": {
-                      "mode": "absolute",
-                      "steps": [
-                        {
-                          "color": "green",
-                          "value": null
-                        },
-                        {
-                          "color": "#EAB839",
-                          "value": 2500
-                        },
-                        {
-                          "color": "red",
-                          "value": 4000
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "id": "color",
-                    "value": {
-                      "mode": "thresholds"
-                    }
-                  }
-                ]
+                "color": "#E7ECF3",
+                "value": null
               }
             ]
           },
-          "transformations": [
-            {
-              "id": "organize",
-              "options": {
-                "excludeByName": {
-                  "Time": true
-                }
-              }
-            }
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "sum"
           ],
-          "options": {
-            "showHeader": true,
-            "cellHeight": "sm"
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "orientation": "auto",
+        "showPercentChange": true,
+        "percentChangeColorMode": "inverted",
+        "text": {
+          "titleSize": 11,
+          "valueSize": 34
+        }
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "id": 3,
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      }
+    },
+    {
+      "type": "stat",
+      "title": "LCP p75",
+      "description": "75th percentile of Largest Contentful Paint; good under 2.5 s (web.dev).",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
           },
-          "gridPos": {
-            "h": 8,
-            "w": 24,
-            "x": 0,
-            "y": 30
-          }
+          "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_lcp!=\"\" | unwrap value_lcp | __error__=\"\" [$__range]) by ()",
+          "queryType": "instant",
+          "editorMode": "code",
+          "refId": "A"
         }
       ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#34D399",
+                "value": null
+              },
+              {
+                "color": "#FBBF24",
+                "value": 2500
+              },
+              {
+                "color": "#FB7185",
+                "value": 4000
+              }
+            ]
+          },
+          "noValue": "no visits in range"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "orientation": "auto",
+        "showPercentChange": false,
+        "percentChangeColorMode": "standard",
+        "text": {
+          "titleSize": 11,
+          "valueSize": 34
+        }
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "id": 4,
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      }
+    },
+    {
+      "type": "stat",
+      "title": "INP p75",
+      "description": "75th percentile of Interaction to Next Paint; good under 200 ms.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_inp!=\"\" | unwrap value_inp | __error__=\"\" [$__range]) by ()",
+          "queryType": "instant",
+          "editorMode": "code",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#34D399",
+                "value": null
+              },
+              {
+                "color": "#FBBF24",
+                "value": 200
+              },
+              {
+                "color": "#FB7185",
+                "value": 500
+              }
+            ]
+          },
+          "noValue": "no visits in range"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "orientation": "auto",
+        "showPercentChange": false,
+        "percentChangeColorMode": "standard",
+        "text": {
+          "titleSize": 11,
+          "valueSize": 34
+        }
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "id": 5,
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 16,
+        "y": 0
+      }
+    },
+    {
+      "type": "stat",
+      "title": "CLS p75",
+      "description": "75th percentile of Cumulative Layout Shift; good under 0.1.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_cls!=\"\" | unwrap value_cls | __error__=\"\" [$__range]) by ()",
+          "queryType": "instant",
+          "editorMode": "code",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 3,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#34D399",
+                "value": null
+              },
+              {
+                "color": "#FBBF24",
+                "value": 0.1
+              },
+              {
+                "color": "#FB7185",
+                "value": 0.25
+              }
+            ]
+          },
+          "noValue": "no visits in range"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "orientation": "auto",
+        "showPercentChange": false,
+        "percentChangeColorMode": "standard",
+        "text": {
+          "titleSize": 11,
+          "valueSize": 34
+        }
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "id": 6,
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      }
+    },
+    {
+      "type": "row",
+      "title": "By app",
+      "collapsed": false,
+      "panels": [],
+      "id": 7,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
         "y": 5
-      },
-      "id": 13
+      }
     },
     {
-      "type": "row",
-      "title": "Errors",
-      "collapsed": true,
-      "panels": [
+      "type": "table",
+      "title": "Web vitals by app",
+      "description": "75th percentile of each vital over the range, per Faro application.",
+      "transparent": true,
+      "targets": [
         {
-          "type": "timeseries",
-          "title": "JavaScript errors",
-          "description": "Faro's exception records, by app.",
-          "id": 21,
           "datasource": {
             "type": "loki",
             "uid": "loki"
           },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              },
-              "expr": "sum by (service_name) (count_over_time({service_name=~\"$app\"} | kind=\"exception\" [$__auto]))",
-              "legendFormat": "{{service_name}}",
-              "queryType": "range"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short",
-              "custom": {
-                "fillOpacity": 20,
-                "lineWidth": 1,
-                "stacking": {
-                  "mode": "normal"
-                },
-                "gradientMode": "opacity",
-                "showPoints": "never"
-              },
-              "color": {
-                "mode": "palette-classic"
-              },
-              "decimals": 2,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "table",
-              "placement": "bottom",
-              "calcs": [
-                "lastNotNull"
-              ]
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 7
-          }
+          "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_lcp!=\"\" | unwrap value_lcp | __error__=\"\" [$__range]) by (service_name)",
+          "queryType": "instant",
+          "editorMode": "code",
+          "refId": "LCP"
         },
         {
-          "type": "table",
-          "title": "Top exceptions",
-          "description": "Exceptions over the range, grouped by type and message.",
-          "id": 22,
           "datasource": {
             "type": "loki",
             "uid": "loki"
           },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              },
-              "expr": "topk(20, sum by (service_name, type, value) (count_over_time({service_name=~\"$app\"} | kind=\"exception\" | logfmt | __error__=\"\" [$__range])))",
-              "queryType": "instant",
-              "instant": true,
-              "range": false,
-              "format": "table"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "custom": {
-                "cellOptions": {
-                  "type": "auto"
-                }
-              }
-            },
-            "overrides": [
+          "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_inp!=\"\" | unwrap value_inp | __error__=\"\" [$__range]) by (service_name)",
+          "queryType": "instant",
+          "editorMode": "code",
+          "refId": "INP"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_cls!=\"\" | unwrap value_cls | __error__=\"\" [$__range]) by (service_name)",
+          "queryType": "instant",
+          "editorMode": "code",
+          "refId": "CLS"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_fcp!=\"\" | unwrap value_fcp | __error__=\"\" [$__range]) by (service_name)",
+          "queryType": "instant",
+          "editorMode": "code",
+          "refId": "FCP"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_ttfb!=\"\" | unwrap value_ttfb | __error__=\"\" [$__range]) by (service_name)",
+          "queryType": "instant",
+          "editorMode": "code",
+          "refId": "TTFB"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
               {
-                "matcher": {
-                  "id": "byType",
-                  "options": "number"
-                },
-                "properties": [
-                  {
-                    "id": "custom.cellOptions",
-                    "value": {
-                      "type": "color-background",
-                      "mode": "gradient"
-                    }
-                  },
-                  {
-                    "id": "thresholds",
-                    "value": {
-                      "mode": "absolute",
-                      "steps": [
-                        {
-                          "color": "green",
-                          "value": null
-                        },
-                        {
-                          "color": "#EAB839",
-                          "value": 1
-                        },
-                        {
-                          "color": "red",
-                          "value": 20
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "id": "color",
-                    "value": {
-                      "mode": "thresholds"
-                    }
-                  }
-                ]
+                "color": "#E7ECF3",
+                "value": null
               }
             ]
           },
-          "transformations": [
-            {
-              "id": "organize",
-              "options": {
-                "excludeByName": {
-                  "Time": true
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": false
+          },
+          "noValue": "no visits in range"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "LCP"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#34D399",
+                      "value": null
+                    },
+                    {
+                      "color": "#FBBF24",
+                      "value": 2500
+                    },
+                    {
+                      "color": "#FB7185",
+                      "value": 4000
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
                 }
               }
-            }
-          ],
-          "options": {
-            "showHeader": true,
-            "cellHeight": "sm"
+            ]
           },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 7
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "INP"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#34D399",
+                      "value": null
+                    },
+                    {
+                      "color": "#FBBF24",
+                      "value": 200
+                    },
+                    {
+                      "color": "#FB7185",
+                      "value": 500
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CLS"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 3
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#34D399",
+                      "value": null
+                    },
+                    {
+                      "color": "#FBBF24",
+                      "value": 0.1
+                    },
+                    {
+                      "color": "#FB7185",
+                      "value": 0.25
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "FCP"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#34D399",
+                      "value": null
+                    },
+                    {
+                      "color": "#FBBF24",
+                      "value": 1800
+                    },
+                    {
+                      "color": "#FB7185",
+                      "value": 3000
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "TTFB"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#34D399",
+                      "value": null
+                    },
+                    {
+                      "color": "#FBBF24",
+                      "value": 800
+                    },
+                    {
+                      "color": "#FB7185",
+                      "value": 1800
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        },
+        "sortBy": []
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
           }
         },
         {
-          "type": "logs",
-          "title": "Recent exceptions",
-          "description": "The exceptions' own records: stack trace, page and browser.",
-          "id": 23,
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              },
-              "expr": "{service_name=~\"$app\"} | kind=\"exception\"",
-              "queryType": "range"
-            }
-          ],
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
           "options": {
-            "showTime": true,
-            "wrapLogMessage": true,
-            "sortOrder": "Descending",
-            "enableLogDetails": true
-          },
-          "gridPos": {
-            "h": 10,
-            "w": 24,
-            "x": 0,
-            "y": 15
-          },
-          "links": []
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "service_name": "app",
+              "Value #LCP": "LCP",
+              "Value #INP": "INP",
+              "Value #CLS": "CLS",
+              "Value #FCP": "FCP",
+              "Value #TTFB": "TTFB"
+            }
+          }
         }
       ],
+      "id": 8,
       "gridPos": {
-        "h": 1,
-        "w": 24,
+        "h": 7,
+        "w": 12,
         "x": 0,
         "y": 6
-      },
-      "id": 20
+      }
     },
     {
-      "type": "row",
-      "title": "Traces",
-      "collapsed": true,
-      "panels": [
+      "type": "table",
+      "title": "Ratings",
+      "description": "Measurements rated good, needs-improvement or poor by the browser (Faro's context_rating), per vital.",
+      "transparent": true,
+      "targets": [
         {
-          "type": "table",
-          "title": "Recent traces",
-          "description": "Spans the browsers sent through Faro, by app. The server's own traces carry the server's service name.",
-          "id": 25,
           "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
+            "type": "loki",
+            "uid": "loki"
           },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "tempo",
-                "uid": "tempo"
-              },
-              "queryType": "traceql",
-              "query": "{ resource.service.name =~ \"${app:regex}\" }",
-              "limit": 20,
-              "tableType": "traces"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "custom": {
-                "cellOptions": {
-                  "type": "auto"
-                }
-              }
-            },
-            "overrides": [
+          "expr": "label_replace(sum by (context_rating) (count_over_time({service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_lcp!=\"\" [$__range])), \"vital\", \"LCP\", \"\", \"\")",
+          "queryType": "instant",
+          "editorMode": "code",
+          "refId": "LCP"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "label_replace(sum by (context_rating) (count_over_time({service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_inp!=\"\" [$__range])), \"vital\", \"INP\", \"\", \"\")",
+          "queryType": "instant",
+          "editorMode": "code",
+          "refId": "INP"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "label_replace(sum by (context_rating) (count_over_time({service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_cls!=\"\" [$__range])), \"vital\", \"CLS\", \"\", \"\")",
+          "queryType": "instant",
+          "editorMode": "code",
+          "refId": "CLS"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "label_replace(sum by (context_rating) (count_over_time({service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_fcp!=\"\" [$__range])), \"vital\", \"FCP\", \"\", \"\")",
+          "queryType": "instant",
+          "editorMode": "code",
+          "refId": "FCP"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "label_replace(sum by (context_rating) (count_over_time({service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_ttfb!=\"\" [$__range])), \"vital\", \"TTFB\", \"\", \"\")",
+          "queryType": "instant",
+          "editorMode": "code",
+          "refId": "TTFB"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
               {
-                "matcher": {
-                  "id": "byType",
-                  "options": "number"
-                },
-                "properties": [
-                  {
-                    "id": "custom.cellOptions",
-                    "value": {
-                      "type": "color-background",
-                      "mode": "gradient"
-                    }
-                  },
-                  {
-                    "id": "thresholds",
-                    "value": {
-                      "mode": "absolute",
-                      "steps": [
-                        {
-                          "color": "blue",
-                          "value": null
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "id": "color",
-                    "value": {
-                      "mode": "thresholds"
-                    }
-                  }
-                ]
+                "color": "#E7ECF3",
+                "value": null
               }
             ]
           },
-          "options": {
-            "showHeader": true,
-            "cellHeight": "sm"
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": false
           },
-          "gridPos": {
-            "h": 10,
-            "w": 24,
-            "x": 0,
-            "y": 8
+          "noValue": "no visits in range"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "good"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#34D399"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "needs-improvement"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#FBBF24"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "poor"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#FB7185"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        },
+        "sortBy": []
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "groupingToMatrix",
+          "options": {
+            "columnField": "context_rating",
+            "rowField": "vital",
+            "valueField": "Value",
+            "emptyValue": "zero"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "vital\\context_rating": "vital"
+            },
+            "indexByName": {
+              "vital\\context_rating": 0,
+              "good": 1,
+              "needs-improvement": 2,
+              "poor": 3
+            }
           }
         }
       ],
+      "id": 9,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 6
+      }
+    },
+    {
+      "type": "row",
+      "title": "Over time",
+      "collapsed": false,
+      "panels": [],
+      "id": 10,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 7
-      },
-      "id": 24
-    }
-  ],
-  "links": [
-    {
-      "type": "link",
-      "title": "Home",
-      "url": "/d/home",
-      "icon": "dashboard",
-      "targetBlank": false,
-      "keepTime": true,
-      "includeVars": false,
-      "tags": [],
-      "asDropdown": false
+        "y": 13
+      }
     },
     {
-      "type": "dashboards",
-      "title": "0xc0",
-      "tags": [
-        "0xc0"
+      "type": "timeseries",
+      "title": "Timings · p75",
+      "description": "75th percentile per interval of the timing vitals.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_lcp!=\"\" | unwrap value_lcp | __error__=\"\" [$__auto]) by ()",
+          "queryType": "range",
+          "editorMode": "code",
+          "legendFormat": "LCP",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_inp!=\"\" | unwrap value_inp | __error__=\"\" [$__auto]) by ()",
+          "queryType": "range",
+          "editorMode": "code",
+          "legendFormat": "INP",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_fcp!=\"\" | unwrap value_fcp | __error__=\"\" [$__auto]) by ()",
+          "queryType": "range",
+          "editorMode": "code",
+          "legendFormat": "FCP",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_ttfb!=\"\" | unwrap value_ttfb | __error__=\"\" [$__auto]) by ()",
+          "queryType": "range",
+          "editorMode": "code",
+          "legendFormat": "TTFB",
+          "refId": "D"
+        }
       ],
-      "asDropdown": false,
-      "asTabs": false,
-      "includeVars": false,
-      "keepTime": true,
-      "icon": "external link",
-      "targetBlank": false
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true,
+            "lineInterpolation": "smooth",
+            "axisBorderShow": false,
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "noValue": "no visits in range"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "LCP"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#60A5FA"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "INP"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#F59E0B"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "FCP"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#C4B5FD"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "TTFB"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#7DD3FC"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "id": 11,
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 0,
+        "y": 14
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "CLS · p75",
+      "description": "75th percentile per interval of layout shift.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "quantile_over_time(0.75, {service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_cls!=\"\" | unwrap value_cls | __error__=\"\" [$__auto]) by ()",
+          "queryType": "range",
+          "editorMode": "code",
+          "legendFormat": "CLS",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 3,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "transparent",
+                "value": null
+              },
+              {
+                "color": "#FBBF24",
+                "value": 0.1
+              },
+              {
+                "color": "#FB7185",
+                "value": 0.25
+              }
+            ]
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true,
+            "lineInterpolation": "smooth",
+            "axisBorderShow": false,
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "line+area"
+            }
+          },
+          "noValue": "no visits in range"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CLS"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#C4B5FD"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "id": 12,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 14
+      }
+    },
+    {
+      "type": "row",
+      "title": "Pages and devices",
+      "collapsed": false,
+      "panels": [],
+      "id": 13,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      }
+    },
+    {
+      "type": "bargauge",
+      "title": "Top pages",
+      "description": "Page loads by URL.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "topk(10, sum by (page_url) (count_over_time({service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_ttfb!=\"\" [$__range])))",
+          "queryType": "instant",
+          "editorMode": "code",
+          "legendFormat": "{{page_url}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#60A5FA"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "no visits in range"
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "basic",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "top",
+        "sizing": "auto",
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "maxVizHeight": 24
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "id": 14,
+      "gridPos": {
+        "h": 9,
+        "w": 10,
+        "x": 0,
+        "y": 23
+      }
+    },
+    {
+      "type": "piechart",
+      "title": "Browsers",
+      "description": "Sessions by browser.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum by (browser_name) (count_over_time({service_name=~\"$app\"} | kind=\"event\" | logfmt | app_environment!=\"probe\" | event_name=\"session_start\" [$__range]))",
+          "queryType": "instant",
+          "editorMode": "code",
+          "legendFormat": "{{browser_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "no sessions in range"
+        },
+        "overrides": []
+      },
+      "options": {
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "displayLabels": [],
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "id": 15,
+      "gridPos": {
+        "h": 9,
+        "w": 7,
+        "x": 10,
+        "y": 23
+      }
+    },
+    {
+      "type": "piechart",
+      "title": "Devices",
+      "description": "Sessions on mobile and desktop.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum by (browser_mobile) (count_over_time({service_name=~\"$app\"} | kind=\"event\" | logfmt | app_environment!=\"probe\" | event_name=\"session_start\" [$__range]))",
+          "queryType": "instant",
+          "editorMode": "code",
+          "legendFormat": "{{browser_mobile}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "no sessions in range"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "true"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "mobile"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#F59E0B"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "false"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "desktop"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#60A5FA"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "displayLabels": [],
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "id": 16,
+      "gridPos": {
+        "h": 9,
+        "w": 7,
+        "x": 17,
+        "y": 23
+      }
+    },
+    {
+      "type": "row",
+      "title": "Exceptions and measurements",
+      "collapsed": false,
+      "panels": [],
+      "id": 17,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      }
+    },
+    {
+      "type": "logs",
+      "title": "Exceptions",
+      "description": "The browsers' exceptions.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{service_name=~\"$app\"} | kind=\"exception\"",
+          "queryType": "range",
+          "editorMode": "code",
+          "maxLines": 100,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none",
+        "prettifyLogMessage": false,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "enableInfiniteScrolling": false
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "id": 18,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 33
+      }
+    },
+    {
+      "type": "logs",
+      "title": "Latest measurements",
+      "description": "The raw web-vitals lines, one vital each.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{service_name=~\"$app\"} | kind=\"measurement\"",
+          "queryType": "range",
+          "editorMode": "code",
+          "maxLines": 100,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none",
+        "prettifyLogMessage": false,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "enableInfiniteScrolling": false
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "id": 19,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 33
+      }
     }
-  ]
+  ],
+  "refresh": "1m",
+  "schemaVersion": 41,
+  "tags": [
+    "0xc0",
+    "applications",
+    "rum",
+    "faro"
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "app",
+        "label": "app",
+        "type": "custom",
+        "query": "offby1-cc,artistlabco-com,artistlabco-com-cms",
+        "options": [
+          {
+            "text": "offby1-cc",
+            "value": "offby1-cc",
+            "selected": true
+          },
+          {
+            "text": "artistlabco-com",
+            "value": "artistlabco-com",
+            "selected": false
+          },
+          {
+            "text": "artistlabco-com-cms",
+            "value": "artistlabco-com-cms",
+            "selected": false
+          }
+        ],
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "hide": 0,
+        "includeAll": true,
+        "multi": false,
+        "skipUrlSync": false,
+        "description": "The Faro application.",
+        "allValue": "offby1-cc|artistlabco-com|artistlabco-com-cms"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Web vitals",
+  "uid": "applications-rum",
+  "version": 1,
+  "weekStart": ""
 }

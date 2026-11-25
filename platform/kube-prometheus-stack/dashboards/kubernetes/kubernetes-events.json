@@ -1,669 +1,712 @@
 {
-  "uid": "kubernetes-events",
-  "title": "Kubernetes / Events",
-  "tags": [
-    "kubernetes",
-    "events",
-    "0xc0"
-  ],
-  "description": "What is happening in the cluster: Kubernetes events, from Loki.",
-  "schemaVersion": 39,
-  "version": 1,
-  "editable": false,
-  "graphTooltip": 1,
-  "time": {
-    "from": "now-6h",
-    "to": "now"
-  },
-  "refresh": "1m",
-  "templating": {
-    "list": []
-  },
   "annotations": {
-    "list": []
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "name": "Argo CD syncs",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#7DD3FC",
+        "expr": "sum by (name) (increase(argocd_app_sync_total{phase=\"Succeeded\"}[2m])) > 0",
+        "step": "60s",
+        "titleFormat": "sync {{name}}",
+        "textFormat": "Argo CD synced {{name}}",
+        "tagKeys": "name",
+        "useValueForTime": false
+      },
+      {
+        "name": "Releases",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#34D399",
+        "expr": "label_replace(count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}) unless count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"} offset 10m), \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")",
+        "step": "60s",
+        "titleFormat": "{{namespace}} {{version}}",
+        "textFormat": "{{image_spec}}",
+        "tagKeys": "namespace,version",
+        "useValueForTime": false
+      }
+    ]
   },
+  "description": "The cluster's events from Loki.",
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "title": "Estate",
+      "type": "link",
+      "url": "/d/home",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Apps",
+      "type": "link",
+      "url": "/d/apps",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Matchmark",
+      "type": "link",
+      "url": "/d/matchmark",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Web vitals",
+      "type": "link",
+      "url": "/d/applications-rum",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Traces",
+      "type": "link",
+      "url": "/d/traces-overall",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Platform",
+      "type": "dashboards",
+      "tags": [
+        "platform"
+      ],
+      "asDropdown": true,
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    }
+  ],
   "panels": [
     {
       "type": "stat",
       "title": "Events",
-      "description": "Kubernetes events over the range. The collectors' gateway sends the Kubernetes events to Loki; assumes JSON lines with service_name unknown_service.",
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
+      "description": "Kubernetes events in the range.",
+      "transparent": true,
       "targets": [
         {
-          "refId": "A",
           "datasource": {
             "type": "loki",
             "uid": "loki"
           },
           "expr": "sum(count_over_time({service_name=\"unknown_service\"} | json | object_reason != \"\" [$__auto]))",
-          "queryType": "range"
+          "queryType": "range",
+          "editorMode": "code",
+          "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#60A5FA"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "blue",
+                "color": "#E7ECF3",
                 "value": null
               }
             ]
           },
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
           "noValue": "0"
         },
         "overrides": []
       },
       "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "textMode": "auto",
         "reduceOptions": {
           "calcs": [
             "sum"
           ],
           "fields": "",
           "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "orientation": "auto",
+        "showPercentChange": true,
+        "percentChangeColorMode": "standard",
+        "text": {
+          "titleSize": 11,
+          "valueSize": 34
         }
       },
-      "gridPos": {
-        "h": 4,
-        "w": 8,
-        "x": 0,
-        "y": 0
-      },
-      "links": [
-        {
-          "title": "Events",
-          "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{service_name%3D%5C%22unknown_service%5C%22}%20%7C%20json%20%7C%20object_reason%20%21%3D%20%5C%22%5C%22%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
-          "targetBlank": false
-        }
-      ],
-      "id": 1
-    },
-    {
-      "type": "stat",
-      "title": "Warnings",
-      "description": "Events of type Warning over the range. The collectors' gateway sends the Kubernetes events to Loki; assumes JSON lines with service_name unknown_service.",
       "datasource": {
         "type": "loki",
         "uid": "loki"
       },
+      "id": 1,
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Warnings",
+      "description": "Events of type Warning.",
+      "transparent": true,
       "targets": [
         {
-          "refId": "A",
           "datasource": {
             "type": "loki",
             "uid": "loki"
           },
           "expr": "sum(count_over_time({service_name=\"unknown_service\"} | json | object_reason != \"\" | object_type=\"Warning\" [$__auto]))",
-          "queryType": "range"
+          "queryType": "range",
+          "editorMode": "code",
+          "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#FBBF24"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#E7ECF3",
                 "value": null
-              },
-              {
-                "color": "#EAB839",
-                "value": 1
-              },
-              {
-                "color": "red",
-                "value": 20
               }
             ]
           },
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
           "noValue": "0"
         },
         "overrides": []
       },
       "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "textMode": "auto",
         "reduceOptions": {
           "calcs": [
             "sum"
           ],
           "fields": "",
           "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "orientation": "auto",
+        "showPercentChange": true,
+        "percentChangeColorMode": "inverted",
+        "text": {
+          "titleSize": 11,
+          "valueSize": 34
         }
       },
-      "gridPos": {
-        "h": 4,
-        "w": 8,
-        "x": 8,
-        "y": 0
-      },
-      "links": [
-        {
-          "title": "Warnings",
-          "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{service_name%3D%5C%22unknown_service%5C%22}%20%7C%20json%20%7C%20object_reason%20%21%3D%20%5C%22%5C%22%20%7C%20object_type%3D%5C%22Warning%5C%22%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
-          "targetBlank": false
-        }
-      ],
-      "id": 2
-    },
-    {
-      "type": "stat",
-      "title": "Normal",
-      "description": "Events of type Normal over the range. The collectors' gateway sends the Kubernetes events to Loki; assumes JSON lines with service_name unknown_service.",
       "datasource": {
         "type": "loki",
         "uid": "loki"
       },
+      "id": 2,
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 8,
+        "y": 0
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Normal",
+      "description": "Events of type Normal.",
+      "transparent": true,
       "targets": [
         {
-          "refId": "A",
           "datasource": {
             "type": "loki",
             "uid": "loki"
           },
           "expr": "sum(count_over_time({service_name=\"unknown_service\"} | json | object_reason != \"\" | object_type=\"Normal\" [$__auto]))",
-          "queryType": "range"
+          "queryType": "range",
+          "editorMode": "code",
+          "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#C9D2DE"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "blue",
+                "color": "#E7ECF3",
                 "value": null
               }
             ]
           },
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
           "noValue": "0"
         },
         "overrides": []
       },
       "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "textMode": "auto",
         "reduceOptions": {
           "calcs": [
             "sum"
           ],
           "fields": "",
           "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "orientation": "auto",
+        "showPercentChange": true,
+        "percentChangeColorMode": "standard",
+        "text": {
+          "titleSize": 11,
+          "valueSize": 34
         }
       },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "id": 3,
       "gridPos": {
-        "h": 4,
+        "h": 5,
         "w": 8,
         "x": 16,
         "y": 0
-      },
-      "id": 3
-    },
-    {
-      "type": "row",
-      "title": "Breakdown",
-      "collapsed": true,
-      "panels": [
-        {
-          "type": "piechart",
-          "title": "Severity",
-          "description": "Share of Normal and Warning events over the range. The collectors' gateway sends the Kubernetes events to Loki; assumes JSON lines with service_name unknown_service.",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              },
-              "expr": "sum by (object_type) (count_over_time({service_name=\"unknown_service\"} | json | object_reason != \"\" [$__range]))",
-              "legendFormat": "{{object_type}}",
-              "queryType": "instant"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short",
-              "decimals": 0,
-              "color": {
-                "mode": "palette-classic"
-              }
-            },
-            "overrides": [
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Warning"
-                },
-                "properties": [
-                  {
-                    "id": "color",
-                    "value": {
-                      "mode": "fixed",
-                      "fixedColor": "#EAB839"
-                    }
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Normal"
-                },
-                "properties": [
-                  {
-                    "id": "color",
-                    "value": {
-                      "mode": "fixed",
-                      "fixedColor": "green"
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          "options": {
-            "pieType": "donut",
-            "legend": {
-              "displayMode": "table",
-              "placement": "right",
-              "values": [
-                "value"
-              ]
-            },
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "values": false
-            }
-          },
-          "id": 5,
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 5
-          },
-          "links": [
-            {
-              "title": "Events",
-              "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{service_name%3D%5C%22unknown_service%5C%22}%20%7C%20json%20%7C%20object_reason%20%21%3D%20%5C%22%5C%22%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
-              "targetBlank": false
-            }
-          ]
-        },
-        {
-          "type": "barchart",
-          "title": "Severity by namespace",
-          "description": "Events by namespace and severity over the range. The collectors' gateway sends the Kubernetes events to Loki; assumes JSON lines with service_name unknown_service.",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              },
-              "expr": "sum by (object_metadata_namespace, object_type) (count_over_time({service_name=\"unknown_service\"} | json | object_reason != \"\" [$__range]))",
-              "legendFormat": "{{object_metadata_namespace}} {{object_type}}",
-              "queryType": "instant"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short",
-              "decimals": 0,
-              "custom": {
-                "gradientMode": "opacity",
-                "fillOpacity": 80
-              },
-              "color": {
-                "mode": "palette-classic"
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom"
-            },
-            "xTickLabelRotation": 0
-          },
-          "id": 6,
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 5
-          },
-          "links": [
-            {
-              "title": "Events",
-              "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{service_name%3D%5C%22unknown_service%5C%22}%20%7C%20json%20%7C%20object_reason%20%21%3D%20%5C%22%5C%22%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
-              "targetBlank": false
-            }
-          ]
-        },
-        {
-          "type": "timeseries",
-          "title": "Event reason by namespace",
-          "description": "Events per interval by reason and namespace. The collectors' gateway sends the Kubernetes events to Loki; assumes JSON lines with service_name unknown_service.",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              },
-              "expr": "sum by (object_reason, object_metadata_namespace) (count_over_time({service_name=\"unknown_service\"} | json | object_reason != \"\" [$__auto]))",
-              "legendFormat": "{{object_reason}} {{object_metadata_namespace}}",
-              "queryType": "range"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short",
-              "custom": {
-                "fillOpacity": 20,
-                "lineWidth": 1,
-                "stacking": {
-                  "mode": "normal"
-                },
-                "gradientMode": "opacity",
-                "showPoints": "never"
-              },
-              "color": {
-                "mode": "palette-classic"
-              },
-              "decimals": 2,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "table",
-              "placement": "bottom",
-              "calcs": [
-                "lastNotNull"
-              ]
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "id": 7,
-          "gridPos": {
-            "h": 8,
-            "w": 24,
-            "x": 0,
-            "y": 13
-          },
-          "links": [
-            {
-              "title": "Events",
-              "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{service_name%3D%5C%22unknown_service%5C%22}%20%7C%20json%20%7C%20object_reason%20%21%3D%20%5C%22%5C%22%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
-              "targetBlank": false
-            }
-          ]
-        }
-      ],
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 4
-      },
-      "id": 4
+      }
     },
     {
       "type": "row",
       "title": "Events",
-      "collapsed": true,
-      "panels": [
-        {
-          "type": "table",
-          "title": "Events",
-          "description": "Counts for the range, by namespace, type and reason. The collectors' gateway sends the Kubernetes events to Loki; assumes JSON lines with service_name unknown_service.",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              },
-              "expr": "sum by (object_metadata_namespace, object_type, object_reason) (count_over_time({service_name=\"unknown_service\"} | json | object_reason != \"\" [$__range]))",
-              "legendFormat": "__auto",
-              "queryType": "instant"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "custom": {
-                "cellOptions": {
-                  "type": "auto"
-                }
-              }
-            },
-            "overrides": [
-              {
-                "matcher": {
-                  "id": "byType",
-                  "options": "number"
-                },
-                "properties": [
-                  {
-                    "id": "custom.cellOptions",
-                    "value": {
-                      "type": "color-background",
-                      "mode": "gradient"
-                    }
-                  },
-                  {
-                    "id": "thresholds",
-                    "value": {
-                      "mode": "absolute",
-                      "steps": [
-                        {
-                          "color": "green",
-                          "value": null
-                        },
-                        {
-                          "color": "#EAB839",
-                          "value": 10
-                        },
-                        {
-                          "color": "red",
-                          "value": 50
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "id": "color",
-                    "value": {
-                      "mode": "thresholds"
-                    }
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "object_type"
-                },
-                "properties": [
-                  {
-                    "id": "mappings",
-                    "value": [
-                      {
-                        "type": "value",
-                        "options": {
-                          "Warning": {
-                            "color": "#EAB839",
-                            "text": "Warning",
-                            "index": 1
-                          },
-                          "Normal": {
-                            "color": "green",
-                            "text": "Normal",
-                            "index": 0
-                          }
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "id": "custom.cellOptions",
-                    "value": {
-                      "type": "color-text"
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          "options": {
-            "showHeader": true,
-            "cellHeight": "sm"
-          },
-          "id": 9,
-          "gridPos": {
-            "h": 8,
-            "w": 24,
-            "x": 0,
-            "y": 6
-          },
-          "links": [
-            {
-              "title": "Events",
-              "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{service_name%3D%5C%22unknown_service%5C%22}%20%7C%20json%20%7C%20object_reason%20%21%3D%20%5C%22%5C%22%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
-              "targetBlank": false
-            }
-          ]
-        },
-        {
-          "type": "logs",
-          "title": "Recent events",
-          "description": "The events' own lines. The collectors' gateway sends the Kubernetes events to Loki; assumes JSON lines with service_name unknown_service.",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              },
-              "expr": "{service_name=\"unknown_service\"} | json | object_reason != \"\"",
-              "queryType": "range"
-            }
-          ],
-          "options": {
-            "showTime": true,
-            "wrapLogMessage": true,
-            "sortOrder": "Descending",
-            "enableLogDetails": true
-          },
-          "gridPos": {
-            "h": 10,
-            "w": 24,
-            "x": 0,
-            "y": 14
-          },
-          "id": 10
-        }
-      ],
+      "collapsed": false,
+      "panels": [],
+      "id": 4,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
         "y": 5
-      },
-      "id": 8
-    }
-  ],
-  "links": [
-    {
-      "type": "link",
-      "title": "Home",
-      "url": "/d/home",
-      "icon": "dashboard",
-      "targetBlank": false,
-      "keepTime": true,
-      "includeVars": false,
-      "tags": [],
-      "asDropdown": false
+      }
     },
     {
-      "type": "dashboards",
-      "title": "0xc0",
-      "tags": [
-        "0xc0"
+      "type": "timeseries",
+      "title": "Warnings by reason",
+      "description": "Warning events per interval, by reason.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum by (object_reason) (count_over_time({service_name=\"unknown_service\"} | json | object_reason != \"\" | object_type=\"Warning\" [$__auto]))",
+          "queryType": "range",
+          "editorMode": "code",
+          "legendFormat": "{{object_reason}}",
+          "refId": "A"
+        }
       ],
-      "asDropdown": false,
-      "asTabs": false,
-      "includeVars": false,
-      "keepTime": true,
-      "icon": "external link",
-      "targetBlank": false
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 0,
+            "fillOpacity": 70,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": true,
+            "lineInterpolation": "smooth",
+            "axisBorderShow": false,
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "barAlignment": 0
+          },
+          "noValue": "no warnings in range"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "id": 5,
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 0,
+        "y": 6
+      }
+    },
+    {
+      "type": "bargauge",
+      "title": "Warnings by namespace",
+      "description": "Warning events in the range, by namespace.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum by (object_metadata_namespace) (count_over_time({service_name=\"unknown_service\"} | json | object_reason != \"\" | object_type=\"Warning\" [$__range]))",
+          "queryType": "instant",
+          "editorMode": "code",
+          "legendFormat": "{{object_metadata_namespace}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#FBBF24"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "no warnings in range"
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "basic",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "top",
+        "sizing": "auto",
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "maxVizHeight": 24
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "id": 6,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 6
+      }
+    },
+    {
+      "type": "table",
+      "title": "By namespace and reason",
+      "description": "Events in the range, by namespace, type and reason.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum by (object_metadata_namespace, object_type, object_reason) (count_over_time({service_name=\"unknown_service\"} | json | object_reason != \"\" [$__range]))",
+          "queryType": "instant",
+          "editorMode": "code",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "type"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "Warning": {
+                        "color": "#FBBF24",
+                        "text": "● Warning"
+                      },
+                      "Normal": {
+                        "color": "#8D99AB",
+                        "text": "● Normal"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        },
+        "sortBy": [
+          {
+            "displayName": "events",
+            "desc": true
+          }
+        ]
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "object_metadata_namespace": "namespace",
+              "object_type": "type",
+              "object_reason": "reason",
+              "Value": "events"
+            }
+          }
+        }
+      ],
+      "id": 7,
+      "gridPos": {
+        "h": 10,
+        "w": 10,
+        "x": 0,
+        "y": 14
+      }
+    },
+    {
+      "type": "logs",
+      "title": "Recent events",
+      "description": "The latest events, as the gateway sends them to Loki: JSON lines with service_name unknown_service.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{service_name=\"unknown_service\"} | json | object_reason != \"\"",
+          "queryType": "range",
+          "editorMode": "code",
+          "maxLines": 200,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none",
+        "prettifyLogMessage": false,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "enableInfiniteScrolling": false
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "id": 8,
+      "gridPos": {
+        "h": 10,
+        "w": 14,
+        "x": 10,
+        "y": 14
+      }
     }
   ],
-  "id": null
+  "refresh": "1m",
+  "schemaVersion": 41,
+  "tags": [
+    "0xc0",
+    "platform",
+    "kubernetes",
+    "events"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Kubernetes / Events",
+  "uid": "kubernetes-events",
+  "version": 1,
+  "weekStart": ""
 }

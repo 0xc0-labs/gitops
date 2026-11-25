@@ -106,6 +106,12 @@ grafana:
   # Dashboards and data sources come from git: nothing to keep.
   persistence:
     enabled: false
+  # Downloaded from grafana.com at each start, the namespace's egress being
+  # open. Business Charts draws the sankey and the sunburst, Business Text the
+  # blocks Grafana's own panels cannot (README, Dashboards).
+  plugins:
+    - volkovlabs-echarts-panel@7.3.0
+    - marcusolsson-dynamictext-panel@6.3.1
   defaultDashboardsEnabled: true
   # Home is not loaded by the sidecar: Grafana's home dashboard is a file path,
   # and the sidecar's folders are not a stable one. Its ConfigMap
@@ -202,6 +208,10 @@ kube-state-metrics:
     sha: sha256:42cfe3723a5f058171c627537fb57a3ea0f26e4380fa18555a95cb1a1b4cfc5b
   # Not the chart's own wildcard: it would let the pool taints through.
   tolerations: []
+  # The node pool as kube_node_labels{label_0xc0_cc_pool}, which the
+  # dashboards group nodes, pods and capacity by.
+  metricLabelsAllowlist:
+    - nodes=[0xc0.cc/pool]
   resources:
     requests:
       cpu: 10m

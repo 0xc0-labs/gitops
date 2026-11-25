@@ -76,12 +76,14 @@ and data sources come from git: an edit made in the UI is lost on a restart.
 ## Dashboards
 
 Every dashboard is provisioned from git and read-only in the UI. The chart's
-defaults cover the Kubernetes ones; the rest are JSON files in `dashboards/<folder>/`, each turned by
-`kustomization.yaml` into a ConfigMap labelled `grafana_dashboard: "1"` with a
-`grafana_folder` annotation, which Grafana's sidecar loads into that folder:
-`Kubernetes`, `Platform`, `Applications`, `Traces`. The component's `Prune=false`
-reaches the ConfigMaps: deleting a dashboard's entry leaves its ConfigMap to
-delete by hand.
+defaults cover the Kubernetes ones; the rest are JSON files in
+`dashboards/<folder>/`, each turned by `kustomization.yaml` into a ConfigMap
+labelled `grafana_dashboard: "1"` with a `grafana_folder` annotation, which
+Grafana's sidecar loads into that folder: `Kubernetes`, `Platform`,
+`Applications`, `Traces`. `Estate` is the exception: Grafana's home dashboard,
+mounted as a file (`values.yaml`). The component's `Prune=false` reaches the
+ConfigMaps: deleting a dashboard's entry leaves its ConfigMap to delete by
+hand.
 
 To add one, put its JSON in `dashboards/<folder>/<name>.json` with a stable
 `uid`, `"id": null` and its data sources as `{"type": "prometheus", "uid":
@@ -89,103 +91,72 @@ To add one, put its JSON in `dashboards/<folder>/<name>.json` with a stable
 entry beside the others with its folder. One ConfigMap per dashboard: Argo CD's
 last-applied annotation caps one near 256 KiB.
 
-### Visual language
+### The boards
 
-Every dashboard of ours follows it, the vendored ones included (their queries
-stay, their look does not). The chart's defaults stay as shipped. `Home` is the
-estate on one screen and Grafana's home dashboard.
-
-- **Structure.** A dashboard opens with a row of stats, the few numbers that
-  say whether things are fine, then detail rows, collapsed below the fold.
-- **The panel follows the data.**
-
-  | Data | Panel |
-  |---|---|
-  | A current value | `stat`, with a sparkline and thresholds |
-  | A trend | `timeseries`, gradient fill, thresholds as lines |
-  | A latency distribution | `heatmap` |
-  | A top-N, or a saturation across many things | `bargauge` |
-  | Pod, target or sync states over time | `state-timeline` |
-  | One bounded saturation (disk, memory) | `gauge`, only then |
-  | An inventory | `table`, with cell colouring |
-  | A service map | `nodeGraph` |
-  | Loki lines | `logs` |
-  | A share of 2 to 5 parts | `piechart`, only then |
-
-- **One palette.** Thresholds are green, amber, red (`green`, `#EAB839`,
-  `red`) and mean the same everywhere: green fine, amber look at it, red act.
-  Series use Grafana's `palette-classic`. Units are always set (`bytes`,
-  `percent`, `reqps`, `s`, `short`) and decimals are sensible (0 for counts,
-  1 or 2 for ratios and durations).
-- **Every panel has a one-line description**; a panel whose data does not
-  exist says so there. Variables (`namespace`, `service`, `node`) where they
-  help, each with `All`.
-- **Links** go from a service's panel to its traces, its logs and its own
-  dashboard, and every dashboard links back to `Home` (a dashboard link by tag,
-  `0xc0`).
-- **Nothing is lost in a restyle.** A panel keeps its queries and its series.
-
-Where each dashboard of OpenObserve, which these replaced (workspace#290), went:
-
-| OpenObserve dashboard | In Grafana | Folder |
+| Board | `uid` | For |
 |---|---|---|
-| `kubernetes-clusters-overview` | Default: `Kubernetes / Compute Resources / Cluster` | Kubernetes |
-| `kubernetes-nodes` | Default: `Kubernetes / Compute Resources / Nodes Overview` | Kubernetes |
-| `kubernetes-nodes-pressure` | Default: `Node Exporter / USE Method / Cluster` and `/ Node` | Kubernetes |
-| `kubernetes-node-pods` | Default: `Kubernetes / Compute Resources / Node (Pods)` | Kubernetes |
-| `kubernetes-namespaces` | Default: `Kubernetes / Compute Resources / Cluster`, its per-namespace tables | Kubernetes |
-| `kubernetes-namespace-pods` | Default: `Kubernetes / Compute Resources / Namespace (Pods)` | Kubernetes |
-| `kubernetes-namespace-pod` | Default: `Kubernetes / Compute Resources / Pod` | Kubernetes |
-| `kubernetes-api-server` | Default: `Kubernetes / API server` | Kubernetes |
-| `etcd` | Default: `etcd` | Kubernetes |
-| `host-metrics` | Default: `Node Exporter / Nodes` | Kubernetes |
-| `argocd-monitoring` | Imported: `platform/argocd.json` | Platform |
-| `longhorn` | Imported: `platform/longhorn.json` | Platform |
-| `traefik` | Imported: `platform/traefik.json` | Platform |
-| `vault` | Imported: `platform/vault.json` | Platform |
-| `crowdsec` | Imported: `platform/crowdsec.json` | Platform |
-| `matchmark` | Rebuilt: `applications/matchmark.json`, TraceQL | Applications |
-| `apps` | Rebuilt: `applications/apps.json`, PromQL and LogQL | Applications |
-| `traces-overall` | Rebuilt: `traces/traces-overall.json`, TraceQL and the service map | Traces |
-| `traces-by-service` | Rebuilt: `traces/traces-by-service.json`, the same for one service | Traces |
-| `kubernetes-events` | Rebuilt: `kubernetes/kubernetes-events.json`, LogQL | Kubernetes |
-| `openobserve` | Dropped: OpenObserve watching itself | |
+| Estate | `home` | The estate on one screen: a health score, the KPI strip, the map of hosts, pools and nodes, traffic from entrypoint to service, golden signals per service, memory by pool, the log pulse, pool capacity, and changes |
+| Apps | `apps` | One application, chosen with `app`: header, availability against its SLO, web vitals, traffic, top pages and devices, two releases compared, latency, errors and pods |
+| Matchmark | `matchmark` | Its API, the factory worker and Temporal, and its tasks while they run |
+| Web vitals | `applications-rum` | Real-user web vitals across the sites, from Faro |
+| Traces / Overall, Traces / By service | `traces-overall`, `traces-by-service` | Spans, latency and the service map, for every service or one |
+| Argo CD, Traefik, Vault, Longhorn, CrowdSec, Kubernetes / Events | `argocd`, `traefik`, `vault`, `longhorn`, `crowdsec`, `kubernetes-events` | The platform, each trimmed to what this estate uses; the `Platform` menu lists them by the tag `platform` |
 
-Beyond those, `applications/rum.json`, `Applications / RUM`, is new: the sites'
-RUM from Faro (`platform/opentelemetry-collector`, Faro), as LogQL on its
-records in Loki and TraceQL on its spans in Tempo. It is ours: Grafana's
-published Faro dashboards read the labels Alloy gives and Grafana Cloud's
-Frontend Observability, which this stack has neither of.
+### Design
 
-### Imported ones
+One look across every board, a control room (operator, 2026-11-25).
 
-Each was edited only to take our data source (`__inputs` removed, `"id": null`,
-a fixed `uid`); Traefik's keeps its own data source variable.
+- **Palette.** Grafana's dark ground, every panel transparent over it. Where a
+  block draws its own surface: `#10151C`, inner `#0D1218` / `#131A23`, lines
+  `#1F2733`. Text `#E7ECF3`, secondary `#C9D2DE`, labels `#8D99AB`.
+- **Status.** ok `#34D399`, warning `#FBBF24`, critical `#FB7185`, and always
+  with a word or a sign beside the colour (`● ready`, `▲ higher`).
+- **Series.** blue `#60A5FA` for traffic, requests and CPU; amber `#F59E0B`
+  for latency and memory; violet `#C4B5FD` and cyan `#7DD3FC` for the rest.
+  Pools: infra cyan, apps amber, sandbox violet.
+- **Type.** Grafana's Inter. The Business Text blocks set numbers, names and
+  versions in Roboto Mono, labels small, uppercase and letter-spaced, and
+  headings in Space Grotesk where the browser has it. Grafana's own panels
+  take no font setting.
+- **Stats.** The value coloured by its threshold or its series, never the
+  panel; the change across the range under it (`showPercentChange`, inverted
+  where lower is better); a sparkline along the bottom.
+- **Layout.** A KPI strip first, then the blocks that matter most; sections
+  are open rows, none collapsed.
+- **Navigation.** The board links across the top, in this order on every
+  board: Estate, Apps, Matchmark, Web vitals, Traces, Platform. A row of
+  Golden signals opens the App board with its app.
+- **Annotations**, on every time series of every board: `Argo CD syncs`, an
+  increase of `argocd_app_sync_total`; `Releases`, a new image tag of ours in
+  an application's namespace, from `kube_pod_container_info`, which is also
+  how a promotion shows. OpenTofu applies leave no metric.
 
-| File | Source | Licence |
-|---|---|---|
-| `argocd.json` | [`argoproj/argo-cd`, `examples/dashboard.json`, tag `v3.6.3`](https://github.com/argoproj/argo-cd/blob/v3.6.3/examples/dashboard.json) | Apache-2.0 |
-| `vault.json` | [`adinhodovic/vault-mixin`, `dashboards_out/vault-overview.json`, commit `51529a7`](https://github.com/adinhodovic/vault-mixin/blob/51529a79ea4bef5ae75c62cf8bbeeda621d640c2/dashboards_out/vault-overview.json) | Apache-2.0 |
-| `crowdsec.json` | [`crowdsecurity/grafana-dashboards`, `dashboards_v5/Crowdsec Overview.json`, commit `0d34f68`](https://github.com/crowdsecurity/grafana-dashboards/tree/0d34f686930aab1f11562bdf664ffad60c567e39/dashboards_v5) | MIT |
-| `traefik.json` | [grafana.com 17347](https://grafana.com/grafana/dashboards/17347), revision 9, published by Traefik Labs | none stated on the page |
-| `longhorn.json` | [grafana.com 17626](https://grafana.com/grafana/dashboards/17626), revision 1, the Longhorn example for v1.4.0 | none stated on the page |
+### Sources
 
-### Panels with a caveat
+| What | Where it comes from |
+|---|---|
+| Node pools | `kube_node_labels{label_0xc0_cc_pool}`: kube-state-metrics exports the `0xc0.cc/pool` label (`metricLabelsAllowlist` in `values.yaml`) |
+| Node CPU and memory | node-exporter, named by `node_uname_info`'s `nodename` |
+| Traffic, golden signals, availability | Traefik's `traefik_entrypoint_*` and `traefik_service_*`. A service is the part of `exported_service` after `-svc-`; an application is the namespace after `httproute-` |
+| Service maps, calls between services | The collectors' `servicegraph` connector (`traces_service_graph_*`). Peers known only by a pod IP, or `unknown`, are Traefik's backends that send no spans: the panels leave them out |
+| Versions | The image tag in `kube_pod_container_info`'s `image_spec`, `service.version` on spans, `app_version` on Faro's lines |
+| Web vitals, pages, devices, browser exceptions | Faro's lines in Loki: `kind` (structured metadata) tells them from the container logs; one vital per `type=web-vitals` line, `value_<vital>`; the orchestrator's probes (`app_environment=probe`) left out |
+| Log levels | Loki's `detected_level`, set to lower case in the query |
+| Vault tokens | `vault_token_count_by_auth` and `…_by_ttl`, periodic gauges, read through `last_over_time(…[15m])`. No audit device is enabled, so there is no audit panel |
+| Longhorn | Each volume metric comes from several managers and its `node` is the reporter's: read once per volume (`max by (volume)`). Replicas per node from `longhorn_replica_info` |
+| Matchmark's tasks | `matchmark.task` and `matchmark.attempt` spans, which exist only while tasks run: the panels say "no tasks in this range" otherwise, and `app` and `project` are free-text filters |
 
-A panel whose data is not what its name suggests says so in its description:
+### Plugins
 
-- **Matchmark and the trace dashboards, their time series and aggregate
-  tables** are TraceQL metrics queries, which Tempo answers with its metrics
-  generator's `local-blocks` processor (`platform/tempo`). The TraceQL search
-  tables of `Failures` and the `Latest traces` tables do not need it.
-- **The service maps** read `traces_service_graph_*`, which the collectors'
-  gateway makes (its `servicegraph` connector) and sends to Prometheus.
-- **`Kubernetes / Events`**: the gateway sends the events to Loki. Its queries
-  assume they arrive as JSON lines with `service_name` `unknown_service`.
-- **`Apps`' memory and CPU** read cAdvisor in Prometheus.
-- **Argo CD's panels** read the four `ServiceMonitor`s in `argocd`, which
-  `infrastructure`'s role installs with Argo CD (RKE2's helm-controller) and
-  Prometheus scrapes.
+`grafana.plugins` in `values.yaml`, pinned, downloaded at each start:
+
+| Plugin | For |
+|---|---|
+| Business Charts, `volkovlabs-echarts-panel` | The traffic sankey and the memory sunburst |
+| Business Text, `marcusolsson-dynamictext-panel` | The estate's health ring |
+
+The estate map is Grafana's Canvas: each node's CPU, memory, pods and Ready
+are field-bound values, coloured by threshold, since Canvas draws no bar.
 
 ## Control plane
 

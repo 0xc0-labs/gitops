@@ -1,1179 +1,1129 @@
 {
-  "uid": "traces-by-service",
-  "title": "Traces / By service",
-  "tags": [
-    "traces",
-    "0xc0"
-  ],
-  "description": "Span rate, errors and latency from Tempo for one service.",
-  "schemaVersion": 39,
-  "version": 1,
-  "editable": false,
-  "graphTooltip": 1,
-  "time": {
-    "from": "now-6h",
-    "to": "now"
-  },
-  "refresh": "1m",
-  "templating": {
+  "annotations": {
     "list": [
       {
-        "name": "service",
-        "label": "Service",
-        "type": "query",
+        "builtIn": 1,
         "datasource": {
-          "type": "tempo",
-          "uid": "tempo"
+          "type": "grafana",
+          "uid": "-- Grafana --"
         },
-        "query": {
-          "refId": "var",
-          "type": 1,
-          "label": "resource.service.name"
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "name": "Argo CD syncs",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
         },
-        "refresh": 2,
-        "multi": false,
-        "includeAll": false,
-        "sort": 1
+        "enable": true,
+        "hide": false,
+        "iconColor": "#7DD3FC",
+        "expr": "sum by (name) (increase(argocd_app_sync_total{phase=\"Succeeded\"}[2m])) > 0",
+        "step": "60s",
+        "titleFormat": "sync {{name}}",
+        "textFormat": "Argo CD synced {{name}}",
+        "tagKeys": "name",
+        "useValueForTime": false
+      },
+      {
+        "name": "Releases",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#34D399",
+        "expr": "label_replace(count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}) unless count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"} offset 10m), \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")",
+        "step": "60s",
+        "titleFormat": "{{namespace}} {{version}}",
+        "textFormat": "{{image_spec}}",
+        "tagKeys": "namespace,version",
+        "useValueForTime": false
       }
     ]
   },
-  "annotations": {
-    "list": []
-  },
+  "description": "One service's spans from Tempo, its calls and its logs.",
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "title": "Estate",
+      "type": "link",
+      "url": "/d/home",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Apps",
+      "type": "link",
+      "url": "/d/apps",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Matchmark",
+      "type": "link",
+      "url": "/d/matchmark",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Web vitals",
+      "type": "link",
+      "url": "/d/applications-rum",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Traces",
+      "type": "link",
+      "url": "/d/traces-overall",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Platform",
+      "type": "dashboards",
+      "tags": [
+        "platform"
+      ],
+      "asDropdown": true,
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    }
+  ],
   "panels": [
     {
       "type": "stat",
-      "title": "Spans/s",
-      "description": "Spans per second. TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
+      "title": "Spans / s",
+      "description": "The service's spans.",
+      "transparent": true,
       "targets": [
         {
-          "refId": "A",
           "datasource": {
             "type": "tempo",
             "uid": "tempo"
           },
           "queryType": "traceql",
-          "query": "{ resource.service.name = \"$service\" } | rate()",
-          "metricsQueryType": "range"
+          "query": "{resource.service.name=~\"${service:raw}\"} | rate()",
+          "metricsQueryType": "range",
+          "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "ops",
+          "unit": "reqps",
+          "decimals": 2,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#60A5FA"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "blue",
+                "color": "#E7ECF3",
                 "value": null
               }
             ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 2,
-          "noValue": "-"
+          }
         },
         "overrides": []
       },
       "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "textMode": "auto",
         "reduceOptions": {
           "calcs": [
-            "mean"
+            "lastNotNull"
           ],
           "fields": "",
           "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "orientation": "auto",
+        "showPercentChange": true,
+        "percentChangeColorMode": "standard",
+        "text": {
+          "titleSize": 11,
+          "valueSize": 34
         }
       },
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "id": 1,
       "gridPos": {
-        "h": 4,
+        "h": 5,
         "w": 6,
         "x": 0,
         "y": 0
-      },
-      "links": [
-        {
-          "title": "Logs of $service",
-          "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{service_name%3D%5C%22${service}%5C%22}%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
-          "targetBlank": false
-        },
-        {
-          "title": "All services",
-          "url": "/d/traces-overall",
-          "targetBlank": false
-        }
-      ],
-      "id": 1
+      }
     },
     {
       "type": "stat",
-      "title": "Error spans/s",
-      "description": "Spans with status error, per second. TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
+      "title": "Error spans / s",
+      "description": "Its spans with an error status.",
+      "transparent": true,
       "targets": [
         {
-          "refId": "A",
           "datasource": {
             "type": "tempo",
             "uid": "tempo"
           },
           "queryType": "traceql",
-          "query": "{ resource.service.name = \"$service\" && status = error } | rate()",
-          "metricsQueryType": "range"
+          "query": "{resource.service.name=~\"${service:raw}\" && status = error} | rate()",
+          "metricsQueryType": "range",
+          "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "ops",
+          "unit": "reqps",
+          "decimals": 3,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#FB7185"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#E7ECF3",
                 "value": null
-              },
-              {
-                "color": "#EAB839",
-                "value": 0.01
-              },
-              {
-                "color": "red",
-                "value": 0.1
               }
             ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 2,
-          "noValue": "0"
+          }
         },
         "overrides": []
       },
       "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "textMode": "auto",
         "reduceOptions": {
           "calcs": [
-            "mean"
+            "lastNotNull"
           ],
           "fields": "",
           "values": false
-        }
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 6,
-        "y": 0
-      },
-      "links": [
-        {
-          "title": "Logs of $service",
-          "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{service_name%3D%5C%22${service}%5C%22}%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
-          "targetBlank": false
         },
-        {
-          "title": "All services",
-          "url": "/d/traces-overall",
-          "targetBlank": false
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "orientation": "auto",
+        "showPercentChange": true,
+        "percentChangeColorMode": "inverted",
+        "text": {
+          "titleSize": 11,
+          "valueSize": 34
         }
-      ],
-      "id": 2
-    },
-    {
-      "type": "stat",
-      "title": "Latency p95",
-      "description": "95th percentile of span duration. TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
+      },
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
       },
+      "id": 2,
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      }
+    },
+    {
+      "type": "stat",
+      "title": "p95",
+      "description": "95th percentile of its server spans.",
+      "transparent": true,
       "targets": [
         {
-          "refId": "A",
           "datasource": {
             "type": "tempo",
             "uid": "tempo"
           },
           "queryType": "traceql",
-          "query": "{ resource.service.name = \"$service\" } | quantile_over_time(duration, .95)",
-          "metricsQueryType": "range"
+          "query": "{resource.service.name=~\"${service:raw}\" && kind = server} | quantile_over_time(duration, .95)",
+          "metricsQueryType": "range",
+          "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "s",
+          "decimals": 3,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#F59E0B"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#E7ECF3",
                 "value": null
-              },
-              {
-                "color": "#EAB839",
-                "value": 1
-              },
-              {
-                "color": "red",
-                "value": 3
               }
             ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 2,
-          "noValue": "-"
+          }
         },
         "overrides": []
       },
       "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "textMode": "auto",
         "reduceOptions": {
           "calcs": [
-            "mean"
+            "lastNotNull"
           ],
           "fields": "",
           "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "orientation": "auto",
+        "showPercentChange": true,
+        "percentChangeColorMode": "inverted",
+        "text": {
+          "titleSize": 11,
+          "valueSize": 34
         }
       },
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "id": 3,
       "gridPos": {
-        "h": 4,
+        "h": 5,
         "w": 6,
         "x": 12,
         "y": 0
-      },
-      "links": [
-        {
-          "title": "Logs of $service",
-          "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{service_name%3D%5C%22${service}%5C%22}%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
-          "targetBlank": false
-        },
-        {
-          "title": "All services",
-          "url": "/d/traces-overall",
-          "targetBlank": false
-        }
-      ],
-      "id": 3
+      }
     },
     {
       "type": "stat",
       "title": "Max duration",
-      "description": "The longest span in the range. TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
+      "description": "Its slowest server span.",
+      "transparent": true,
       "targets": [
         {
-          "refId": "A",
           "datasource": {
             "type": "tempo",
             "uid": "tempo"
           },
           "queryType": "traceql",
-          "query": "{ resource.service.name = \"$service\" } | max_over_time(duration)",
-          "metricsQueryType": "range"
+          "query": "{resource.service.name=~\"${service:raw}\" && kind = server} | max_over_time(duration)",
+          "metricsQueryType": "range",
+          "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "s",
+          "decimals": 2,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#C9D2DE"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#E7ECF3",
                 "value": null
-              },
-              {
-                "color": "#EAB839",
-                "value": 3
-              },
-              {
-                "color": "red",
-                "value": 10
               }
             ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 2,
-          "noValue": "-"
+          }
         },
         "overrides": []
       },
       "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "textMode": "auto",
         "reduceOptions": {
           "calcs": [
-            "max"
+            "lastNotNull"
           ],
           "fields": "",
           "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "orientation": "auto",
+        "showPercentChange": true,
+        "percentChangeColorMode": "inverted",
+        "text": {
+          "titleSize": 11,
+          "valueSize": 34
         }
       },
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "id": 4,
       "gridPos": {
-        "h": 4,
+        "h": 5,
         "w": 6,
         "x": 18,
         "y": 0
-      },
-      "links": [
-        {
-          "title": "Logs of $service",
-          "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{service_name%3D%5C%22${service}%5C%22}%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
-          "targetBlank": false
-        },
-        {
-          "title": "All services",
-          "url": "/d/traces-overall",
-          "targetBlank": false
-        }
-      ],
-      "id": 4
+      }
     },
     {
       "type": "row",
-      "title": "Throughput",
-      "collapsed": true,
-      "panels": [
-        {
-          "type": "timeseries",
-          "title": "Count",
-          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "tempo",
-                "uid": "tempo"
-              },
-              "queryType": "traceql",
-              "query": "{ resource.service.name = \"$service\" } | rate()",
-              "metricsQueryType": "range"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "unit": "ops",
-              "custom": {
-                "fillOpacity": 20,
-                "lineWidth": 1,
-                "stacking": {
-                  "mode": "none"
-                },
-                "gradientMode": "opacity",
-                "showPoints": "never"
-              },
-              "color": {
-                "mode": "palette-classic"
-              },
-              "decimals": 2,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "table",
-              "placement": "bottom",
-              "calcs": [
-                "lastNotNull"
-              ]
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "id": 6,
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 5
-          },
-          "links": [
-            {
-              "title": "Logs of $service",
-              "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{service_name%3D%5C%22${service}%5C%22}%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
-              "targetBlank": false
-            },
-            {
-              "title": "All services",
-              "url": "/d/traces-overall",
-              "targetBlank": false
-            }
-          ]
-        },
-        {
-          "type": "timeseries",
-          "title": "Count by http status",
-          "description": "Spans per second by HTTP status: A is the current semantic convention (http.response.status_code), B the older http.status_code. TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "tempo",
-                "uid": "tempo"
-              },
-              "queryType": "traceql",
-              "query": "{ resource.service.name = \"$service\" } | rate() by (span.http.response.status_code)",
-              "metricsQueryType": "range"
-            },
-            {
-              "refId": "B",
-              "datasource": {
-                "type": "tempo",
-                "uid": "tempo"
-              },
-              "queryType": "traceql",
-              "query": "{ resource.service.name = \"$service\" } | rate() by (span.http.status_code)",
-              "metricsQueryType": "range"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "unit": "ops",
-              "custom": {
-                "fillOpacity": 20,
-                "lineWidth": 1,
-                "stacking": {
-                  "mode": "none"
-                },
-                "gradientMode": "opacity",
-                "showPoints": "never"
-              },
-              "color": {
-                "mode": "palette-classic"
-              },
-              "decimals": 2,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "table",
-              "placement": "bottom",
-              "calcs": [
-                "lastNotNull"
-              ]
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "id": 7,
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 5
-          },
-          "links": [
-            {
-              "title": "Logs of $service",
-              "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{service_name%3D%5C%22${service}%5C%22}%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
-              "targetBlank": false
-            },
-            {
-              "title": "All services",
-              "url": "/d/traces-overall",
-              "targetBlank": false
-            }
-          ]
-        },
-        {
-          "type": "timeseries",
-          "title": "Count by route",
-          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "tempo",
-                "uid": "tempo"
-              },
-              "queryType": "traceql",
-              "query": "{ resource.service.name = \"$service\" } | rate() by (span.http.route)",
-              "metricsQueryType": "range"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "unit": "ops",
-              "custom": {
-                "fillOpacity": 20,
-                "lineWidth": 1,
-                "stacking": {
-                  "mode": "none"
-                },
-                "gradientMode": "opacity",
-                "showPoints": "never"
-              },
-              "color": {
-                "mode": "palette-classic"
-              },
-              "decimals": 2,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "table",
-              "placement": "bottom",
-              "calcs": [
-                "lastNotNull"
-              ]
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "id": 8,
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 13
-          },
-          "links": [
-            {
-              "title": "Logs of $service",
-              "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{service_name%3D%5C%22${service}%5C%22}%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
-              "targetBlank": false
-            },
-            {
-              "title": "All services",
-              "url": "/d/traces-overall",
-              "targetBlank": false
-            }
-          ]
-        },
-        {
-          "type": "timeseries",
-          "title": "Errors",
-          "description": "TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "tempo",
-                "uid": "tempo"
-              },
-              "queryType": "traceql",
-              "query": "{ resource.service.name = \"$service\" && status = error } | rate()",
-              "metricsQueryType": "range"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "unit": "ops",
-              "custom": {
-                "fillOpacity": 20,
-                "lineWidth": 1,
-                "stacking": {
-                  "mode": "none"
-                },
-                "gradientMode": "opacity",
-                "showPoints": "never",
-                "thresholdsStyle": {
-                  "mode": "line"
-                }
-              },
-              "color": {
-                "mode": "palette-classic"
-              },
-              "decimals": 2,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "#EAB839",
-                    "value": 0.01
-                  },
-                  {
-                    "color": "red",
-                    "value": 0.1
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "table",
-              "placement": "bottom",
-              "calcs": [
-                "lastNotNull"
-              ]
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "id": 9,
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 13
-          },
-          "links": [
-            {
-              "title": "Logs of $service",
-              "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{service_name%3D%5C%22${service}%5C%22}%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
-              "targetBlank": false
-            },
-            {
-              "title": "All services",
-              "url": "/d/traces-overall",
-              "targetBlank": false
-            }
-          ]
-        }
-      ],
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 4
-      },
-      "id": 5
-    },
-    {
-      "type": "row",
-      "title": "Latency",
-      "collapsed": true,
-      "panels": [
-        {
-          "type": "timeseries",
-          "title": "Latency",
-          "description": "p50, p90, p95 and p99 of span duration. TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "tempo",
-                "uid": "tempo"
-              },
-              "queryType": "traceql",
-              "query": "{ resource.service.name = \"$service\" } | quantile_over_time(duration, .5, .9, .95, .99)",
-              "metricsQueryType": "range"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "unit": "s",
-              "custom": {
-                "fillOpacity": 20,
-                "lineWidth": 1,
-                "stacking": {
-                  "mode": "none"
-                },
-                "gradientMode": "opacity",
-                "showPoints": "never",
-                "thresholdsStyle": {
-                  "mode": "line"
-                }
-              },
-              "color": {
-                "mode": "palette-classic"
-              },
-              "decimals": 2,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "#EAB839",
-                    "value": 1
-                  },
-                  {
-                    "color": "red",
-                    "value": 3
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "table",
-              "placement": "bottom",
-              "calcs": [
-                "lastNotNull"
-              ]
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "id": 11,
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 6
-          },
-          "links": [
-            {
-              "title": "Logs of $service",
-              "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{service_name%3D%5C%22${service}%5C%22}%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
-              "targetBlank": false
-            },
-            {
-              "title": "All services",
-              "url": "/d/traces-overall",
-              "targetBlank": false
-            }
-          ]
-        },
-        {
-          "type": "timeseries",
-          "title": "Max duration",
-          "description": "The maximum span duration over time. TraceQL metrics, from Tempo's metrics generator (`local-blocks`).",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "tempo",
-                "uid": "tempo"
-              },
-              "queryType": "traceql",
-              "query": "{ resource.service.name = \"$service\" } | max_over_time(duration)",
-              "metricsQueryType": "range"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "unit": "s",
-              "custom": {
-                "fillOpacity": 20,
-                "lineWidth": 1,
-                "stacking": {
-                  "mode": "none"
-                },
-                "gradientMode": "opacity",
-                "showPoints": "never",
-                "thresholdsStyle": {
-                  "mode": "line"
-                }
-              },
-              "color": {
-                "mode": "palette-classic"
-              },
-              "decimals": 2,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "#EAB839",
-                    "value": 3
-                  },
-                  {
-                    "color": "red",
-                    "value": 10
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "table",
-              "placement": "bottom",
-              "calcs": [
-                "lastNotNull"
-              ]
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "id": 12,
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 6
-          },
-          "links": [
-            {
-              "title": "Logs of $service",
-              "url": "/explore?left={%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B{%22refId%22%3A%22A%22%2C%22datasource%22%3A{%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22}%2C%22expr%22%3A%22{service_name%3D%5C%22${service}%5C%22}%22}%5D%2C%22range%22%3A{%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22}}",
-              "targetBlank": false
-            },
-            {
-              "title": "All services",
-              "url": "/d/traces-overall",
-              "targetBlank": false
-            }
-          ]
-        },
-        {
-          "type": "heatmap",
-          "title": "Latency distribution",
-          "description": "How span durations spread over time. TraceQL metrics (histogram_over_time) from Tempo's metrics generator (`local-blocks`); the buckets are powers of two of the duration.",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "tempo",
-                "uid": "tempo"
-              },
-              "queryType": "traceql",
-              "query": "{ resource.service.name = \"$service\" } | histogram_over_time(duration)",
-              "metricsQueryType": "range"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "unit": "s",
-              "custom": {
-                "scaleDistribution": {
-                  "type": "linear"
-                }
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "calculate": false,
-            "cellGap": 1,
-            "color": {
-              "mode": "scheme",
-              "scheme": "Oranges",
-              "fill": "dark-orange",
-              "scale": "exponential",
-              "exponent": 0.5,
-              "steps": 64,
-              "reverse": false
-            },
-            "yAxis": {
-              "axisPlacement": "left",
-              "unit": "s"
-            },
-            "legend": {
-              "show": true
-            },
-            "tooltip": {
-              "mode": "single",
-              "yHistogram": false
-            }
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 14
-          },
-          "id": 13
-        }
-      ],
+      "title": "Operations",
+      "collapsed": false,
+      "panels": [],
+      "id": 5,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
         "y": 5
-      },
-      "id": 10
+      }
     },
     {
-      "type": "row",
-      "title": "Service map",
-      "collapsed": true,
-      "panels": [
+      "type": "timeseries",
+      "title": "Spans by name",
+      "description": "Spans per second by name.",
+      "transparent": true,
+      "targets": [
         {
-          "type": "nodeGraph",
-          "title": "Service map, calls into the service",
           "datasource": {
             "type": "tempo",
             "uid": "tempo"
           },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "tempo",
-                "uid": "tempo"
-              },
-              "queryType": "serviceMap",
-              "serviceMapQuery": "{server=\"$service\"}"
-            }
-          ],
-          "description": "Source data not in Prometheus yet: the map reads the traces_service_graph_* series the collectors' gateway (servicegraph connector) makes, which reach Prometheus once the gateway sends it metrics (gitops#661).",
-          "fieldConfig": {
-            "defaults": {},
-            "overrides": []
-          },
-          "options": {},
-          "id": 15,
-          "gridPos": {
-            "h": 14,
-            "w": 24,
-            "x": 0,
-            "y": 7
-          }
+          "queryType": "traceql",
+          "query": "{resource.service.name=~\"${service:raw}\"} | rate() by (name)",
+          "metricsQueryType": "range",
+          "refId": "A"
         }
       ],
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 6
-      },
-      "id": 14
-    },
-    {
-      "type": "row",
-      "title": "Latest traces",
-      "collapsed": true,
-      "panels": [
-        {
-          "type": "table",
-          "title": "Latest traces",
-          "description": "A TraceQL search.",
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": {
+            "mode": "palette-classic"
           },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "tempo",
-                "uid": "tempo"
-              },
-              "queryType": "traceql",
-              "query": "{ resource.service.name = \"$service\" }",
-              "limit": 20,
-              "tableType": "traces"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "custom": {
-                "cellOptions": {
-                  "type": "auto"
-                }
-              },
-              "unit": "short"
-            },
-            "overrides": [
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
               {
-                "matcher": {
-                  "id": "byName",
-                  "options": "traceDuration"
-                },
-                "properties": [
-                  {
-                    "id": "custom.cellOptions",
-                    "value": {
-                      "type": "color-background",
-                      "mode": "gradient"
-                    }
-                  },
-                  {
-                    "id": "thresholds",
-                    "value": {
-                      "mode": "absolute",
-                      "steps": [
-                        {
-                          "color": "green",
-                          "value": null
-                        },
-                        {
-                          "color": "#EAB839",
-                          "value": 1000
-                        },
-                        {
-                          "color": "red",
-                          "value": 3000
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "id": "color",
-                    "value": {
-                      "mode": "thresholds"
-                    }
-                  },
-                  {
-                    "id": "unit",
-                    "value": "ms"
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "traceService"
-                },
-                "properties": [
-                  {
-                    "id": "links",
-                    "value": [
-                      {
-                        "title": "Traces of the service",
-                        "url": "/d/traces-by-service?var-service=${__value.raw}&${__url_time_range}"
-                      }
-                    ]
-                  }
-                ]
+                "color": "#E7ECF3",
+                "value": null
               }
             ]
           },
-          "options": {
-            "showHeader": true,
-            "cellHeight": "sm"
-          },
-          "id": 17,
-          "gridPos": {
-            "h": 8,
-            "w": 24,
-            "x": 0,
-            "y": 8
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 18,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true,
+            "lineInterpolation": "smooth",
+            "axisBorderShow": false,
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "id": 6,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 6
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "p95 by name",
+      "description": "95th percentile of server spans by name.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{resource.service.name=~\"${service:raw}\" && kind = server} | quantile_over_time(duration, .95) by (name)",
+          "metricsQueryType": "range",
+          "refId": "A"
         }
       ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true,
+            "lineInterpolation": "smooth",
+            "axisBorderShow": false,
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "id": 7,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 6
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "By status code",
+      "description": "Server spans by HTTP status code.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{resource.service.name=~\"${service:raw}\" && kind = server} | rate() by (span.http.response.status_code)",
+          "metricsQueryType": "range",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 18,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true,
+            "lineInterpolation": "smooth",
+            "axisBorderShow": false,
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*5[0-9][0-9].*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#FB7185"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*4[0-9][0-9].*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#FBBF24"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "id": 8,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 14
+      }
+    },
+    {
+      "type": "heatmap",
+      "title": "Latency distribution",
+      "description": "Its server span durations over time.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{resource.service.name=~\"${service:raw}\" && kind = server} | histogram_over_time(duration)",
+          "metricsQueryType": "range",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "calculate": false,
+        "cellGap": 2,
+        "cellValues": {
+          "unit": "short"
+        },
+        "color": {
+          "mode": "scheme",
+          "scheme": "Blues",
+          "steps": 64,
+          "exponent": 0.5,
+          "fill": "#60A5FA",
+          "scale": "exponential",
+          "reverse": false
+        },
+        "exemplars": {
+          "color": "#F59E0B"
+        },
+        "filterValues": {
+          "le": 1e-09
+        },
+        "legend": {
+          "show": false
+        },
+        "rowsFrame": {
+          "layout": "auto"
+        },
+        "tooltip": {
+          "mode": "single",
+          "yHistogram": false,
+          "showColorScale": false
+        },
+        "yAxis": {
+          "axisPlacement": "left",
+          "reverse": false,
+          "unit": "s"
+        }
+      },
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "id": 9,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 14
+      }
+    },
+    {
+      "type": "row",
+      "title": "Calls",
+      "collapsed": false,
+      "panels": [],
+      "id": 10,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 7
-      },
-      "id": 16
-    }
-  ],
-  "links": [
-    {
-      "type": "link",
-      "title": "Home",
-      "url": "/d/home",
-      "icon": "dashboard",
-      "targetBlank": false,
-      "keepTime": true,
-      "includeVars": false,
-      "tags": [],
-      "asDropdown": false
+        "y": 22
+      }
     },
     {
-      "type": "dashboards",
-      "title": "0xc0",
-      "tags": [
-        "0xc0"
+      "type": "nodeGraph",
+      "title": "Calls into the service",
+      "description": "Who calls it, from the servicegraph.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "serviceMap",
+          "serviceMapQuery": "{server=~\"${service:raw}\", client!~\"[0-9.]+|unknown\"}",
+          "refId": "A"
+        }
       ],
-      "asDropdown": false,
-      "asTabs": false,
-      "includeVars": false,
-      "keepTime": true,
-      "icon": "external link",
-      "targetBlank": false
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "nodes": {
+          "mainStatUnit": "reqps",
+          "secondaryStatUnit": "ms",
+          "arcs": []
+        },
+        "edges": {}
+      },
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "id": 11,
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 23
+      }
+    },
+    {
+      "type": "nodeGraph",
+      "title": "Calls out of the service",
+      "description": "What it calls; peers known only by a pod IP left out.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "serviceMap",
+          "serviceMapQuery": "{client=~\"${service:raw}\", server!~\"[0-9.]+|unknown\"}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "nodes": {
+          "mainStatUnit": "reqps",
+          "secondaryStatUnit": "ms",
+          "arcs": []
+        },
+        "edges": {}
+      },
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "id": 12,
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 23
+      }
+    },
+    {
+      "type": "row",
+      "title": "Traces and logs",
+      "collapsed": false,
+      "panels": [],
+      "id": 13,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 33
+      }
+    },
+    {
+      "type": "table",
+      "title": "Latest error traces",
+      "description": "Its latest traces holding an error.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{resource.service.name=~\"${service:raw}\" && status = error}",
+          "tableType": "traces",
+          "limit": 20,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": false
+          },
+          "noValue": "no error traces in range"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        },
+        "sortBy": []
+      },
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "id": 14,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 34
+      }
+    },
+    {
+      "type": "table",
+      "title": "Latest traces",
+      "description": "Its latest traces.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "query": "{resource.service.name=~\"${service:raw}\"}",
+          "tableType": "traces",
+          "limit": 20,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        },
+        "sortBy": []
+      },
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "id": 15,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 34
+      }
+    },
+    {
+      "type": "logs",
+      "title": "Logs",
+      "description": "Its log lines in Loki, by the same service name.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{service_name=~\"${service:raw}\"}",
+          "queryType": "range",
+          "editorMode": "code",
+          "maxLines": 100,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none",
+        "prettifyLogMessage": false,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "enableInfiniteScrolling": false
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "id": 16,
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 43
+      }
     }
   ],
-  "id": null
+  "refresh": "1m",
+  "schemaVersion": 41,
+  "tags": [
+    "0xc0",
+    "traces"
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "label": "service",
+        "type": "query",
+        "datasource": {
+          "type": "tempo",
+          "uid": "tempo"
+        },
+        "definition": "",
+        "query": {
+          "type": 1,
+          "label": "resource.service.name",
+          "refId": "TempoDatasourceVariableQueryEditor-VariableQuery"
+        },
+        "regex": "",
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "refresh": 2,
+        "sort": 0,
+        "skipUrlSync": false,
+        "description": "The service, by resource.service.name; a regular expression is accepted from a link.",
+        "current": {},
+        "options": [],
+        "allowCustomValue": true
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Traces / By service",
+  "uid": "traces-by-service",
+  "version": 1,
+  "weekStart": ""
 }
