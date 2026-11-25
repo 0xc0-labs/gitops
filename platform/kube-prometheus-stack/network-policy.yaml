@@ -60,6 +60,12 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/component: opentelemetry-collector
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: opentelemetry
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/component: opentelemetry-collector
       ports:
         - protocol: TCP
           port: 9090

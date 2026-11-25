@@ -1,0 +1,280 @@
+# The agent: one pod on every node, reading its containers' logs and sending
+# them to Loki. README.md, What runs.
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel-agent
+  namespace: opentelemetry
+spec:
+  mode: daemonset
+  image: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.160.0@sha256:799dc6cf12c96192af37b5bdba804da8c10b3bc563b43cb90c3f3c58d9572ad6
+  serviceAccount: otel-agent
+  # The pool taints (workspace#288): the agent reports from every node.
+  tolerations:
+    - key: 0xc0.cc/pool
+      operator: Equal
+      value: apps
+      effect: NoSchedule
+    - key: 0xc0.cc/pool
+      operator: Equal
+      value: sandbox
+      effect: NoSchedule
+  # SELinux keeps a container out of /var/log/pods: spc_t, as OpenObserve's
+  # chart did.
+  securityContext:
+    privileged: true
+    runAsUser: 0
+    seLinuxOptions:
+      type: spc_t
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      memory: 640Mi
+  env:
+    - name: K8S_NODE_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: spec.nodeName
+  volumeMounts:
+    - name: varlog
+      mountPath: /var/log
+      readOnly: true
+    - name: offsets
+      mountPath: /var/lib/otelcol
+  volumes:
+    - name: varlog
+      hostPath:
+        path: /var/log
+    - name: offsets
+      hostPath:
+        path: /var/lib/otelcol
+        type: DirectoryOrCreate
+  config:
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+      # Where the filelog receiver keeps how far it read each file, on the
+      # node: a restart goes on from there instead of reading every file
+      # again, which Loki rejects as too far behind.
+      file_storage:
+        directory: /var/lib/otelcol/file_storage
+        create_directory: true
+    receivers:
+      filelog/std:
+        storage: file_storage
+        include:
+          - /var/log/pods/*/*/*.log
+        exclude:
+          - /var/log/pods/*/otc-container/*.log
+        include_file_name: false
+        include_file_path: true
+        # Only where there is no stored offset, which is the first run of a
+        # node: a file that appears later is always read from its start.
+        start_at: end
+        operators:
+          - id: get-format
+            type: router
+            routes:
+              - expr: body matches "^\\{"
+                output: parser-docker
+              - expr: body matches "^[^ Z]+ "
+                output: parser-crio
+              - expr: body matches "^[^ Z]+Z"
+                output: parser-containerd
+          - id: parser-crio
+            type: regex_parser
+            output: extract_metadata_from_filepath
+            regex: ^(?P<time>[^ Z]+) (?P<stream>stdout|stderr) (?P<logtag>[^ ]*) ?(?P<log>.*)$
+            timestamp:
+              layout: 2006-01-02T15:04:05.999999999Z07:00
+              layout_type: gotime
+              parse_from: attributes.time
+          - id: parser-containerd
+            type: regex_parser
+            output: extract_metadata_from_filepath
+            regex: ^(?P<time>[^ ^Z]+Z) (?P<stream>stdout|stderr) (?P<logtag>[^ ]*) ?(?P<log>.*)$
+            timestamp:
+              layout: "%Y-%m-%dT%H:%M:%S.%LZ"
+              parse_from: attributes.time
+          - id: parser-docker
+            type: json_parser
+            output: extract_metadata_from_filepath
+            timestamp:
+              layout: "%Y-%m-%dT%H:%M:%S.%LZ"
+              parse_from: attributes.time
+          - id: extract_metadata_from_filepath
+            type: regex_parser
+            parse_from: attributes["log.file.path"]
+            regex: ^.*\/[^_]+_[^_]+_(?P<uid>[a-f0-9\-]{36})\/
+            cache:
+              size: 128
+          - type: move
+            from: attributes.log
+            to: body
+          - type: move
+            from: attributes.stream
+            to: attributes["log.iostream"]
+          - type: move
+            from: attributes.uid
+            to: resource["k8s.pod.uid"]
+            on_error: send
+    processors:
+      # In MiB, near 80% of the container's limit: the kernel must not kill
+      # the agent before the limiter refuses data.
+      memory_limiter:
+        check_interval: 1s
+        limit_mib: 512
+        spike_limit_mib: 128
+      resourcedetection:
+        detectors: [system, env, k8snode]
+        override: true
+        system:
+          hostname_sources: [os, dns]
+      attributes:
+        actions:
+          - action: insert
+            key: k8s_cluster
+            value: 0xc0-prod
+      k8sattributes:
+        auth_type: serviceAccount
+        passthrough: false
+        filter:
+          node_from_env_var: K8S_NODE_NAME
+        extract:
+          metadata:
+            - k8s.namespace.name
+            - k8s.pod.name
+            - k8s.pod.uid
+            - k8s.node.name
+            - k8s.pod.start_time
+            - k8s.pod.ip
+            - k8s.deployment.name
+            - k8s.container.name
+          labels:
+            - from: pod
+              key: app.kubernetes.io/name
+              tag_name: service.name
+            - from: pod
+              key: k8s-app
+              tag_name: k8s.app.name
+            - from: pod
+              key: app.kubernetes.io/instance
+              tag_name: k8s.app.instance
+            - from: pod
+              key: app.kubernetes.io/version
+              tag_name: service.version
+            - from: pod
+              key: app.kubernetes.io/component
+              tag_name: k8s.app.component
+        pod_association:
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.uid
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.name
+              - from: resource_attribute
+                name: k8s.namespace.name
+              - from: resource_attribute
+                name: k8s.node.name
+          - sources:
+              - from: connection
+      batch:
+        send_batch_size: 2000
+        send_batch_max_size: 5000
+        timeout: 5s
+      # Each log's level, parsed from its body: the runtime's format carries
+      # none. First match wins: JSON, logfmt, klog, Monolog, [LEVEL], a bare
+      # word.
+      transform/severity:
+        error_mode: ignore
+        log_statements:
+          - context: log
+            statements:
+              - merge_maps(cache, ExtractPatterns(body, "\"(?:level|lvl|severity)\"\\s*:\\s*\"(?P<lvl>[A-Za-z]+)\""), "upsert") where IsString(body) and IsMatch(body, "\"(level|lvl|severity)\"\\s*:\\s*\"[A-Za-z]")
+              - merge_maps(cache, ExtractPatterns(body, "\\blevel=\"?(?P<lvl>[A-Za-z]+)"), "upsert") where cache["lvl"] == nil and IsString(body) and IsMatch(body, "\\blevel=\"?[A-Za-z]")
+              - merge_maps(cache, ExtractPatterns(body, "^(?P<lvl>[IWEF])\\d{4} \\d{2}:"), "upsert") where cache["lvl"] == nil and IsString(body) and IsMatch(body, "^[IWEF]\\d{4} \\d{2}:")
+              - merge_maps(cache, ExtractPatterns(body, "^\\[[^\\]]+\\] [\\w.-]+\\.(?P<lvl>DEBUG|INFO|NOTICE|WARNING|ERROR|CRITICAL|ALERT|EMERGENCY):"), "upsert") where cache["lvl"] == nil and IsString(body) and IsMatch(body, "^\\[[^\\]]+\\] [\\w.-]+\\.(DEBUG|INFO|NOTICE|WARNING|ERROR|CRITICAL|ALERT|EMERGENCY):")
+              - merge_maps(cache, ExtractPatterns(body, "\\[(?P<lvl>TRACE|DEBUG|INFO|WARN|WARNING|ERROR|FATAL)\\]"), "upsert") where cache["lvl"] == nil and IsString(body) and IsMatch(body, "\\[(TRACE|DEBUG|INFO|WARN|WARNING|ERROR|FATAL)\\]")
+              - merge_maps(cache, ExtractPatterns(body, "^\\S+\\s+(?P<lvl>(?i:trace|debug|info|warn|warning|error|fatal|inf|wrn|err|dbg|ftl))\\b"), "upsert") where cache["lvl"] == nil and IsString(body) and IsMatch(body, "^\\S+\\s+(?i:trace|debug|info|warn|warning|error|fatal|inf|wrn|err|dbg|ftl)\\b")
+              - set(severity_text, ToUpperCase(cache["lvl"])) where cache["lvl"] != nil
+              - set(severity_text, "INFO") where severity_text == "I" or severity_text == "INF" or severity_text == "NOTICE"
+              - set(severity_text, "WARN") where severity_text == "W" or severity_text == "WRN" or severity_text == "WARNING"
+              - set(severity_text, "ERROR") where severity_text == "E" or severity_text == "ERR"
+              - set(severity_text, "FATAL") where severity_text == "F" or severity_text == "FTL" or severity_text == "CRITICAL" or severity_text == "ALERT" or severity_text == "EMERGENCY"
+              - set(severity_text, "DEBUG") where severity_text == "DBG"
+              - set(severity_number, SEVERITY_NUMBER_TRACE) where severity_text == "TRACE"
+              - set(severity_number, SEVERITY_NUMBER_DEBUG) where severity_text == "DEBUG"
+              - set(severity_number, SEVERITY_NUMBER_INFO) where severity_text == "INFO"
+              - set(severity_number, SEVERITY_NUMBER_WARN) where severity_text == "WARN"
+              - set(severity_number, SEVERITY_NUMBER_ERROR) where severity_text == "ERROR"
+              - set(severity_number, SEVERITY_NUMBER_FATAL) where severity_text == "FATAL"
+      # The org's log line (@0xc0-labs/observability) as an OpenTelemetry log
+      # record: severity, body, timestamp, trace context, event name and scope
+      # from the data model's own fields, the rest as attributes. Recognised by
+      # its fields, not its namespace, so an app adopting the format needs no
+      # change here: lowercase level label, UTC millisecond time, msg and
+      # name. Any other line passes through as it came.
+      # https://github.com/open-telemetry/opentelemetry-specification/blob/v1.61.0/specification/compatibility/logging_trace_context.md
+      transform/otel_log:
+        error_mode: ignore
+        log_statements:
+          - context: log
+            statements:
+              - set(cache["rec"], ParseJSON(body)) where IsString(body) and IsMatch(body, "^\\{")
+              - set(cache["org"], true) where cache["rec"] != nil and IsString(cache["rec"]["level"]) and IsMatch(cache["rec"]["level"], "^(trace|debug|info|warn|error|fatal)$") and IsString(cache["rec"]["time"]) and IsMatch(cache["rec"]["time"], "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$") and IsString(cache["rec"]["msg"]) and IsString(cache["rec"]["name"])
+              - set(log.severity_text, ToUpperCase(cache["rec"]["level"])) where cache["org"] == true
+              - set(log.severity_number, SEVERITY_NUMBER_TRACE) where cache["org"] == true and log.severity_text == "TRACE"
+              - set(log.severity_number, SEVERITY_NUMBER_DEBUG) where cache["org"] == true and log.severity_text == "DEBUG"
+              - set(log.severity_number, SEVERITY_NUMBER_INFO) where cache["org"] == true and log.severity_text == "INFO"
+              - set(log.severity_number, SEVERITY_NUMBER_WARN) where cache["org"] == true and log.severity_text == "WARN"
+              - set(log.severity_number, SEVERITY_NUMBER_ERROR) where cache["org"] == true and log.severity_text == "ERROR"
+              - set(log.severity_number, SEVERITY_NUMBER_FATAL) where cache["org"] == true and log.severity_text == "FATAL"
+              - set(log.time, Time(cache["rec"]["time"], "%Y-%m-%dT%H:%M:%S.%LZ")) where cache["org"] == true
+              - set(log.trace_id.string, cache["rec"]["trace_id"]) where cache["org"] == true and IsString(cache["rec"]["trace_id"])
+              - set(log.span_id.string, cache["rec"]["span_id"]) where cache["org"] == true and IsString(cache["rec"]["span_id"])
+              - set(log.flags, ParseInt(cache["rec"]["trace_flags"], 16)) where cache["org"] == true and IsString(cache["rec"]["trace_flags"]) and IsMatch(cache["rec"]["trace_flags"], "^[0-9a-f]{2}$")
+              - set(log.event_name, cache["rec"]["event_name"]) where cache["org"] == true and IsString(cache["rec"]["event_name"])
+              - set(instrumentation_scope.name, cache["rec"]["name"]) where cache["org"] == true
+              - set(log.body, cache["rec"]["msg"]) where cache["org"] == true
+              - delete_matching_keys(cache["rec"], "^(level|time|msg|name|trace_id|span_id|trace_flags|event_name)$") where cache["org"] == true
+              - merge_maps(log.attributes, cache["rec"], "upsert") where cache["org"] == true
+      # Mautic's worker banner, every five minutes. After k8sattributes, which
+      # sets the namespace.
+      filter/noise:
+        error_mode: ignore
+        logs:
+          log_record:
+            - IsMatch(resource.attributes["k8s.namespace.name"], "^mautic-") and IsString(body) and IsMatch(body, "^\\s*$|^ // |^ \\[OK\\] Consuming messages from transport")
+    exporters:
+      otlphttp/loki:
+        endpoint: http://loki.loki.svc.cluster.local:3100/otlp
+        encoding: proto
+        compression: gzip
+        timeout: 10s
+        retry_on_failure:
+          enabled: true
+          initial_interval: 5s
+          max_interval: 30s
+          max_elapsed_time: 120s
+        sending_queue:
+          enabled: true
+          queue_size: 1000
+          storage: file_storage
+    service:
+      extensions: [health_check, file_storage]
+      pipelines:
+        logs:
+          receivers: [filelog/std]
+          processors:
+            - memory_limiter
+            - transform/severity
+            - transform/otel_log
+            - resourcedetection
+            - attributes
+            - k8sattributes
+            - filter/noise
+            - batch
+          exporters: [otlphttp/loki]
