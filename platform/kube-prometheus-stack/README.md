@@ -11,7 +11,7 @@ traces from Tempo (`platform/tempo`), and the alerts (workspace#290).
 | Prometheus | One replica, 30 days of retention (`retentionSize` 16 GB, under the 20 Gi Longhorn volume), a scrape every minute. Selects every ServiceMonitor, PodMonitor, Probe and PrometheusRule in the cluster, not only the chart's. Requests 200m / 1.5 Gi, memory limit 3 Gi |
 | OTLP | Prometheus's OTLP receiver is on. The collectors' gateway (`opentelemetry-collector`) sends it the metrics it receives over OTLP, the applications'. The collectors scrape nothing: Prometheus scrapes the ServiceMonitors itself |
 | Alertmanager | Off: alerting is Grafana's (Alert rules, below) |
-| Grafana | `https://grafana.int.0xc0.cc`, WARP only; the chart's default dashboards and ours (Dashboards, below); Prometheus, Loki and Tempo (`platform/loki`, `platform/tempo`) as data sources, Tempo and Loki linked by trace ID; no persistence |
+| Grafana | `https://grafana.int.0xc0.cc`, WARP only; the chart's default dashboards and ours (Dashboards, below); Prometheus, Loki and Tempo (`platform/loki`, `platform/tempo`) as data sources, Tempo and Loki linked by trace ID; no persistence. The `grafana` container requests 384Mi and is limited to 1Gi |
 | node-exporter, kube-state-metrics | As the chart ships them. node-exporter tolerates the `apps` and `sandbox` pool taints, so every node reports |
 | The operator | No admission webhooks |
 

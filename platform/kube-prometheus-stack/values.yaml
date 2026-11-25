@@ -167,12 +167,14 @@ grafana:
     analytics:
       check_for_updates: false
       reporting_enabled: false
+  # 512Mi was OOMKilled loading boards with 6 h Loki ranges and parallel Tempo
+  # queries (#692).
   resources:
     requests:
       cpu: 50m
-      memory: 192Mi
+      memory: 384Mi
     limits:
-      memory: 512Mi
+      memory: 1Gi
   sidecar:
     dashboards:
       # The folder comes from each ConfigMap's grafana_folder annotation; the
