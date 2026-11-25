@@ -119,6 +119,17 @@ spec:
         logs:
           log_record:
             - attributes["gen_ai.usage.input_tokens"] == nil and attributes["gen_ai.usage.output_tokens"] == nil
+      # Faro's intake has no token and `service.name` comes from the payload:
+      # only the sites' own names pass, so no sender can invent a Loki stream.
+      # A missing name is not equal to any of them and is dropped too.
+      filter/faro_apps:
+        error_mode: ignore
+        logs:
+          log_record:
+            - resource.attributes["service.name"] != "offby1-cc" and resource.attributes["service.name"] != "artistlabco-com" and resource.attributes["service.name"] != "artistlabco-com-cms"
+        traces:
+          span:
+            - resource.attributes["service.name"] != "offby1-cc" and resource.attributes["service.name"] != "artistlabco-com" and resource.attributes["service.name"] != "artistlabco-com-cms"
     exporters:
       # Matchmark's usage record (apps/matchmark/README.md, The usage record).
       # The queue and the retries are bounded and its own: a slow API drops
@@ -203,11 +214,11 @@ spec:
         # the browser's records with Traefik's pod.
         logs/faro:
           receivers: [faro]
-          processors: [memory_limiter, resourcedetection, attributes, batch]
+          processors: [memory_limiter, filter/faro_apps, resourcedetection, attributes, batch]
           exporters: [otlphttp/loki]
         traces/faro:
           receivers: [faro]
-          processors: [memory_limiter, resourcedetection, attributes, batch]
+          processors: [memory_limiter, filter/faro_apps, resourcedetection, attributes, batch]
           exporters: [otlp/tempo]
         logs/k8s_events:
           receivers: [k8sobjects/events]

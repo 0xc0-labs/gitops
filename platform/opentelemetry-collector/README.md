@@ -74,8 +74,14 @@ sets, which Loki indexes as `service_name`; its `kind` (`log`, `exception`,
 RUM` (`platform/kube-prometheus-stack`) reads them.
 
 Faro's intake can be written to by anyone, and `service.name` comes from the
-payload: the rate limit bounds how fast a stream label could be invented,
-not which.
+payload, so the `filter/faro_apps` processor drops every record or span whose
+`service.name` is not `offby1-cc`, `artistlabco-com` or `artistlabco-com-cms`
+(the names the sites' backends already use; staging shares `artistlabco-com`
+and is told apart by `deployment.environment`). A new site's name is added
+there. Loki turns only `service.name`, `k8s.namespace.name` and
+`k8s.pod.name` into labels (`platform/loki`, `ignore_defaults`), so a payload
+field never becomes one: everything else of Faro's is structured metadata or
+the logfmt body.
 
 ## No scraping here
 
