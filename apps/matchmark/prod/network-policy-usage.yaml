@@ -50,11 +50,11 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: openobserve-collector
+              kubernetes.io/metadata.name: opentelemetry
           podSelector:
             matchLabels:
               app.kubernetes.io/component: opentelemetry-collector
-              app.kubernetes.io/instance: openobserve-collector.openobserve-collector-gateway
+              app.kubernetes.io/instance: opentelemetry.otel-gateway
       ports:
         - protocol: TCP
           port: 8000

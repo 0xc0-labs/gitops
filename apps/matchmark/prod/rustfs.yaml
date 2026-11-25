@@ -82,7 +82,7 @@ spec:
             - name: RUSTFS_OBS_METRICS_EXPORT_ENABLED
               value: "true"
             - name: RUSTFS_OBS_METRIC_ENDPOINT
-              value: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318/v1/metrics
+              value: http://otel-gateway.opentelemetry.svc.cluster.local:4318/v1/metrics
           ports:
             - name: s3
               containerPort: 9000

@@ -211,13 +211,6 @@ spec:
     - to:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: openobserve-collector
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/component: opentelemetry-collector
-              app.kubernetes.io/instance: openobserve-collector.openobserve-collector-gateway
-        - namespaceSelector:
-            matchLabels:
               kubernetes.io/metadata.name: opentelemetry
           podSelector:
             matchLabels:

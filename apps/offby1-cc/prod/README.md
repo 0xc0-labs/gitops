@@ -2,10 +2,8 @@
 
 The offby1.cc landing page: the Node server of 0xc0-labs/offby1.cc, public
 at `https://offby1.cc`; `www.offby1.cc` redirects there (`httproute.yaml`).
-No volumes. Its one secret is OpenObserve's RUM client token,
-`apps/shared/openobserve-rum`, key `client_token` (`vault-secrets.yaml`),
-written as [`vault`'s README, Writing or rotating a secret][vault-write]
-says.
+No volumes and no secret. It sends no RUM until Faro replaces OpenObserve's
+(workspace#290): the site stays off without `OPENOBSERVE_RUM_CLIENT_TOKEN`.
 
 ## Upgrades
 
@@ -44,5 +42,4 @@ and this route adds its own (`security-headers` in `httproute.yaml`: no
 framing, Permissions-Policy, COOP/CORP). The app sets its own
 Content-Security-Policy, with a nonce per request.
 
-[vault-write]: https://github.com/0xc0-labs/vault/blob/main/README.md#writing-or-rotating-a-secret
 [github-apps]: https://github.com/0xc0-labs/.github/blob/main/README.md#application-repos

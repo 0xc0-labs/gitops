@@ -62,17 +62,11 @@ spec:
             - name: NEXT_TELEMETRY_DISABLED
               value: "1"
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
+              value: http://otel-gateway.opentelemetry.svc.cluster.local:4318
             - name: OTEL_SERVICE_NAME
               value: offby1-cc
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: service.version=$(APP_VERSION),deployment.environment=$(APP_ENVIRONMENT)
-            - name: OPENOBSERVE_RUM_CLIENT_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: offby1-cc-rum-vault
-                  key: client_token
-                  optional: true
           ports:
             - name: http
               containerPort: 3000

@@ -41,7 +41,7 @@ server:
     - name: OTEL_EXPORTER_OTLP_PROTOCOL
       value: grpc
     - name: OTEL_EXPORTER_OTLP_ENDPOINT
-      value: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4317
+      value: http://otel-gateway.opentelemetry.svc.cluster.local:4317
     # Only the spans of a trace a client started (../README.md, Server
     # tracing). Left to the SDK, which reads it: the server sets no sampler.
     - name: OTEL_TRACES_SAMPLER

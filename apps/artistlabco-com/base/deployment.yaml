@@ -73,12 +73,6 @@ spec:
                 secretKeyRef:
                   name: artistlabco-com-preview-vault
                   key: secret
-            - name: OPENOBSERVE_RUM_CLIENT_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: artistlabco-com-rum-vault
-                  key: client_token
-                  optional: true
           ports:
             - name: http
               containerPort: 3000

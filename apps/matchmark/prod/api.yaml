@@ -108,12 +108,16 @@ spec:
             - name: MATCHMARK_API_INTAKE_TOKEN_FILE
               value: /run/secrets/intake-api/token
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
-            # OpenObserve's trace view for one trace: the collector writes
-            # traces to the `default` stream of the `default` organization
-            # (platform/openobserve-collector). An address, not a secret.
+              value: http://otel-gateway.opentelemetry.svc.cluster.local:4318
+            # Grafana's Explore of the `tempo` data source
+            # (platform/kube-prometheus-stack) for one trace, for the
+            # operators over WARP: a client never reaches it. The API accepts
+            # no `{` or `}` besides its placeholders, so the panes are
+            # percent-encoded, and Grafana takes milliseconds where the
+            # placeholders are microseconds: the range is the last 14 days,
+            # Tempo's retention. An address, not a secret.
             - name: MATCHMARK_TRACE_URL_TEMPLATE
-              value: https://o2.int.0xc0.cc/web/traces/trace-details?stream=default&trace_id={trace_id}&from={start_time_unix_micro}&to={end_time_unix_micro}&org_identifier=default
+              value: https://grafana.int.0xc0.cc/explore?schemaVersion=1&orgId=1&panes=%7B%22a%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22datasource%22%3A%7B%22type%22%3A%22tempo%22%2C%22uid%22%3A%22tempo%22%7D%2C%22queryType%22%3A%22traceql%22%2C%22query%22%3A%22{trace_id}%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-14d%22%2C%22to%22%3A%22now%22%7D%7D%7D
             - name: OTEL_SERVICE_NAME
               value: matchmark-api
             - name: OTEL_RESOURCE_ATTRIBUTES
