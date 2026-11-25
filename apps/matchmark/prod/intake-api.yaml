@@ -87,7 +87,7 @@ spec:
             # with the volume and the mount of the same name, from the Secret
             # `matchmark-plane-webhook-vault`, key `secret`, mode 0440.
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
+              value: http://otel-gateway.opentelemetry.svc.cluster.local:4318
             - name: OTEL_SERVICE_NAME
               value: matchmark-intake-api
             - name: OTEL_RESOURCE_ATTRIBUTES

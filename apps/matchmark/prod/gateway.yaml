@@ -69,7 +69,7 @@ spec:
   frontend:
     accessLog:
       otlp:
-        url: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4317
+        url: http://otel-gateway.opentelemetry.svc.cluster.local:4317
       attributes:
         add:
           - name: matchmark.tenant
@@ -87,7 +87,7 @@ spec:
           - name: matchmark.attempt
             expression: jwt.attempt
     tracing:
-      url: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4317
+      url: http://otel-gateway.opentelemetry.svc.cluster.local:4317
       randomSampling: "true"
       attributes:
         add:

@@ -10,7 +10,6 @@ resources:
   - deployment.yaml
   - pdb.yaml
   - httproute.yaml
-  - vault-secrets.yaml
 # The pin (README.md, Upgrades).
 images:
   - name: ghcr.io/0xc0-labs/offby1.cc

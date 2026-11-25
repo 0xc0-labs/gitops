@@ -106,12 +106,6 @@ spec:
             # Each environment's namespace replaces the first segment.
             - name: VAULT_INTEGRATIONS_PATH
               value: NAMESPACE/integrations
-            - name: OPENOBSERVE_RUM_CLIENT_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: artistlabco-com-rum-vault
-                  key: client_token
-                  optional: true
           ports:
             - name: http
               containerPort: 1337

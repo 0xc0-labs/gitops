@@ -44,7 +44,7 @@ what it builds configuration from to `matchmark`.
 ## Telemetry
 
 The proxy sends its access log and traces over OTLP gRPC to the collector
-(`AgentgatewayPolicy` `telemetry`); `platform/openobserve-collector` admits
+(`AgentgatewayPolicy` `telemetry`); `platform/opentelemetry-collector` admits
 the namespace in `otlp-from-senders`. The chart's `ServiceMonitor` (controller,
 `:9092`) and `PodMonitor` (proxy, `:15020`) are what the collector's target
 allocator scrapes, and what Prometheus (`monitoring`) scrapes too:
@@ -121,17 +121,16 @@ over WARP answers 404.
   half. `platform/vault/network-policy.yaml` admits its pods.
 - **Telemetry**: traces and metrics over OTLP/HTTP to the collector gateway on
   4318 (`OTEL_EXPORTER_OTLP_ENDPOINT`), logs as JSON on stdout.
-- **Trace link**: `MATCHMARK_TRACE_URL_TEMPLATE`, OpenObserve's trace view
-  (`https://o2.int.0xc0.cc`, WARP only) for the `default` stream of the
-  `default` organization, where the collector writes traces, with one
-  `{trace_id}` where the API puts a task's trace id, and `{start_time_unix_micro}`
-  and `{end_time_unix_micro}` for the task's time range in `from` and `to`:
-  OpenObserve's trace page looks only inside that range, in microseconds, and
-  with none it uses the last fifteen minutes, so an old task's link would
-  show no trace. A task's read, `mm
-  status --task`, prints the link; absent, it shows only the id. Check: run a
-  task, then open the link `mm status --task <id>` prints over WARP: it shows
-  that task's trace.
+- **Trace link**: `MATCHMARK_TRACE_URL_TEMPLATE`, Grafana's Explore of the
+  `tempo` data source (`https://grafana.int.0xc0.cc`, WARP only: an operator's
+  convenience, a client never reaches it), with one `{trace_id}` where the API
+  puts a task's trace id. Its panes are percent-encoded, since the API accepts
+  no `{` or `}` beside its placeholders, and it carries no
+  `{start_time_unix_micro}` or `{end_time_unix_micro}`: Grafana takes
+  milliseconds, so the range is fixed at the last 14 days, Tempo's retention.
+  A task's read, `mm status --task`, prints the link; absent, it shows only the
+  id. Check: run a task, then open the link `mm status --task <id>` prints over
+  WARP: it shows that task's trace.
 - **Network**: the API's port is open to Traefik's pods, to this
   namespace's gateway (controller and proxy, for the JWKS) and to the
   collector's gateway pods (The usage record); it reaches Vault's 8200, the
@@ -259,15 +258,15 @@ When a step fails, the cause of a refusal is in the proxy's access log, field
 ## The usage record
 
 `migrate.yaml`, `network-policy-usage.yaml` and, in
-`platform/openobserve-collector`, the patch that adds the `logs/matchmark_usage`
-pipeline. The cost of a model call lands in `usage_ledger` on the shared
+`platform/opentelemetry-collector`, the `logs/matchmark_usage` pipeline of the
+gateway. The cost of a model call lands in `usage_ledger` on the shared
 PostgreSQL, with its tenant, application, project and agent, from the API (its
 own README, Usage record).
 
 **The path of a row.**
 
 1. The proxy's `telemetry` policy exports each call's access log over OTLP gRPC
-   to the collector's gateway (4317). A model call's record carries
+   to the gateway (4317). A model call's record carries
    `gen_ai.usage.*`, `agw.ai.usage.cost.total` and the `matchmark.*` claims; a
    refused call carries no `gen_ai.usage.*`.
 2. The pipeline `logs/matchmark_usage` takes the records from the OTLP receiver,
@@ -277,13 +276,15 @@ own README, Usage record).
 3. The API keeps the records that are a model call with usage and writes one
    row each: a batch delivered twice adds none.
 
-**OpenObserve is not held back.** No other pipeline takes logs from the OTLP
-receiver, so the API's pipeline is the only one on that signal; metrics and
-traces are other signals, with their own pipelines. The exporter has its own
-queue (1000 batches) and its retries stop after two minutes: with the API down
-or slow, the queue fills, then the records of this pipeline alone are dropped,
-and nothing else the collector sends changes. The OpenObserve exporters are
-untouched.
+**Loki is not held back.** The gateway's `logs` pipeline, to Loki, takes the
+same records from the OTLP receiver and has its own exporter, so every model
+call's access log is also in Loki, whatever the API does. The API's exporter
+has its own queue (1000 batches) and its retries stop after two minutes: with
+the API down or slow, the queue fills, then the records of this pipeline alone
+are dropped, and nothing else the gateway sends changes. In Grafana, Explore,
+`Loki`: `{k8s_namespace_name="matchmark"} | gen_ai_usage_input_tokens != ""` (Loki
+turns the record's attributes into structured metadata, dots to underscores);
+the rows that count are the API's, in `usage_ledger`.
 
 **The database.** `PGHOST=postgres.postgres.svc.cluster.local`,
 `PGDATABASE` and `PGUSER` `matchmark`, `PGPASSWORD` from Vault

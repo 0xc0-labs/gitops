@@ -57,10 +57,6 @@ it (`base/cms.yaml`).
   and behind Cloudflare Access (`infrastructure`). Without Access applied the
   admin would be open: do not sync the route before it. The front
   reads the API over the Service at `CMS_URL`, with `CMS_API_TOKEN`.
-- **Admin RUM.** The admin's browsers post to `/rum/v1/default/rum` on their
-  own host, and its route sends that path, `POST` only, to OpenObserve's
-  intake, rate limited per `Cf-Connecting-Ip` like the front's. The request
-  is same-origin, so it carries the Access cookie.
 - **Vault identity.** The namespaces carry `vault.0xc0.cc/cms`, which admits
   the service account `cms` to the Kubernetes auth role `cms`
   ([`vault`](https://github.com/0xc0-labs/vault)): its projected token at
@@ -92,9 +88,8 @@ Each generator is piped into the `vault kv patch … <key>=-` of that README,
 and a path with several keys is written with its `key=@<(…)` form. The
 value never reaches a screen or a command line.
 
-OpenObserve's RUM token is `apps/shared/openobserve-rum`, and the image's pull
-token `apps/shared/ghcr-pull`, since the package is private: both already
-there. Vault needs no change: its `apps` role admits any namespace labelled
+The image's pull token is `apps/shared/ghcr-pull`, since the package is
+private: already there. Vault needs no change: its `apps` role admits any namespace labelled
 `vault.0xc0.cc/apps`.
 
 ## Upgrades
@@ -148,7 +143,6 @@ overlay's literals.
 Default deny, and then: traces to the collector, DNS, the CMS's pods on
 1337, and HTTPS to Cloudflare's ranges for `media.artistlabco.com`, which
 prod's `next/image` fetches (`base/network-policy.yaml`, `egress-media`: the
-ranges are Cloudflare's, so the platform allows no narrower rule). Each route also
-carries the browsers' RUM to OpenObserve.
+ranges are Cloudflare's, so the platform allows no narrower rule).
 
 [vault-write]: https://github.com/0xc0-labs/vault/blob/main/README.md#writing-or-rotating-a-secret

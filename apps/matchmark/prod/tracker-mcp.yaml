@@ -68,7 +68,7 @@ spec:
             - name: MATCHMARK_TRACKER_MCP_PORT
               value: "8000"
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
+              value: http://otel-gateway.opentelemetry.svc.cluster.local:4318
             - name: OTEL_SERVICE_NAME
               value: matchmark-tracker-mcp
             - name: OTEL_RESOURCE_ATTRIBUTES

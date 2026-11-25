@@ -146,7 +146,7 @@ spec:
             - name: MATCHMARK_TRACKER_API_KEY_FILE
               value: /run/secrets/plane/api_key
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: http://openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318
+              value: http://otel-gateway.opentelemetry.svc.cluster.local:4318
             - name: OTEL_SERVICE_NAME
               value: matchmark-factory-worker
             - name: OTEL_RESOURCE_ATTRIBUTES

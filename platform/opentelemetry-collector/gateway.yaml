@@ -97,7 +97,30 @@ spec:
         send_batch_size: 2000
         send_batch_max_size: 5000
         timeout: 5s
+      # A model call's record carries token counts; a refused call carries none.
+      filter/matchmark_usage:
+        error_mode: ignore
+        logs:
+          log_record:
+            - attributes["gen_ai.usage.input_tokens"] == nil and attributes["gen_ai.usage.output_tokens"] == nil
     exporters:
+      # Matchmark's usage record (apps/matchmark/README.md, The usage record).
+      # The queue and the retries are bounded and its own: a slow API drops
+      # these records alone.
+      otlphttp/matchmark_api:
+        endpoint: http://api.matchmark.svc.cluster.local/otlp
+        encoding: proto
+        compression: gzip
+        timeout: 10s
+        retry_on_failure:
+          enabled: true
+          initial_interval: 5s
+          max_interval: 30s
+          max_elapsed_time: 120s
+        sending_queue:
+          enabled: true
+          queue_size: 1000
+          block_on_overflow: false
       otlp/tempo:
         endpoint: tempo.tempo.svc.cluster.local:4317
         tls:
@@ -156,6 +179,10 @@ spec:
           receivers: [otlp]
           processors: [memory_limiter, resourcedetection, attributes, k8sattributes, batch]
           exporters: [otlphttp/loki]
+        logs/matchmark_usage:
+          receivers: [otlp]
+          processors: [memory_limiter, filter/matchmark_usage, batch]
+          exporters: [otlphttp/matchmark_api]
         logs/k8s_events:
           receivers: [k8sobjects/events]
           processors: [memory_limiter, resourcedetection, attributes, k8sattributes, batch]

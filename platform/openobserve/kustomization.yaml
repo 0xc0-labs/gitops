@@ -20,7 +20,6 @@ resources:
   - vault-secrets.yaml
   - httproute.yaml
   - dashboards.yaml
-  - reference-grant.yaml
 patches:
   # The ServiceMonitor would select the headless Service too: scrape once.
   - target:

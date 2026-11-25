@@ -13,8 +13,8 @@ otel-gateway.opentelemetry.svc.cluster.local   gRPC 4317, HTTP 4318
 
 A sender's namespace needs an egress rule to the pods labelled
 `app.kubernetes.io/instance: opentelemetry.otel-gateway`, and an entry in
-`otlp-from-senders` (`network-policy.yaml`). Until the applications are
-switched, they still send to `openobserve-collector`, and both are open.
+`otlp-from-senders` (`network-policy.yaml`). `apps/` and `platform/traefik` send here;
+`openobserve-collector` stays open until it goes.
 
 The operator names the Service it creates `otel-gateway-collector`; the
 `otel-gateway` Service in `gateway.yaml` carries the agreed name.
@@ -83,8 +83,11 @@ address first), Loki on 3100 and, the gateway only, Tempo on 4317 and
 Prometheus on 9090. Loki, Tempo and Prometheus admit `opentelemetry` beside
 `openobserve-collector`.
 
-## Not here
+## Matchmark's usage record
 
-The usage record of a model call (`openobserve-collector`'s
-`logs/matchmark_usage` pipeline, to Matchmark's API) stays on the old
-gateway until the applications move.
+The `logs/matchmark_usage` pipeline takes the log records of the OTLP receiver,
+keeps those with `gen_ai.usage.input_tokens` or `gen_ai.usage.output_tokens`
+and posts them to Matchmark's API (`http://api.matchmark.svc.cluster.local/otlp`),
+which writes a row each into `usage_ledger` (`apps/matchmark/README.md`, The
+usage record). The logs pipeline to Loki takes the same records too, so each
+model call's access log is also in Loki.
