@@ -65,6 +65,42 @@ the sites' namespaces to it, and `faro-from-traefik` admits Traefik to the port.
 The CORS and the preflight never come into play: the intake is same-origin.
 POST responses are not cached by Cloudflare, so nothing is set for it.
 
+The rule has a `RequestHeaderModifier` that removes `Cookie` and
+`Authorization`: a same-origin `fetch` sends the site's cookies by default, and
+a member's session cookie would otherwise reach the gateway with every batch.
+
+To add Faro to a new application, copy this rule into each of its routes
+(its apex, `www`, any other host that serves the page):
+
+```yaml
+- matches:
+    - path: {type: PathPrefix, value: /rum/faro}
+      method: POST
+  filters:
+    - type: URLRewrite
+      urlRewrite:
+        path: {type: ReplacePrefixMatch, replacePrefixMatch: /}
+    - type: RequestHeaderModifier
+      requestHeaderModifier:
+        remove: [Cookie, Authorization]
+    - type: ExtensionRef
+      extensionRef: {group: traefik.io, kind: Middleware, name: rum-rate-limit}
+  backendRefs:
+    - {name: otel-gateway, namespace: opentelemetry, port: 8886}
+```
+
+Then: the `rum-rate-limit` Middleware in the application's `httproute.yaml`
+(a staging host reached by a public name uses `rum-rate-limit-public`, as
+`apps/artistlabco-com/staging` does), the namespace's entry in
+`reference-grant.yaml`, and the site's `service.name` in `filter/faro_apps`.
+The `NetworkPolicy` needs nothing: Traefik makes the request to the gateway,
+not the application.
+
+One rule per site, rather than one central RUM host: the request stays
+same-origin, so no CSP `connect-src` or CORS change is needed and ad blockers
+see a first-party path, not a known third-party host. The receiver, and the
+filter that decides which `service.name` it accepts, are already one.
+
 The `logs/faro` and `traces/faro` pipelines have no `k8sattributes`: the
 connection is Traefik's, and the processor would stamp the browser's records
 with Traefik's pod. A record's `service.name` is the app name the site's SDK

@@ -39,6 +39,7 @@ spec:
   rules:
     # The browsers' RUM, same-origin, to the OpenTelemetry gateway's Faro
     # receiver: only this path and method (platform/opentelemetry-collector).
+    # Same-origin fetch sends the site's cookies: they stop at Traefik.
     - matches:
         - path: {type: PathPrefix, value: /rum/faro}
           method: POST
@@ -46,6 +47,9 @@ spec:
         - type: URLRewrite
           urlRewrite:
             path: {type: ReplacePrefixMatch, replacePrefixMatch: /}
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            remove: [Cookie, Authorization]
         - type: ExtensionRef
           extensionRef:
             group: traefik.io
@@ -81,6 +85,7 @@ spec:
   rules:
     # The browsers' RUM, same-origin, to the OpenTelemetry gateway's Faro
     # receiver: only this path and method (platform/opentelemetry-collector).
+    # Same-origin fetch sends the site's cookies: they stop at Traefik.
     - matches:
         - path: {type: PathPrefix, value: /rum/faro}
           method: POST
@@ -88,6 +93,9 @@ spec:
         - type: URLRewrite
           urlRewrite:
             path: {type: ReplacePrefixMatch, replacePrefixMatch: /}
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            remove: [Cookie, Authorization]
         - type: ExtensionRef
           extensionRef:
             group: traefik.io
@@ -138,6 +146,7 @@ spec:
   rules:
     # The browsers' RUM, same-origin, to the OpenTelemetry gateway's Faro
     # receiver: only this path and method (platform/opentelemetry-collector).
+    # Same-origin fetch sends the site's cookies: they stop at Traefik.
     - matches:
         - path: {type: PathPrefix, value: /rum/faro}
           method: POST
@@ -145,6 +154,9 @@ spec:
         - type: URLRewrite
           urlRewrite:
             path: {type: ReplacePrefixMatch, replacePrefixMatch: /}
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            remove: [Cookie, Authorization]
         - type: ExtensionRef
           extensionRef:
             group: traefik.io
