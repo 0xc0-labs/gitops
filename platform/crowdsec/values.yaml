@@ -6,6 +6,11 @@ image:
 # reserved 3.5 vCPU and used 7m (measured 2026-11-18). Limits stay, CPU
 # requests drop (#414).
 agent:
+  tolerations:
+    - key: 0xc0.cc/pool
+      operator: Equal
+      value: apps
+      effect: NoSchedule
   resources:
     requests:
       cpu: 50m

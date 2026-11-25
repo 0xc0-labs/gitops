@@ -91,6 +91,61 @@ kubectl -n longhorn-system get replicas.longhorn.io \
 The last command counts replicas per volume: every attached volume says `2`.
 A detached one still says `3` until it is attached.
 
+## The apps taint
+
+The nodes of the `apps` pool (`vm-rke2-04`, `-05`) get the taint
+`0xc0.cc/pool=apps:NoSchedule` in a maintenance window (workspace#288). Longhorn
+runs there, so it tolerates it twice:
+
+- **The components the chart deploys** (`longhorn-manager`, the driver
+  deployer, the UI, the global manager): `global.tolerations` in
+  `values.yaml`. Argo CD applies it on sync.
+- **The components Longhorn manages itself** (instance managers, CSI plugin,
+  engine images, share managers): the `taint-toleration` setting, fed by
+  `defaultSettings.taintToleration` in `values.yaml`. Longhorn applies it
+  only when no volume is attached ([settings reference][l-settings], [taint
+  toleration][l-taint]): with one attached, the setting stays unapplied until
+  the next hourly synchronization finds every volume detached, or until it is
+  set again.
+
+The sandbox pool's taint is not tolerated: Longhorn stays off `vm-rke2-06`.
+
+### Inside the window
+
+Before the taint lands, with every workload that uses a volume stopped and
+every volume detached:
+
+```sh
+kubectl -n longhorn-system get volumes.longhorn.io   # every STATE: detached
+kubectl -n longhorn-system get settings.longhorn.io taint-toleration \
+  -o jsonpath='{.value}{"\n"}{.status.applied}{"\n"}'
+```
+
+The value must be `0xc0.cc/pool=apps:NoSchedule` and `status.applied` `true`.
+Synced with a volume attached, it reads `false`. Argo CD does not sync it
+again by itself, and the docs do not say that a changed Helm value reaches a
+setting already created, so set it where the docs do: **Settings, Kubernetes
+Taint Toleration in the Longhorn UI**, or
+`kubectl -n longhorn-system edit settings.longhorn.io taint-toleration`, with
+the same value and with every volume detached. The system-managed components
+restart then, and Longhorn is unavailable for a moment. (`helm upgrade`, which
+the docs name for the user-deployed components, is not how this repo applies
+them: Argo CD does.) Keep `values.yaml` and the setting equal.
+
+Then confirm, before the taint:
+
+```sh
+kubectl -n longhorn-system get settings.longhorn.io taint-toleration \
+  -o jsonpath='{.status.applied}{"\n"}'
+kubectl -n longhorn-system get pods -l longhorn.io/component=instance-manager \
+  -o custom-columns=NAME:.metadata.name,TOL:.spec.tolerations
+kubectl -n longhorn-system get pods -l app=longhorn-csi-plugin \
+  -o custom-columns=NAME:.metadata.name,TOL:.spec.tolerations
+```
+
+Every pod lists `0xc0.cc/pool` with value `apps`. Only then does the taint go
+on the nodes.
+
 ## Recurring trims
 
 A trim hands a volume's freed blocks back to Longhorn; without it a replica
@@ -210,6 +265,8 @@ outlive a minute: that is the point.
 - No alert covers any of it: OpenObserve has none (its README, Alerts), and
   none is built here.
 
+[l-settings]: https://longhorn.io/docs/1.13.0/references/settings/
+[l-taint]: https://longhorn.io/docs/1.13.0/advanced-resources/deploy/taint-toleration/
 [l-const]: https://github.com/longhorn/longhorn-manager/blob/v1.13.0/app/recurringjob/constant.go
 [l-util]: https://github.com/longhorn/longhorn-manager/blob/v1.13.0/util/util.go
 [l-doc]: https://longhorn.io/docs/1.13.0/nodes-and-volumes/volumes/trim-filesystem/

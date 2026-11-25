@@ -23,6 +23,8 @@ image:
 
 kube-state-metrics:
   enabled: true
+  # Not the chart's `operator: Exists`: it would let the pool taints through.
+  tolerations: []
   image:
     tag: v2.15.0
     sha: sha256:db384bf43222b066c378e77027a675d4cd9911107adba46c2922b3a55e10d6fb
@@ -135,6 +137,8 @@ agent:
         exporters: [otlphttp/openobserve]
 
 gateway:
+  # Not the chart's `operator: Exists`: it would let the pool taints through.
+  tolerations: []
   targetAllocator:
     enabled: true
     resources:

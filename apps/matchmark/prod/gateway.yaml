@@ -15,6 +15,14 @@ spec:
     spec:
       template:
         spec:
+          # Created by the controller, so the pool component cannot reach it.
+          nodeSelector:
+            0xc0.cc/pool: apps
+          tolerations:
+            - key: 0xc0.cc/pool
+              operator: Equal
+              value: apps
+              effect: NoSchedule
           securityContext:
             runAsNonRoot: true
             seccompProfile:

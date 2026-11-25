@@ -12,6 +12,14 @@ resources:
 # With externalTrafficPolicy Local, a node answers only through its own pod.
 deployment:
   kind: DaemonSet
+# The apps pool's taint (workspace#288). The sandbox pool's is not tolerated:
+# the load balancers reach the servers' NodePorts alone, so no pod is needed
+# there.
+tolerations:
+  - key: 0xc0.cc/pool
+    operator: Equal
+    value: apps
+    effect: NoSchedule
 providers:
   kubernetesGateway:
     enabled: true

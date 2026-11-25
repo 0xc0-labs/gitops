@@ -1,15 +1,21 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: runc-baseline-2
+  name: runc-baseline-3
   namespace: gvisor
 spec:
   backoffLimit: 0
   template:
     spec:
       restartPolicy: Never
+      # The same node as gvisor-proof, whose class places it there.
       nodeSelector:
-        kubernetes.io/hostname: vm-rke2-04
+        0xc0.cc/pool: sandbox
+      tolerations:
+        - key: 0xc0.cc/pool
+          operator: Equal
+          value: sandbox
+          effect: NoSchedule
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true

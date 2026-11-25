@@ -4,7 +4,7 @@
 # raise the number in its name: the sync creates the new Job and prunes the
 # old one.
 #
-# `artifacts-setup-1` runs in wave 1, after RustFS is Healthy, and the proof in
+# `artifacts-setup-2` runs in wave 1, after RustFS is Healthy, and the proof in
 # wave 2: Argo CD waits for a Job to complete before the next wave.
 #
 # Setup is the only user of RustFS's root credentials. `rc` creates the user
@@ -15,7 +15,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: artifacts-setup-1
+  name: artifacts-setup-2
   namespace: matchmark
   annotations:
     argocd.argoproj.io/sync-wave: "1"
@@ -122,7 +122,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: worker-proof-4
+  name: worker-proof-5
   namespace: matchmark
   annotations:
     argocd.argoproj.io/sync-wave: "2"

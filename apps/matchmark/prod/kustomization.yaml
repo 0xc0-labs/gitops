@@ -7,6 +7,7 @@ namespace: matchmark
 # The sandboxd pin, shared with the sandbox proof (README.md, The factory worker).
 components:
   - ../../matchmark-sandboxes/sandboxd-image
+  - ../../_components/pool-apps
 helmCharts:
   - name: agentgateway-crds
     repo: oci://cr.agentgateway.dev/charts
@@ -128,7 +129,7 @@ replacements:
           - spec.template.spec.containers.[name=factory-worker].env.[name=MATCHMARK_RUNNER_IMAGE].value
       - select:
           kind: Job
-          name: runner-sandbox-proof-version-r2
+          name: runner-sandbox-proof-version-r3
         fieldPaths:
           - spec.template.spec.containers.[name=proof].env.[name=MATCHMARK_RUNNER_IMAGE].value
   - source:
@@ -138,7 +139,7 @@ replacements:
     targets:
       - select:
           kind: Job
-          name: gateway-proof-version
+          name: gateway-proof-version-r2
         fieldPaths:
           - metadata.name
         options:
@@ -146,7 +147,7 @@ replacements:
           index: 2
       - select:
           kind: Job
-          name: tracker-mcp-proof-version-r3
+          name: tracker-mcp-proof-version-r4
         fieldPaths:
           - metadata.name
         options:
@@ -162,7 +163,7 @@ replacements:
           index: 2
       - select:
           kind: Job
-          name: runner-sandbox-proof-version-r2
+          name: runner-sandbox-proof-version-r3
         fieldPaths:
           - metadata.name
         options:

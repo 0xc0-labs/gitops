@@ -14,7 +14,7 @@ metadata:
   # each release is a new Job and Argo CD prunes the previous one. `-r2` is
   # the corrected copy: a Job cannot be edited, and the first one's `bwrap`
   # check expected the wrong PID.
-  name: runner-sandbox-proof-version-r2
+  name: runner-sandbox-proof-version-r3
   namespace: matchmark
   annotations:
     argocd.argoproj.io/sync-wave: "2"

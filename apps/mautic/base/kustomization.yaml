@@ -7,6 +7,8 @@
 # - Its database: platform/mariadb's nightly dump, mariadb-dumps/<database>.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+components:
+  - ../../_components/pool-apps
 resources:
   - network-policy.yaml
   - vault-secrets.yaml

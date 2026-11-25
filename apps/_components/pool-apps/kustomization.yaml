@@ -1,0 +1,42 @@
+# Places every workload of the application that lists this component on the
+# `apps` node pool (workspace#288). The pool's nodes carry the taint
+# `0xc0.cc/pool=apps:NoSchedule` once the maintenance window lands it, so the
+# toleration is declared before it.
+#
+# A pod that asks for the `gvisor` RuntimeClass is the one exception: the class
+# places it on the `sandbox` pool, and an admission plugin rejects a pod whose
+# nodeSelector disagrees with its class. Such a workload carries the label
+# `0xc0.cc/placement: runtime-class`.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+patches:
+  - target:
+      kind: Deployment|StatefulSet|Job
+      labelSelector: 0xc0.cc/placement!=runtime-class
+    patch: |-
+      - op: add
+        path: /spec/template/spec/nodeSelector
+        value:
+          0xc0.cc/pool: apps
+      - op: add
+        path: /spec/template/spec/tolerations
+        value:
+          - key: 0xc0.cc/pool
+            operator: Equal
+            value: apps
+            effect: NoSchedule
+  - target:
+      kind: CronJob
+      labelSelector: 0xc0.cc/placement!=runtime-class
+    patch: |-
+      - op: add
+        path: /spec/jobTemplate/spec/template/spec/nodeSelector
+        value:
+          0xc0.cc/pool: apps
+      - op: add
+        path: /spec/jobTemplate/spec/template/spec/tolerations
+        value:
+          - key: 0xc0.cc/pool
+            operator: Equal
+            value: apps
+            effect: NoSchedule
