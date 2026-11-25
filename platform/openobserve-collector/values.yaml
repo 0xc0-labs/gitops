@@ -44,12 +44,13 @@ agent:
     runAsUser: 0
     seLinuxOptions:
       type: spc_t
+  # OOMKilled at 512Mi on 2026-11-25 after a run at 98-99% of it.
   resources:
     requests:
       cpu: 50m
-      memory: 128Mi
+      memory: 384Mi
     limits:
-      memory: 512Mi
+      memory: 768Mi
   # Every minute, not 30 s: half the metrics, nothing lost at this scale.
   receivers:
     kubeletstats:
@@ -59,6 +60,13 @@ agent:
   # Each log's level, parsed from its body: the runtime's format carries none.
   # First match wins: JSON, logfmt, klog, Monolog, [LEVEL], a bare word.
   processors:
+    # In MiB, not a percentage: the chart's default (512) sat at the old
+    # container limit, so the kernel killed the agent before the limiter
+    # refused data. Keep limit_mib near 80% of the container's limit.
+    memory_limiter:
+      check_interval: 1s
+      limit_mib: 600
+      spike_limit_mib: 150
     transform/severity:
       error_mode: ignore
       log_statements:
@@ -135,12 +143,13 @@ gateway:
         memory: 64Mi
       limits:
         memory: 256Mi
+  # At 995Mi (97% of 1Gi) on 2026-11-25. limit_mib: see the agent's.
   resources:
     requests:
       cpu: 100m
-      memory: 256Mi
-    limits:
       memory: 1Gi
+    limits:
+      memory: 1536Mi
   # Only the events: the other watches cost much memory for little use.
   receivers:
     k8sobjects/pods: null
@@ -170,6 +179,10 @@ gateway:
     k8sobjects/limitranges: null
     k8sobjects/resourcequotas: null
   processors:
+    memory_limiter:
+      check_interval: 1s
+      limit_mib: 1200
+      spike_limit_mib: 300
     # What no dashboard uses and costs the most to keep (measured 2026-10-02).
     filter/noise:
       error_mode: ignore

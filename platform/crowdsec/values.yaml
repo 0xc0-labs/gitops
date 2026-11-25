@@ -9,10 +9,10 @@ agent:
   resources:
     requests:
       cpu: 50m
-      memory: 250Mi
+      memory: 256Mi
     limits:
       cpu: 500m
-      memory: 250Mi
+      memory: 384Mi
   # SELinux keeps container_t out of the container logs; this domain reads
   # them and nothing more, narrower than spc_t.
   podSecurityContext:

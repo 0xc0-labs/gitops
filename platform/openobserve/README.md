@@ -147,10 +147,23 @@ half costs scheduling room on each replica's node, not disk.
 Growing it: `volumeClaimTemplates` cannot change on a StatefulSet, so the
 size goes on the PVC first (`kubectl -n openobserve patch pvc
 data-openobserve-0`), which Longhorn and ext4 grow online. Then
-`persistence.size` in `values.yaml` follows. After that change merges,
-`kubectl -n openobserve delete statefulset openobserve --cascade=orphan` lets
-the sync recreate the StatefulSet with the new `volumeClaimTemplates`,
-without touching the pod.
+`persistence.size` in `values.yaml` follows. After that change merges, and
+before the orphan delete, make Argo CD read the merge commit: a hard refresh
+of the Application, and a check that `status.sync.revision` is that commit.
+
+```sh
+kubectl -n argocd annotate application openobserve argocd.argoproj.io/refresh=hard --overwrite
+kubectl -n argocd get application openobserve -o jsonpath='{.status.sync.revision}{"\n"}'
+```
+
+Only then `kubectl -n openobserve delete statefulset openobserve
+--cascade=orphan`, which lets the sync recreate the StatefulSet with the new
+`volumeClaimTemplates`, without touching the pod. Afterwards the pod's uid
+(`kubectl -n openobserve get pod openobserve-0 -o jsonpath='{.metadata.uid}'`)
+must be the one it had before. The orphan delete done right after a merge, on
+2026-11-25, let self-heal recreate the StatefulSet from the old revision
+(50Gi), which restarted the pod and then failed with "Forbidden: updates to
+statefulset spec".
 
 To measure it again, from the kubelet of the node that runs `openobserve-0`:
 
@@ -181,8 +194,9 @@ cluster, so what grew is read from v1.0.1's source, not measured:
   cover: the file statistics cache (5%, 153 MB; now 64), the inverted index
   footer cache (5%, 153 MB) and the bloom footer cache (1%, 32 MB).
 
-The limit is 4Gi (`limits.memory`), the operator's decision of 2026-11-22
-(#579), after the pool went to 128 MB (#576). Measured then, with no search
+The limit was 4Gi (`limits.memory`), the operator's decision of 2026-11-22
+(#579), after the pool went to 128 MB (#576); it is 6Gi since #647, which
+also set the request to what the pod holds (below). Measured then, with no search
 running, the container sat at 2,438 to 2,492 MiB (`kubectl top`, four samples
 in two minutes), against the 3Gi it had. The caps below bound what each part
 may take; the measure is what the process holds at rest, caches and memtable
@@ -190,22 +204,23 @@ included, so the two are not added.
 
 | | MB |
 |---|---|
-| Limit (4Gi) | 4,096 |
+| Limit (6Gi) | 6,144 |
 | At rest, measured | ~2,450 |
-| **Left for searches** | **~1,650** |
+| **Left for searches** | **~3,700** |
 
 The caps inside that rest figure: memtable (`ZO_MEM_TABLE_MAX_SIZE`) 512, file
 cache (`ZO_MEMORY_CACHE_MAX_SIZE`) 256, file statistics cache 64, footer
 caches at their defaults 185.
 
-At 128 MB a pool, twelve heavy searches fit in what is left; with 3Gi, about
-four (~550 MB). That is a bound on a heavy search, not on the count: a dozen
+At 128 MB a pool, twenty-nine heavy searches fit in what is left of 6Gi (twelve
+did of 4Gi; with 3Gi, about four). That is a bound on a heavy search, not on the count: a dozen
 panels still ask for about what is left, and the pool of one that goes past
-its 128 MB makes that query fail instead of the process. The request stays at
-1Gi: it only places the pod, and its node (`vm-rke2-04`) used 6.3 of 11.4 GiB
-when this was measured. That node also runs the task sandboxes, whose memory
-limits already add up to more than it has, so the limit is a ceiling the node
-may not always have to give.
+its 128 MB makes that query fail instead of the process. The request is 3Gi,
+what the pod held on 2026-11-25 (3,379Mi, 478m of CPU), so the scheduler sees
+it. Its node (`vm-rke2-04`) used 6.3 of 11.4 GiB when the limit was measured.
+That node also runs the task sandboxes, whose memory limits already add up to
+more than it has, so the limit is a ceiling the node may not always have to
+give.
 
 `ZO_MEMORY_CIRCUIT_BREAKER_ENABLED` (reject past a ratio of the limit) exists
 and is documented in one line. It is not set: which requests it rejects, and
@@ -218,7 +233,7 @@ week of it is lighter from 2026-11-29.
 To check after the sync, without repeating the burst: in the `OpenObserve`
 dashboard, watch the container's working set and `zo_*` memory while one
 person opens the Matchmark dashboard over one day, then over 7 days, a tab at
-a time; the working set should stay under ~3,700 MB, and a panel that is too
+a time; the working set should stay under ~5,500 MB, and a panel that is too
 large should show an error, not a restart. `kubectl -n openobserve get pod
 openobserve-0 -o jsonpath='{.status.containerStatuses[0].lastState}'` shows
 whether a kill happened.

@@ -62,13 +62,14 @@ securityContext:
     type: RuntimeDefault
 
 # At rest 2.4 to 2.5 GiB (2026-11-22); the README's "Memory of a search" has
-# the arithmetic.
+# the arithmetic. The request is what it holds in steady use (3379Mi, 478m on
+# 2026-11-25); the limit leaves room for a search.
 resources:
   requests:
-    cpu: 100m
-    memory: 1Gi
+    cpu: 500m
+    memory: 3Gi
   limits:
-    memory: 4Gi
+    memory: 6Gi
 
 serviceMonitor:
   enabled: true

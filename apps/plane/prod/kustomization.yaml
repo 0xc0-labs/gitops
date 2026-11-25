@@ -142,6 +142,29 @@ patches:
             mountPath: /etc/caddy/Caddyfile
             subPath: Caddyfile
             readOnly: true
+  # The chart has no value for these three StatefulSets' resources. Measured
+  # on 2026-11-25: minio 1m, 114Mi; rabbitmq 4m, 156Mi; redis 2m, 16Mi.
+  - target: {kind: StatefulSet, name: plane-minio-wl}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests: {cpu: 10m, memory: 192Mi}
+          limits: {memory: 512Mi}
+  - target: {kind: StatefulSet, name: plane-rabbitmq-wl}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests: {cpu: 10m, memory: 256Mi}
+          limits: {memory: 512Mi}
+  - target: {kind: StatefulSet, name: plane-redis-wl}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests: {cpu: 10m, memory: 64Mi}
+          limits: {memory: 256Mi}
   # The chart allows http:// too.
   - target: {kind: ConfigMap, name: plane-app-vars}
     patch: |-

@@ -3,6 +3,12 @@ image:
   repository: traefik
   tag: v3.7.13
   digest: sha256:24841fe2de7304c149343d877d2923b4c8800a38ba015dea9174c23b20e344a0
+resources:
+  requests:
+    cpu: 10m
+    memory: 192Mi
+  limits:
+    memory: 512Mi
 # With externalTrafficPolicy Local, a node answers only through its own pod.
 deployment:
   kind: DaemonSet

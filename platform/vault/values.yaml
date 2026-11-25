@@ -29,6 +29,13 @@ server:
         allowPrivilegeEscalation: false
         capabilities:
           drop: [ALL]
+  # No memory limit: an OOM kill seals the pod, and only the operator unseals
+  # it. A StatefulSet updating OnDelete picks this up at each pod's next
+  # restart.
+  resources:
+    requests:
+      cpu: 50m
+      memory: 384Mi
   dataStorage:
     enabled: true
     size: 5Gi
