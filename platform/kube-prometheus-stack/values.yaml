@@ -196,9 +196,11 @@ grafana:
     server:
       domain: grafana.int.0xc0.cc
       root_url: https://grafana.int.0xc0.cc
-    # The database does not outlive the pod, so every login creates the user
-    # again: the role comes from the team on each one, never from a grant made
-    # by hand.
+    # Only the team `admins` signs in: the path maps no other user to a role,
+    # and `role_attribute_strict` refuses a login that has none. The database
+    # does not outlive the pod, so every login creates the user again, its role
+    # from the team each time, never from a grant made by hand. Grafana's
+    # `team_ids` takes numeric IDs only, so the team is matched by name here.
     auth.github:
       enabled: true
       client_id: $__env{GITHUB_CLIENT_ID}
@@ -206,7 +208,8 @@ grafana:
       scopes: user:email,read:org
       allow_sign_up: true
       allowed_organizations: 0xc0-labs
-      role_attribute_path: contains(groups[*], '@0xc0-labs/admins') && 'Admin' || 'Viewer'
+      role_attribute_path: contains(groups[*], '@0xc0-labs/admins') && 'Admin' || ''
+      role_attribute_strict: true
     dashboards:
       default_home_dashboard_path: /var/lib/grafana/dashboards/home/home.json
     analytics:
