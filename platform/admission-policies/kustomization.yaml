@@ -1,0 +1,8 @@
+# README.md: what the two policies do and why (workspace#301).
+#
+# Cluster-scoped resources only: nothing here holds data.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - pool-apps-placement.yaml
+  - pool-apps-guard.yaml
