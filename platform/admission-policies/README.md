@@ -1,10 +1,9 @@
 # admission-policies
 
 Kubernetes places every application pod on the `apps` node pool itself
-(workspace#301, gitops#696). Before, each application listed
-`apps/_components/pool-apps`, which patched its workloads' manifests: an
-application that forgot it could land on the servers (`infra` pool). Now the
-API server decides, from one label on the namespace.
+(workspace#301, gitops#696, gitops#697). The API server decides, from one label
+on the namespace, so an application that forgets a patch cannot land on the
+servers (`infra` pool).
 
 Cluster-scoped resources only, so the Application's namespace stays empty.
 Needs Kubernetes 1.36 (`admissionregistration.k8s.io/v1` serves both kinds).
@@ -45,9 +44,7 @@ to labelled namespaces and fails closed.
 ## Adding an application namespace
 
 Label its Namespace `0xc0.cc/pool: apps`. Nothing else: no component, no
-patch. Until `apps/_components/pool-apps` is removed (gitops#697), an
-application that lists it still sets the same values itself, which the policy
-leaves as they are.
+patch.
 
 A namespace that must not run on `apps` stays unlabelled: its pods cannot
 select the pool.
@@ -56,5 +53,5 @@ select the pool.
 
 The label is applied by the application's own Application, these policies by
 `admission-policies`. A pod created in a namespace before its label is synced
-and that selects `apps` (through `pool-apps`) is denied until it is: the
-retry of the sync, or the pod's controller, settles it.
+and that selects `apps` itself is denied until it is: the retry of the sync,
+or the pod's controller, settles it.

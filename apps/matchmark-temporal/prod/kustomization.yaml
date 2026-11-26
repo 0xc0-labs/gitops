@@ -14,8 +14,6 @@ helmCharts:
     valuesFile: values.yaml
     # The test Pod is a hook; `skipHooks` would drop the two Jobs too.
     skipTests: true
-components:
-  - ../../_components/pool-apps
 resources:
   - vault-secrets.yaml
   - ui-route.yaml
@@ -46,7 +44,6 @@ patches:
         path: /spec/template/spec/automountServiceAccountToken
         value: false
   # The chart's schema Job is no hook and a Job's pod template is immutable,
-  # but it needs no `Replace=true` (which fails every sync, #679): its template
-  # already carries the pool's placement, and a new chart version names the Job
-  # anew (`temporal-schema-<version>-<rev>`), so Argo CD creates it instead of
-  # updating the old one.
+  # but it needs no `Replace=true` (which fails every sync, #679): a new chart
+  # version names the Job anew (`temporal-schema-<version>-<rev>`), so Argo CD
+  # creates it instead of updating the old one.

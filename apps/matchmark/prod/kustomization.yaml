@@ -7,7 +7,6 @@ namespace: matchmark
 # The sandboxd pin, shared with the sandbox proof (README.md, The factory worker).
 components:
   - ../../matchmark-sandboxes/sandboxd-image
-  - ../../_components/pool-apps
 helmCharts:
   - name: agentgateway-crds
     repo: oci://cr.agentgateway.dev/charts
