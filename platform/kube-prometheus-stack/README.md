@@ -101,6 +101,45 @@ last-applied annotation caps one near 256 KiB.
 | Web vitals | `applications-rum` | Real-user web vitals across the sites, from Faro |
 | Traces / Overall, Traces / By service | `traces-overall`, `traces-by-service` | Spans, latency and the service map, for every service or one |
 | Argo CD, Traefik, Vault, Longhorn, CrowdSec, Kubernetes / Events | `argocd`, `traefik`, `vault`, `longhorn`, `crowdsec`, `kubernetes-events` | The platform, each trimmed to what this estate uses; the `Platform` menu lists them by the tag `platform` |
+| Right-sizing | `rightsizing` | What every workload asks for against what it used over the range (7 days by default): idle reservation, the pools, asked against used per workload, the memory reservation by namespace, and the containers closest to trouble with the change to make. In `Platform`, and linked from Estate's Pool capacity |
+
+#### Right-sizing
+
+A workload is a Deployment, StatefulSet or DaemonSet; each container counts
+at its largest across the workload's pods. Jobs, CronJobs and static pods
+(RKE2's control plane) are left out of every block but Pools, which counts
+every running and pending pod. Used is the 95th percentile of the 5-minute
+CPU rate, and the maximum of the memory working set, over the range.
+
+| State | When |
+|---|---|
+| idle | used under 30 % of the request |
+| fits | 30 to 100 % |
+| short | over 100 % of the request |
+| near limit | a container's memory maximum over 80 % of its limit; wins over the others |
+| unset | no request |
+
+The suggested change: request at p95 × 1.2, memory limit at the maximum ×
+1.5, rounded up to 10m and 16 MiB. The `Based on` card says how much of the
+range Prometheus holds, so a short history is not read as a full week, and
+until the history fills the range, each chart of At the edge starts at its
+first sample.
+
+Names drop the namespace beside them and the chart release they repeat:
+`rke2-coredns-rke2-coredns-autoscaler` in `kube-system` reads
+`coredns-autoscaler`. The tooltip gives the full name.
+
+The memory treemap folds what is too small to read: inside a namespace, the
+workloads under 8 % of its memory become one "N others" tile, and the
+namespaces under 2 % of the total one "other namespaces" group. A folded
+tile's state is its members' together, unless one is near its limit. The
+panel lays the treemap out itself, on a `custom` series, rather than with
+ECharts' `treemap`, which draws its tiles opaque and gives a label no measure
+of its tile: a name shows whole, broken only after a hyphen, or not at all.
+
+Every query runs once, in the strip of cards; the other blocks read its
+frames through the `-- Dashboard --` data source, and each query carries a
+`q` label that names it for the panels' code.
 
 ### Design
 
@@ -155,6 +194,8 @@ One look across every board, a control room (operator, 2026-11-25).
 |---|---|
 | Node pools | `kube_node_labels{label_0xc0_cc_pool}`: kube-state-metrics exports the `0xc0.cc/pool` label (`metricLabelsAllowlist` in `values.yaml`) |
 | Node CPU and memory | node-exporter, named by `node_uname_info`'s `nodename` |
+| Workloads, requests and use | A pod's workload from `kube_pod_owner`, through `kube_replicaset_owner` for a Deployment; `kube_pod_container_resource_requests` and `…_limits`; cAdvisor's `container_cpu_usage_seconds_total`, `container_memory_working_set_bytes` and `container_cpu_cfs_*` (only where a CPU limit is set) |
+| OOM kills | A change of `kube_pod_container_status_restarts_total` while `kube_pod_container_status_last_terminated_reason{reason="OOMKilled"}` holds |
 | Traffic, golden signals, availability | Traefik's `traefik_entrypoint_*` and `traefik_service_*`. A service is the part of `exported_service` after `-svc-`; an application is the namespace after `httproute-` |
 | Service maps, calls between services | The collectors' `servicegraph` connector (`traces_service_graph_*`). Peers known only by a pod IP, or `unknown`, are Traefik's backends that send no spans: the panels leave them out |
 | Versions | The image tag in `kube_pod_container_info`'s `image_spec`, `service.version` on spans, `app_version` on Faro's lines |
@@ -170,7 +211,7 @@ One look across every board, a control room (operator, 2026-11-25).
 
 | Plugin | For |
 |---|---|
-| Business Charts, `volkovlabs-echarts-panel` | Every board's strip of cards, the traffic sankey, the memory sunburst, the web vitals gauges, and Apps' release comparison and slowest operations, which group by a label no stock panel can pivot on |
+| Business Charts, `volkovlabs-echarts-panel` | Every board's strip of cards, the traffic sankey, the memory sunburst, the web vitals gauges, Apps' release comparison and slowest operations, which group by a label no stock panel can pivot on, and every block of Right-sizing |
 | Business Text, `marcusolsson-dynamictext-panel` | The estate's health ring, drawn in CSS: its sanitizer strips `<svg>` |
 
 The estate map is Grafana's Canvas: each node's CPU, memory, pods and Ready

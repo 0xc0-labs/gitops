@@ -5332,7 +5332,7 @@
     {
       "type": "bargauge",
       "title": "Pool capacity",
-      "description": "Resource requests of the running and pending pods against what each pool's nodes can allocate, CPU and memory.",
+      "description": "Resource requests of the running and pending pods against what each pool's nodes can allocate, CPU and memory. Right-sizing, in the panel's link, shows it per workload.",
       "transparent": true,
       "targets": [
         {
@@ -5421,7 +5421,14 @@
         "w": 8,
         "x": 16,
         "y": 36
-      }
+      },
+      "links": [
+        {
+          "title": "Right-sizing: what each workload asks for against what it uses",
+          "url": "/d/rightsizing",
+          "targetBlank": false
+        }
+      ]
     }
   ],
   "refresh": "1m",
