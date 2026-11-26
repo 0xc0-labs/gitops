@@ -331,7 +331,6 @@
           "expr": "sum by (object_metadata_namespace) (count_over_time({service_name=\"unknown_service\"} | json | object_reason != \"\" | object_type=\"Warning\" [$__range]))",
           "queryType": "instant",
           "editorMode": "code",
-          "legendFormat": "{{object_metadata_namespace}}",
           "refId": "A"
         }
       ],
@@ -352,7 +351,8 @@
               }
             ]
           },
-          "noValue": "no warnings in range"
+          "noValue": "no warnings in range",
+          "min": 0
         },
         "overrides": []
       },
@@ -364,11 +364,11 @@
             "lastNotNull"
           ],
           "fields": "",
-          "values": false
+          "values": true
         },
         "showUnfilled": true,
         "valueMode": "color",
-        "namePlacement": "top",
+        "namePlacement": "left",
         "sizing": "auto",
         "minVizHeight": 16,
         "minVizWidth": 8,
@@ -384,7 +384,27 @@
         "w": 8,
         "x": 16,
         "y": 4
-      }
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            }
+          }
+        }
+      ]
     },
     {
       "type": "table",
@@ -455,6 +475,46 @@
                 ]
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byType",
+              "options": "number"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "events"
+              },
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "type"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "namespace"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 150
+              }
+            ]
           }
         ]
       },
@@ -507,16 +567,16 @@
       ],
       "id": 7,
       "gridPos": {
-        "h": 10,
-        "w": 10,
+        "h": 9,
+        "w": 24,
         "x": 0,
-        "y": 12
+        "y": 22
       }
     },
     {
-      "type": "logs",
+      "type": "table",
       "title": "Recent events",
-      "description": "The latest events, as the gateway sends them to Loki: JSON lines with service_name unknown_service.",
+      "description": "The latest 200 events in the range: time, type, namespace, object, reason and message (events.k8s.io note, or core message).",
       "transparent": true,
       "targets": [
         {
@@ -524,7 +584,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{service_name=\"unknown_service\"} | json | object_reason != \"\"",
+          "expr": "{service_name=\"unknown_service\"} | json ev_ns=\"object.metadata.namespace\", ev_type=\"object.type\", ev_reason=\"object.reason\", ev_kind=\"object.regarding.kind\", ev_name=\"object.regarding.name\", ev_note=\"object.note\", ev_ikind=\"object.involvedObject.kind\", ev_iname=\"object.involvedObject.name\", ev_msg=\"object.message\" | ev_reason != \"\" | label_format ev_object=`{{ if .ev_kind }}{{ .ev_kind }}/{{ .ev_name }}{{ else }}{{ .ev_ikind }}/{{ .ev_iname }}{{ end }}` | line_format `{{ if .ev_note }}{{ .ev_note }}{{ else }}{{ .ev_msg }}{{ end }}`",
           "queryType": "range",
           "editorMode": "code",
           "maxLines": 200,
@@ -541,20 +601,123 @@
                 "value": null
               }
             ]
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": false
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "time"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 170
+              },
+              {
+                "id": "unit",
+                "value": "dateTimeAsLocalNoDateIfToday"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "type"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "Warning": {
+                        "color": "#FBBF24",
+                        "text": "● Warning"
+                      },
+                      "Normal": {
+                        "color": "#8D99AB",
+                        "text": "● Normal"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "namespace"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 150
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "object"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 280
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "reason"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 170
+              }
+            ]
+          }
+        ]
       },
       "options": {
-        "showTime": true,
-        "wrapLogMessage": true,
-        "enableLogDetails": true,
-        "sortOrder": "Descending",
-        "dedupStrategy": "none",
-        "prettifyLogMessage": false,
-        "showLabels": false,
-        "showCommonLabels": false,
-        "enableInfiniteScrolling": false
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        },
+        "sortBy": [
+          {
+            "displayName": "time",
+            "desc": true
+          }
+        ]
       },
       "datasource": {
         "type": "loki",
@@ -563,10 +726,57 @@
       "id": 8,
       "gridPos": {
         "h": 10,
-        "w": 14,
-        "x": 10,
+        "w": 24,
+        "x": 0,
         "y": 12
-      }
+      },
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "labels",
+            "format": "auto",
+            "replace": false,
+            "keepTime": false
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "Time",
+                "ev_type",
+                "ev_ns",
+                "ev_object",
+                "ev_reason",
+                "Line"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "indexByName": {
+              "Time": 0,
+              "ev_type": 1,
+              "ev_ns": 2,
+              "ev_object": 3,
+              "ev_reason": 4,
+              "Line": 5
+            },
+            "renameByName": {
+              "Time": "time",
+              "ev_type": "type",
+              "ev_ns": "namespace",
+              "ev_object": "object",
+              "ev_reason": "reason",
+              "Line": "message"
+            }
+          }
+        }
+      ]
     }
   ],
   "refresh": "1m",

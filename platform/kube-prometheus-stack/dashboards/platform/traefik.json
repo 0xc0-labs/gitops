@@ -387,7 +387,7 @@
     {
       "type": "timeseries",
       "title": "Answers by code",
-      "description": "Answers by status code.",
+      "description": "Answers per hour by class, from the same counter as the cards (traefik_entrypoint_requests_total).",
       "transparent": true,
       "targets": [
         {
@@ -395,8 +395,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(sum by (code) (rate(traefik_entrypoint_requests_total{entrypoint=~\"$entrypoint\"}[$__rate_interval]))) * 3600",
-          "legendFormat": "{{code}}",
+          "expr": "sum by (class) (label_replace(rate(traefik_entrypoint_requests_total{entrypoint=~\"$entrypoint\", code=~\"[1-5]..\"}[$__rate_interval]), \"class\", \"$1\", \"code\", \"([1-5]).*\")) * 3600",
+          "legendFormat": "{{class}}xx",
           "range": true,
           "instant": false,
           "editorMode": "code",
@@ -430,7 +430,7 @@
             "axisLabel": "per hour",
             "axisPlacement": "auto",
             "stacking": {
-              "mode": "normal",
+              "mode": "none",
               "group": "A"
             },
             "thresholdsStyle": {
@@ -442,38 +442,23 @@
         "overrides": [
           {
             "matcher": {
-              "id": "byRegexp",
-              "options": "5.*"
+              "id": "byName",
+              "options": "2xx"
             },
             "properties": [
               {
                 "id": "color",
                 "value": {
                   "mode": "fixed",
-                  "fixedColor": "#FB7185"
+                  "fixedColor": "#34D399"
                 }
               }
             ]
           },
           {
             "matcher": {
-              "id": "byRegexp",
-              "options": "4.*"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#FBBF24"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byRegexp",
-              "options": "3.*"
+              "id": "byName",
+              "options": "3xx"
             },
             "properties": [
               {
@@ -487,15 +472,45 @@
           },
           {
             "matcher": {
-              "id": "byRegexp",
-              "options": "2.*"
+              "id": "byName",
+              "options": "4xx"
             },
             "properties": [
               {
                 "id": "color",
                 "value": {
                   "mode": "fixed",
-                  "fixedColor": "#34D399"
+                  "fixedColor": "#FBBF24"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "5xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#FB7185"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "1xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8D99AB"
                 }
               }
             ]
@@ -542,7 +557,7 @@
     {
       "type": "timeseries",
       "title": "Requests by service",
-      "description": "The ten busiest backends, <namespace>-<service>.",
+      "description": "The ten busiest backends, requests per hour.",
       "transparent": true,
       "targets": [
         {
@@ -550,7 +565,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(topk(10, sum by (name) (label_replace(label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\"}[$__rate_interval]), \"name\", \"$1\", \"exported_service\", \"(.*)\"), \"name\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"name\", \"rum-$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com)-.*-svc-opentelemetry-otel-gateway-[0-9]+@kubernetesgateway\"))) * 3600) * 3600",
+          "expr": "(topk(10, sum by (name) (label_replace(label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\"}[$__rate_interval]), \"name\", \"$1\", \"exported_service\", \"(.*)\"), \"name\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"name\", \"rum-$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com)-.*-svc-opentelemetry-otel-gateway-[0-9]+@kubernetesgateway\"))) * 3600)",
           "legendFormat": "{{name}}",
           "range": true,
           "instant": false,

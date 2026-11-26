@@ -286,7 +286,7 @@
     {
       "type": "table",
       "title": "Volumes",
-      "description": "Each volume once: robustness, size, use, and the age of its last Longhorn backup.",
+      "description": "Each volume once, by its claim (namespace/pvc): robustness, size and use. No backup column: no volume has a Longhorn backup (longhorn_volume_last_backup_at is empty).",
       "transparent": true,
       "targets": [
         {
@@ -294,7 +294,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "max by (volume, state) (longhorn_volume_robustness == 1)",
+          "expr": "max by (volume, claim, state) (label_join(longhorn_volume_robustness == 1, \"claim\", \"/\", \"pvc_namespace\", \"pvc\"))",
           "legendFormat": "__auto",
           "range": false,
           "instant": true,
@@ -307,7 +307,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "max by (volume) (longhorn_volume_capacity_bytes)",
+          "expr": "max by (volume, claim) (label_join(longhorn_volume_capacity_bytes, \"claim\", \"/\", \"pvc_namespace\", \"pvc\"))",
           "legendFormat": "__auto",
           "range": false,
           "instant": true,
@@ -320,26 +320,13 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "max by (volume) (longhorn_volume_actual_size_bytes)",
+          "expr": "max by (volume, claim) (label_join(longhorn_volume_actual_size_bytes, \"claim\", \"/\", \"pvc_namespace\", \"pvc\"))",
           "legendFormat": "__auto",
           "range": false,
           "instant": true,
           "editorMode": "code",
           "format": "table",
           "refId": "C"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "time() - max by (volume) (longhorn_volume_last_backup_at > 0)",
-          "legendFormat": "__auto",
-          "range": false,
-          "instant": true,
-          "editorMode": "code",
-          "format": "table",
-          "refId": "D"
         }
       ],
       "fieldConfig": {
@@ -438,44 +425,37 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "last backup"
+              "options": "claim"
             },
             "properties": [
               {
-                "id": "unit",
-                "value": "s"
+                "id": "custom.width",
+                "value": 330
               },
               {
-                "id": "decimals",
-                "value": 0
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
-                }
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "thresholds"
-                }
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "#E7ECF3",
-                      "value": null
-                    },
-                    {
-                      "color": "#FBBF24",
-                      "value": 172800
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "/": {
+                        "text": "no claim"
+                      }
                     }
-                  ]
-                }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "robustness"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
               }
             ]
           }
@@ -512,20 +492,19 @@
           "options": {
             "excludeByName": {
               "Time": true,
-              "Value #A": true
+              "Value #A": true,
+              "volume": true
             },
             "indexByName": {
-              "volume": 0,
+              "claim": 0,
               "state": 1,
               "Value #B": 2,
-              "Value #C": 3,
-              "Value #D": 4
+              "Value #C": 3
             },
             "renameByName": {
               "state": "robustness",
               "Value #B": "size",
-              "Value #C": "used",
-              "Value #D": "last backup"
+              "Value #C": "used"
             }
           }
         }
@@ -541,7 +520,7 @@
     {
       "type": "bargauge",
       "title": "Replicas per node",
-      "description": "Replicas each node holds (longhorn_replica_info). Replaces \"Volumes per node\": a volume metric's node is the manager reporting it.",
+      "description": "Replicas each Longhorn node holds (longhorn_replica_info); a node that holds none reads 0.",
       "transparent": true,
       "targets": [
         {
@@ -549,7 +528,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "count by (node) (longhorn_replica_info)",
+          "expr": "count by (node) (longhorn_replica_info) or max by (node) (longhorn_node_status{condition=\"ready\"}) * 0",
           "legendFormat": "{{node}}",
           "range": false,
           "instant": true,

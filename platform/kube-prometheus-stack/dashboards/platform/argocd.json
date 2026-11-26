@@ -283,7 +283,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "max by (name, project, dest_namespace, sync_status, health_status, autosync_enabled) (argocd_app_info)",
+          "expr": "max by (name, project, sync_status, health_status) (argocd_app_info)",
           "legendFormat": "__auto",
           "range": false,
           "instant": true,
@@ -396,6 +396,42 @@
                 ]
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "health"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "sync"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "project"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
           }
         ]
       },
@@ -428,9 +464,13 @@
               "Time": true,
               "Value": true
             },
+            "indexByName": {
+              "name": 0,
+              "health_status": 1,
+              "sync_status": 2,
+              "project": 3
+            },
             "renameByName": {
-              "dest_namespace": "namespace",
-              "autosync_enabled": "auto-sync",
               "sync_status": "sync",
               "health_status": "health"
             }
