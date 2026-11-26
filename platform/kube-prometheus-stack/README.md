@@ -43,8 +43,10 @@ A second group, `cloudflare`, in the same folder, watches the edge's 5xx share
 and the tunnel connectors ([Cloudflare](#cloudflare)).
 
 To add one, copy a rule in `alerting-rules.yaml` with a new `uid`. The file goes
-through Helm's `tpl`, so write no pair of braces in it. Grafana does not
-unescape `$$` in a provisioned rule: write a `$` once.
+through Helm's `tpl`, so write no pair of braces in it. Grafana stores a
+query's model and the annotations as written, so write a `$` once there; in a
+title, a label and a group's name or folder it expands `$NAME` from its
+environment, so a literal `$` is `$$` there.
 
 - `noDataState` is `OK` on every rule: a series that does not exist is not an
   alert. A metric that never arrives (Vault's, cert-manager's, Longhorn's) is
