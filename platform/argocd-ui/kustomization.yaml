@@ -1,4 +1,4 @@
-# The route and the secrets of its sign-ins: ArgoCD itself comes from RKE2's helm-controller
+# The route and the secret of its sign-in through Cloudflare Access: ArgoCD itself comes from RKE2's helm-controller
 # (infrastructure, the argocd role). WARP only (operator decision, 2026-09-30).
 #
 # Backups: no volumes.
