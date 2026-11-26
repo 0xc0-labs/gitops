@@ -17,4 +17,3 @@ resources:
   - namespace.yaml
   - network-policy.yaml
   - admin.yaml
-  - admins.yaml
