@@ -7,7 +7,7 @@ Grafana.
 
 | What | How |
 |---|---|
-| Loki | Grafana's chart in its single-binary mode, one replica, no gateway, caches, canary or self-monitoring. Requests 250m / 512Mi, memory limit 1536Mi |
+| Loki | Grafana's chart in its single-binary mode, one replica, no gateway, caches, canary or self-monitoring. Requests 250m / 1Gi, memory limit 2Gi |
 | Storage | Chunks and the `tsdb` index (schema `v13`) in the R2 bucket `loki-chunks`, region `auto`. The Longhorn volume (10 Gi) holds the WAL and the compactor's scratch space only |
 | Retention | 30 days (`720h`), enforced by the compactor, with its delete requests on the same bucket |
 | Ingest | OTLP HTTP at `http://loki.loki.svc.cluster.local:3100/otlp`. The collectors' agent (`opentelemetry-collector`), which reads every container's log, exports there |
