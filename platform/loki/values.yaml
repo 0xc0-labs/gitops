@@ -71,17 +71,18 @@ singleBinary:
   extraEnv:
     # Near 85% of the memory limit.
     - name: GOMEMLIMIT
-      value: 1300MiB
+      value: 1740MiB
   # The WAL and the compactor's scratch space: chunks and index live in R2.
   persistence:
     enabled: true
     size: 10Gi
+  # Working set on 2026-11-26: p95 801 MiB, maximum 1365 MiB (#701).
   resources:
     requests:
       cpu: 250m
-      memory: 512Mi
+      memory: 1Gi
     limits:
-      memory: 1536Mi
+      memory: 2Gi
 
 gateway:
   enabled: false
