@@ -17,23 +17,40 @@ Argo CD do: no token or certificate to make. It needs the plugin
 mise install
 ```
 
-The kubeconfig keeps its cluster and context, with a user that runs the
-plugin. `<issuer>` and `<client id>` are Access's OIDC application: the issuer
-is `https://0xc0.cloudflareaccess.com/cdn-cgi/access/sso/oidc/<client id>`.
+The kubeconfig needs three entries: a cluster, a user that runs the plugin,
+and a context that joins them. Each command below is one line, to paste as it
+is.
+
+**The cluster.** Someone who already has an entry for this cluster in their
+kubeconfig skips this step. The API server is reached over WARP at
+`https://10.10.4.10:6443`: `10.10.4.10` is the load balancers' virtual
+address, `platform_vip` in infrastructure's
+`ansible/inventory/group_vars/platform.yml`, and the API servers' certificate
+names it. The certificate authority is on each server
+(`vm-rke2-01` to `-03`, `10.10.4.21` to `.23`), as
+`/var/lib/rancher/rke2/server/tls/server-ca.crt`. It is a public certificate,
+not a secret. Copy it over SSH into a temporary file (an admin without SSH
+access asks one who has it for the file), embed it, and delete the file:
 
 ```sh
-kubectl config set-credentials <email> \
-  --exec-api-version=client.authentication.k8s.io/v1 \
-  --exec-interactive-mode=IfAvailable \
-  --exec-command=kubectl \
-  --exec-arg=oidc-login \
-  --exec-arg=get-token \
-  --exec-arg=--oidc-issuer-url=<issuer> \
-  --exec-arg=--oidc-client-id=<client id> \
-  --exec-arg=--oidc-pkce-method=S256 \
-  --exec-arg=--oidc-extra-scope=email
-kubectl config set-context <cluster> --cluster=<cluster> --user=<email>
-kubectl config use-context <cluster>
+ssh -i ~/.ssh/0xc0-homelab ops@10.10.4.21 'sudo cat /var/lib/rancher/rke2/server/tls/server-ca.crt' > /tmp/0xc0-ca.crt
+mise exec -- kubectl config set-cluster 0xc0 --server=https://10.10.4.10:6443 --certificate-authority=/tmp/0xc0-ca.crt --embed-certs=true
+rm /tmp/0xc0-ca.crt
+```
+
+**The user.** It runs the plugin. The issuer and the client ID are Access's
+OIDC application, neither a secret: the issuer is
+`https://0xc0.cloudflareaccess.com/cdn-cgi/access/sso/oidc/<client id>`.
+
+```sh
+mise exec -- kubectl config set-credentials oidc --exec-api-version=client.authentication.k8s.io/v1 --exec-interactive-mode=IfAvailable --exec-command=kubectl --exec-arg=oidc-login --exec-arg=get-token --exec-arg=--oidc-issuer-url=https://0xc0.cloudflareaccess.com/cdn-cgi/access/sso/oidc/ce6ce5b6752cc8cd7366367c36b3f8cea85e4feff9d16de741a16ce219fb1640 --exec-arg=--oidc-client-id=ce6ce5b6752cc8cd7366367c36b3f8cea85e4feff9d16de741a16ce219fb1640 --exec-arg=--oidc-pkce-method=S256 --exec-arg=--oidc-extra-scope=email
+```
+
+**The context** joins the two and becomes the current one:
+
+```sh
+mise exec -- kubectl config set-context 0xc0-oidc --cluster=0xc0 --user=oidc
+mise exec -- kubectl config use-context 0xc0-oidc
 ```
 
 - **No client secret.** For `kubectl` the application is a public client:
@@ -54,11 +71,15 @@ with GitHub or the one-time PIN, and the command goes on. The plugin listens
 on `localhost:8000`, or `18000` when that is taken, the two redirect URIs the
 application allows. Then:
 
+If the browser is closed, or the command interrupted, before the sign-in ends,
+`kubectl` fails with "context canceled": running it again is enough.
+
 ```sh
-kubectl auth whoami
+mise exec -- kubectl auth whoami
 ```
 
-shows the person's email as the username and `admins` among the groups.
+prints the person's email as the username and the groups `admins` and
+`system:authenticated`.
 
 The token is cached in `~/.kube/cache/oidc-login/` and renewed on its own.
 Signing out is deleting it:
