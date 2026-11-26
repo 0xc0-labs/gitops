@@ -132,7 +132,7 @@
     {
       "type": "volkovlabs-echarts-panel",
       "title": "",
-      "description": "The API at its own OpenTelemetry metrics, the tasks from Tempo, Temporal from its SDK and server metrics. Totals over the range; a p95 needs 20 samples in the range, or it reads —.",
+      "description": "The API at its own OpenTelemetry metrics, the tasks from Tempo, Temporal from its SDK and server metrics. Totals over the range; a p95 needs 20 samples in the range, or it reads —. The 5xx share sums the same series Status codes draws.",
       "transparent": true,
       "id": 1,
       "gridPos": {
@@ -147,17 +147,6 @@
       },
       "maxDataPoints": 48,
       "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "refId": "A",
-          "expr": "sum(increase(http_server_request_duration_seconds_count{service_name=\"matchmark-api\"}[$__range]))",
-          "editorMode": "code",
-          "range": false,
-          "instant": true
-        },
         {
           "datasource": {
             "type": "prometheus",
@@ -186,10 +175,11 @@
             "uid": "prometheus"
           },
           "refId": "D",
-          "expr": "sum(increase(http_server_request_duration_seconds_count{service_name=\"matchmark-api\", http_response_status_code=~\"5..\"}[$__range])) or vector(0)",
+          "expr": "sum by (http_response_status_code) (increase(http_server_request_duration_seconds_count{service_name=\"matchmark-api\"}[$__interval]))",
           "editorMode": "code",
-          "range": false,
-          "instant": true
+          "range": true,
+          "instant": false,
+          "interval": "2m"
         },
         {
           "datasource": {
@@ -199,7 +189,8 @@
           "refId": "E",
           "queryType": "traceql",
           "query": "{name=\"matchmark.task\" && span.matchmark.app=~\"$app\" && span.matchmark.project=~\"$project\"} | count_over_time()",
-          "metricsQueryType": "instant"
+          "metricsQueryType": "range",
+          "step": "1h"
         },
         {
           "datasource": {
@@ -260,7 +251,7 @@
           "format": "auto"
         },
         "editorMode": "code",
-        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst cards = [\n{ label: 'API requests', fmt: 'count', value: () => last('A'), sub: (v) => (v === null ? 'none · ' + span : Math.round(v / hours).toLocaleString('en-US') + ' per hour · ' + span), spark: 'B', sparkColour: '#60A5FA' },\n  { label: 'API p95', fmt: 'dur', value: () => last('C'), sub: (v) => (v === null ? 'fewer than 20 requests' : 'over ' + Math.round(last('A') || 0).toLocaleString('en-US') + ' requests'), colour: (v) => (v >= 1 ? '#FB7185' : v >= 0.5 ? '#FBBF24' : '#E7ECF3') },\n  { label: 'API 5xx share', fmt: 'pct', value: () => (() => { const b = last('A'); return b ? (last('D') || 0) / b : null; })(), sub: (v) => (v === null ? 'none' : Math.round(last('D') || 0).toLocaleString('en-US') + ' of ' + Math.round(last('A') || 0).toLocaleString('en-US')), colour: (v) => (v >= 0.05 ? '#FB7185' : v >= 0.01 ? '#FBBF24' : '#E7ECF3') },\n  { label: 'Tasks', fmt: 'count', value: () => last('E'), sub: (v) => 'in ' + span },\n  { label: 'Workflows completed', fmt: 'count', value: () => last('F'), sub: (v) => (v === null ? 'none · ' + span : Math.round(v / hours).toLocaleString('en-US') + ' per hour · ' + span) },\n  { label: 'Activity p95', fmt: 'ms', value: () => last('G'), sub: (v) => (v === null ? 'fewer than 20 activities' : 'over ' + Math.round(last('H') || 0).toLocaleString('en-US') + ' activities') },\n];\nconst frames = context.panel.data.series;\nconst byRef = (id) => frames.filter((f) => f.refId === id);\nconst num = (x) => (x === null || x === undefined || !Number.isFinite(Number(x)) ? null : Number(x));\nconst last = (id) => {\n  for (const f of byRef(id)) {\n    const v = f.fields.find((x) => x.type === 'number');\n    if (!v) continue;\n    for (let i = v.values.length - 1; i >= 0; i--) { const n = num(v.values[i]); if (n !== null) return n; }\n  }\n  return null;\n};\nconst points = (id) => {\n  const f = byRef(id)[0];\n  if (!f) return [];\n  const t = f.fields.find((x) => x.type === 'time');\n  const v = f.fields.find((x) => x.type === 'number');\n  if (!t || !v) return [];\n  return t.values.map((x, i) => [x, num(v.values[i])]);\n};\nconst span = (() => {\n  const r = context.panel.data.timeRange;\n  if (!r) return '';\n  const m = (r.to.valueOf() - r.from.valueOf()) / 60000;\n  if (m < 90) return Math.round(m) + ' min';\n  if (m < 48 * 60) return Math.round(m / 60) + ' h';\n  return Math.round(m / 1440) + ' d';\n})();\nconst hours = (() => {\n  const r = context.panel.data.timeRange;\n  return r ? (r.to.valueOf() - r.from.valueOf()) / 3600000 : 1;\n})();\nconst fmt = {\n  count: (v) => [Math.round(v).toLocaleString('en-US'), ''],\n  pct: (v) => [(v * 100).toFixed(v * 100 >= 99.95 || v === 0 ? 2 : v * 100 < 10 ? 2 : 1), '%'],\n  dur: (v) => (v < 1 ? [String(Math.round(v * 1000)), 'ms'] : [v.toFixed(v < 10 ? 2 : 1), 's']),\n  num2: (v) => [v.toFixed(2), ''],\n  ms: (v) => (v < 1000 ? [String(Math.round(v)), 'ms'] : [(v / 1000).toFixed(2), 's']),\n  bytes: (v) => {\n    const u = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];\n    let i = 0;\n    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }\n    return [v.toFixed(v < 10 ? 2 : 1), u[i]];\n  },\n};\nconst n = cards.length;\nconst chart = context.panel.chart;\nconst W = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst H = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\nconst gap = 12;\nconst cw = W ? (W - gap * (n - 1)) / n : 0;\nconst graphic = [];\nconst grid = [];\nconst xAxis = [];\nconst yAxis = [];\nconst series = [];\ncards.forEach((c, i) => {\n  const x = W ? i * (cw + gap) : 0;\n  const at = (dx) => (W ? x + dx : (i * 100) / n + 1.2 + '%');\n  const v = c.value();\n  const shown = v === null ? ['—', ''] : c.show ? c.show(v) : fmt[c.fmt](v);\n  const unit = v === null ? '' : c.unit !== undefined ? c.unit : shown[1];\n  const colour = v === null ? '#8D99AB' : c.colour ? c.colour(v) : '#E7ECF3';\n  if (W && H) graphic.push({ type: 'rect', left: x, top: 0, z: -1, silent: true,\n    shape: { width: cw, height: H - 1, r: 14 }, style: { fill: '#10151C', stroke: '#1F2733', lineWidth: 1 } });\n  const fit = W ? { width: cw - 32, overflow: 'truncate', ellipsis: '…' } : {};\n  graphic.push({ type: 'text', left: at(16), top: 12, silent: true,\n    style: Object.assign({ text: c.label.toUpperCase(), fill: '#8D99AB', font: '600 11px Inter, sans-serif' }, fit) });\n  graphic.push({ type: 'text', left: at(16), top: 28, silent: true,\n    style: { text: '{v|' + shown[0] + '}' + (unit ? '{u| ' + unit + '}' : ''),\n      rich: { v: { fill: colour, font: '600 30px ' + MONO },\n        u: { fill: '#8D99AB', font: '13px ' + MONO, padding: [12, 0, 0, 4] } } } });\n  const sub = c.sub ? c.sub(v) : '';\n  if (sub) graphic.push({ type: 'text', left: at(16), top: 68, silent: true,\n    style: Object.assign({ text: sub, fill: '#8D99AB', font: '12px ' + MONO }, fit) });\n  if (c.spark) {\n    const data = points(c.spark);\n    if (data.some((p) => p[1] !== null)) {\n      const g = grid.length;\n      const sh = H ? Math.max(14, H - 94) : 20;\n      grid.push(W ? { left: x + 12, width: cw - 24, bottom: 6, height: sh }\n        : { left: (i * 100) / n + 1.2 + '%', width: 100 / n - 2.4 + '%', bottom: 6, height: sh });\n      xAxis.push({ type: 'time', gridIndex: g, show: false });\n      yAxis.push({ type: 'value', gridIndex: g, show: false, scale: false, min: 0 });\n      series.push({ type: 'line', xAxisIndex: g, yAxisIndex: g, data, showSymbol: false, silent: true,\n        connectNulls: false, lineStyle: { width: 1.5, color: c.sparkColour || '#60A5FA' } });\n    }\n  }\n});\nreturn { backgroundColor: 'transparent', animation: false, graphic, grid, xAxis, yAxis, series };",
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst cards = [\n{ label: 'API requests', fmt: 'count', value: () => total('D'), sub: (v) => (v === null ? 'none · ' + span : Math.round(v / hours).toLocaleString('en-US') + ' per hour · ' + span), spark: 'B', sparkColour: '#60A5FA' },\n  { label: 'API p95', fmt: 'dur', value: () => last('C'), sub: (v) => (v === null ? 'fewer than 20 requests' : 'over ' + Math.round(total('D') || 0).toLocaleString('en-US') + ' requests'), colour: (v) => (v >= 1 ? '#FB7185' : v >= 0.5 ? '#FBBF24' : '#E7ECF3') },\n  { label: 'API 5xx share', fmt: 'pct', value: () => { const b = total('D'); return b ? (total('D', fiveXX) || 0) / b : null; }, sub: (v) => (v === null ? 'none' : Math.round(total('D', fiveXX) || 0).toLocaleString('en-US') + ' of ' + Math.round(total('D')).toLocaleString('en-US')), colour: (v) => (v >= 0.05 ? '#FB7185' : v >= 0.01 ? '#FBBF24' : '#E7ECF3') },\n  { label: 'Tasks', fmt: 'count', value: () => total('E'), sub: (v) => 'in ' + span },\n  { label: 'Workflows completed', fmt: 'count', value: () => last('F'), sub: (v) => (v === null ? 'none · ' + span : Math.round(v / hours).toLocaleString('en-US') + ' per hour · ' + span) },\n  { label: 'Activity p95', fmt: 'ms', value: () => last('G'), sub: (v) => (v === null ? 'fewer than 20 activities' : 'over ' + Math.round(last('H') || 0).toLocaleString('en-US') + ' activities') },\n];\nconst frames = context.panel.data.series;\nconst byRef = (id) => frames.filter((f) => f.refId === id);\nconst num = (x) => (x === null || x === undefined || !Number.isFinite(Number(x)) ? null : Number(x));\nconst last = (id) => {\n  for (const f of byRef(id)) {\n    const v = f.fields.find((x) => x.type === 'number');\n    if (!v) continue;\n    for (let i = v.values.length - 1; i >= 0; i--) { const n = num(v.values[i]); if (n !== null) return n; }\n  }\n  return null;\n};\nconst total = (id, keep) => {\n  let s = 0;\n  let any = false;\n  for (const f of byRef(id)) {\n    const v = f.fields.find((x) => x.type === 'number');\n    if (!v || (keep && !keep(v.labels || {}))) continue;\n    for (const x of v.values) { const n = num(x); if (n !== null) { s += n; any = true; } }\n  }\n  return any ? s : null;\n};\nconst most = (id) => {\n  let m = null;\n  for (const f of byRef(id)) {\n    const v = f.fields.find((x) => x.type === 'number');\n    if (!v) continue;\n    for (const x of v.values) { const n = num(x); if (n !== null && (m === null || n > m)) m = n; }\n  }\n  return m;\n};\n// Tempo's histogram_over_time: one series per bucket, its upper bound in\n// seconds on __bucket, each bucket twice the one before. Counts are summed\n// over the range, then the quantile is interpolated inside its bucket, so it\n// never reads as a bucket edge.\nconst quantile = (id, q, minCount) => {\n  const b = new Map();\n  for (const f of byRef(id)) {\n    const v = f.fields.find((x) => x.type === 'number');\n    if (!v) continue;\n    const l = v.labels || {};\n    const name = String((v.config && v.config.displayNameFromDS) || v.name || f.name || '');\n    const ub = num(l.__bucket !== undefined ? l.__bucket : (name.match(/bucket[^0-9]*([0-9.eE+-]+)/) || [])[1]);\n    if (ub === null || ub <= 0) continue;\n    let c = 0;\n    for (const x of v.values) { const n = num(x); if (n !== null) c += n; }\n    b.set(ub, (b.get(ub) || 0) + c);\n  }\n  const ubs = [...b.keys()].sort((x, y) => x - y);\n  const count = ubs.reduce((s, u) => s + b.get(u), 0);\n  if (count < minCount) return null;\n  let acc = 0;\n  for (const u of ubs) {\n    const c = b.get(u);\n    if (c > 0 && acc + c >= q * count) return u / 2 + (u / 2) * ((q * count - acc) / c);\n    acc += c;\n  }\n  return null;\n};\nconst fiveXX = (l) => /^5/.test(String(l.http_response_status_code || ''));\nconst points = (id) => {\n  const f = byRef(id)[0];\n  if (!f) return [];\n  const t = f.fields.find((x) => x.type === 'time');\n  const v = f.fields.find((x) => x.type === 'number');\n  if (!t || !v) return [];\n  return t.values.map((x, i) => [x, num(v.values[i])]);\n};\nconst span = (() => {\n  const r = context.panel.data.timeRange;\n  if (!r) return '';\n  const m = (r.to.valueOf() - r.from.valueOf()) / 60000;\n  if (m < 90) return Math.round(m) + ' min';\n  if (m < 48 * 60) return Math.round(m / 60) + ' h';\n  return Math.round(m / 1440) + ' d';\n})();\nconst hours = (() => {\n  const r = context.panel.data.timeRange;\n  return r ? (r.to.valueOf() - r.from.valueOf()) / 3600000 : 1;\n})();\nconst fmt = {\n  count: (v) => [Math.round(v).toLocaleString('en-US'), ''],\n  pct: (v) => [(v * 100).toFixed(v * 100 >= 99.95 || v === 0 ? 2 : v * 100 < 10 ? 2 : 1), '%'],\n  dur: (v) => (v < 1 ? [String(Math.round(v * 1000)), 'ms'] : [v.toFixed(v < 10 ? 2 : 1), 's']),\n  num2: (v) => [v.toFixed(2), ''],\n  ms: (v) => (v < 1000 ? [String(Math.round(v)), 'ms'] : [(v / 1000).toFixed(2), 's']),\n  bytes: (v) => {\n    const u = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];\n    let i = 0;\n    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }\n    return [v.toFixed(v < 10 ? 2 : 1), u[i]];\n  },\n};\nconst n = cards.length;\nconst chart = context.panel.chart;\nconst W = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst H = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\nconst gap = 12;\nconst cw = W ? (W - gap * (n - 1)) / n : 0;\nconst graphic = [];\nconst grid = [];\nconst xAxis = [];\nconst yAxis = [];\nconst series = [];\ncards.forEach((c, i) => {\n  const x = W ? i * (cw + gap) : 0;\n  const at = (dx) => (W ? x + dx : (i * 100) / n + 1.2 + '%');\n  const v = c.value();\n  const shown = v === null ? ['—', ''] : c.show ? c.show(v) : fmt[c.fmt](v);\n  const unit = v === null ? '' : c.unit !== undefined ? c.unit : shown[1];\n  const colour = v === null ? '#8D99AB' : c.colour ? c.colour(v) : '#E7ECF3';\n  if (W && H) graphic.push({ type: 'rect', left: x, top: 0, z: -1, silent: true,\n    shape: { width: cw, height: H - 1, r: 14 }, style: { fill: '#10151C', stroke: '#1F2733', lineWidth: 1 } });\n  const fit = W ? { width: cw - 32, overflow: 'truncate', ellipsis: '…' } : {};\n  graphic.push({ type: 'text', left: at(16), top: 12, silent: true,\n    style: Object.assign({ text: c.label.toUpperCase(), fill: '#8D99AB', font: '600 11px Inter, sans-serif' }, fit) });\n  graphic.push({ type: 'text', left: at(16), top: 28, silent: true,\n    style: { text: '{v|' + shown[0] + '}' + (unit ? '{u| ' + unit + '}' : ''),\n      rich: { v: { fill: colour, font: '600 30px ' + MONO },\n        u: { fill: '#8D99AB', font: '13px ' + MONO, padding: [12, 0, 0, 4] } } } });\n  const sub = c.sub ? c.sub(v) : '';\n  if (sub) graphic.push({ type: 'text', left: at(16), top: 68, silent: true,\n    style: Object.assign({ text: sub, fill: '#8D99AB', font: '12px ' + MONO }, fit) });\n  if (c.spark) {\n    const data = points(c.spark);\n    if (data.some((p) => p[1] !== null)) {\n      const g = grid.length;\n      const sh = H ? Math.max(14, H - 94) : 20;\n      grid.push(W ? { left: x + 12, width: cw - 24, bottom: 6, height: sh }\n        : { left: (i * 100) / n + 1.2 + '%', width: 100 / n - 2.4 + '%', bottom: 6, height: sh });\n      xAxis.push({ type: 'time', gridIndex: g, show: false });\n      yAxis.push({ type: 'value', gridIndex: g, show: false, scale: false, min: 0 });\n      series.push({ type: 'line', xAxisIndex: g, yAxisIndex: g, data, showSymbol: false, silent: true,\n        connectNulls: false, lineStyle: { width: 1.5, color: c.sparkColour || '#60A5FA' } });\n    }\n  }\n});\nreturn { backgroundColor: 'transparent', animation: false, graphic, grid, xAxis, yAxis, series };",
         "baidu": {
           "callback": "bmapReady",
           "key": ""
@@ -296,7 +287,7 @@
     {
       "type": "timeseries",
       "title": "Requests by route",
-      "description": "Requests per second by route.",
+      "description": "Requests the API answered each hour, by route, from its own OpenTelemetry metrics.",
       "transparent": true,
       "targets": [
         {
@@ -304,12 +295,13 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(sum by (http_route) (rate(http_server_request_duration_seconds_count{service_name=\"matchmark-api\"}[$__rate_interval]))) * 3600",
+          "expr": "sum by (http_route) (increase(http_server_request_duration_seconds_count{service_name=\"matchmark-api\"}[$__interval]))",
           "legendFormat": "{{http_route}}",
           "range": true,
           "instant": false,
           "editorMode": "code",
-          "refId": "A"
+          "refId": "A",
+          "interval": "1h"
         }
       ],
       "fieldConfig": {
@@ -328,18 +320,18 @@
             ]
           },
           "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "fillOpacity": 0,
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 70,
             "gradientMode": "none",
-            "showPoints": "auto",
+            "showPoints": "never",
             "spanNulls": false,
             "lineInterpolation": "linear",
             "axisBorderShow": false,
             "axisLabel": "per hour",
             "axisPlacement": "auto",
             "stacking": {
-              "mode": "none",
+              "mode": "normal",
               "group": "A"
             },
             "thresholdsStyle": {
@@ -377,7 +369,7 @@
     {
       "type": "timeseries",
       "title": "p95 by route",
-      "description": "95th percentile by route.",
+      "description": "p95 per route, each hour that saw at least 10 requests on it; a sparser hour is a gap.",
       "transparent": true,
       "targets": [
         {
@@ -385,12 +377,13 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.95, sum by (le, http_route) (rate(http_server_request_duration_seconds_bucket{service_name=\"matchmark-api\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.95, sum by (le, http_route) (increase(http_server_request_duration_seconds_bucket{service_name=\"matchmark-api\"}[$__interval]))) and on (http_route) (sum by (http_route) (increase(http_server_request_duration_seconds_count{service_name=\"matchmark-api\"}[$__interval])) >= 10)",
           "legendFormat": "{{http_route}}",
           "range": true,
           "instant": false,
           "editorMode": "code",
-          "refId": "A"
+          "refId": "A",
+          "interval": "1h"
         }
       ],
       "fieldConfig": {
@@ -457,7 +450,7 @@
     {
       "type": "timeseries",
       "title": "Status codes",
-      "description": "Answers by status code.",
+      "description": "Answers each hour by status code, the same series the 5xx share card sums.",
       "transparent": true,
       "targets": [
         {
@@ -465,12 +458,13 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(sum by (http_response_status_code) (rate(http_server_request_duration_seconds_count{service_name=\"matchmark-api\"}[$__rate_interval]))) * 3600",
+          "expr": "sum by (http_response_status_code) (increase(http_server_request_duration_seconds_count{service_name=\"matchmark-api\"}[$__interval]))",
           "legendFormat": "{{http_response_status_code}}",
           "range": true,
           "instant": false,
           "editorMode": "code",
-          "refId": "A"
+          "refId": "A",
+          "interval": "1h"
         }
       ],
       "fieldConfig": {
@@ -489,11 +483,11 @@
             ]
           },
           "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "fillOpacity": 0,
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 70,
             "gradientMode": "none",
-            "showPoints": "auto",
+            "showPoints": "never",
             "spanNulls": false,
             "lineInterpolation": "linear",
             "axisBorderShow": false,
