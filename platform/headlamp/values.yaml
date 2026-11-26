@@ -23,8 +23,16 @@ httpRoute:
       sectionName: internal
   hostnames:
     - headlamp.int.0xc0.cc
-# No OIDC: no empty Secret for it either.
+# Sign-in through Cloudflare Access: the client and its settings come from the
+# Secret that vault-secrets.yaml writes, so the chart creates none.
 config:
   oidc:
     secret:
       create: false
+    externalSecret:
+      enabled: true
+      name: headlamp-oidc
+      hasScopes: true
+    # Only passes the flag: the chart reads the address from the Secret's
+    # OIDC_CALLBACK_URL.
+    callbackURL: https://headlamp.int.0xc0.cc/oidc-callback

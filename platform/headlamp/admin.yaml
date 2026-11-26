@@ -1,9 +1,9 @@
-# Logins are tokens: headlamp-viewer day to day, headlamp-admin short-lived
-# and never stored:
+# The way in when Cloudflare Access fails; people sign in through it day to
+# day (vault-secrets.yaml). A token login:
 #   kubectl -n headlamp create token headlamp-viewer --duration 720h
 #   kubectl -n headlamp create token headlamp-admin --duration 8h
-# Whoever may create tokens here is cluster-admin: an accepted risk, with no
-# OIDC.
+# Whoever may create tokens here is cluster-admin: an accepted risk, kept
+# because it works without Cloudflare.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
