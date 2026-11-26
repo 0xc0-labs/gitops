@@ -1,0 +1,1118 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "name": "Argo CD syncs",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "enable": false,
+        "hide": false,
+        "iconColor": "#7DD3FC",
+        "expr": "sum by (name) (argocd_app_sync_total{phase=\"Succeeded\"}) - sum by (name) (argocd_app_sync_total{phase=\"Succeeded\"} offset 1m) > 0",
+        "step": "60s",
+        "titleFormat": "sync {{name}}",
+        "textFormat": "Argo CD synced {{name}}",
+        "tagKeys": "name",
+        "useValueForTime": false
+      },
+      {
+        "name": "Releases",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "enable": false,
+        "hide": false,
+        "iconColor": "#34D399",
+        "expr": "label_replace((min_over_time(timestamp(count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}))[15m:1m]) * 1000) and (count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}) unless count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"} offset 10m)), \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")",
+        "step": "60s",
+        "titleFormat": "{{namespace}} {{version}}",
+        "textFormat": "{{image_spec}}",
+        "tagKeys": "namespace,version",
+        "useValueForTime": true
+      }
+    ]
+  },
+  "description": "Cloudflare's edge in front of the public sites: requests, answers, cache, countries and the WAF per zone, and the tunnels' connectors.",
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [
+    {
+      "title": "Estate",
+      "type": "link",
+      "url": "/d/home",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Apps",
+      "type": "link",
+      "url": "/d/apps",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Matchmark",
+      "type": "link",
+      "url": "/d/matchmark",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Web vitals",
+      "type": "link",
+      "url": "/d/applications-rum",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Traces",
+      "type": "link",
+      "url": "/d/traces-overall",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Platform",
+      "type": "dashboards",
+      "tags": [
+        "platform"
+      ],
+      "asDropdown": true,
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    }
+  ],
+  "refresh": "5m",
+  "schemaVersion": 41,
+  "tags": [
+    "0xc0",
+    "platform",
+    "cloudflare"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Cloudflare",
+  "uid": "cloudflare",
+  "version": 1,
+  "weekStart": "",
+  "panels": [
+    {
+      "type": "volkovlabs-echarts-panel",
+      "title": "",
+      "description": "Cloudflare's GraphQL API through the data source cloudflare (README, Cloudflare), for every zone. The Adaptive datasets are sampled, and hold 31 days: a range past 30 days fails. Requests: every zone's, per hour over the range. Edge 5xx: answers of 500 or more at the edge, the origin's and Cloudflare's own (52x, 530 when a tunnel has no connector). Cache hit: hit, stale, updating and revalidated, over every request. Threats blocked: WAF events that blocked the request or challenged it. Connectors up: cloudflared connectors whose target answers and that hold at least one connection to the edge, out of the two per tunnel. Every Cloudflare query runs here, three per refresh, and the other blocks read these frames: the API allows 300 per 5 minutes.",
+      "transparent": true,
+      "id": 1,
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        },
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));\n// Cloudflare's rows carry a q column (README, Cloudflare): cf[q] is a list of {zone, t, k, s, r, n}.\n// Prometheus frames are read by refId: prom[refId] is a list of {labels, points}.\nconst cf = {};\nconst prom = {};\nfor (const f of context.panel.data.series || []) {\n  const field = (name) => f.fields.find((x) => x.name === name);\n  const qf = field('q');\n  if (qf) {\n    const [zf, tf, kf, sf, rf, nf] = ['zone', 't', 'k', 's', 'r', 'n'].map(field);\n    for (let i = 0; i < qf.values.length; i++) {\n      const t = tf ? tf.values[i] : null;\n      (cf[qf.values[i]] = cf[qf.values[i]] || []).push({\n        zone: zf ? zf.values[i] : null,\n        t: t === null || t === undefined || t === '' ? null : typeof t === 'number' ? t : Date.parse(t),\n        k: kf ? kf.values[i] : null, s: sf ? sf.values[i] : null, r: rf ? rf.values[i] : null,\n        n: nf ? num(nf.values[i]) || 0 : 0 });\n    }\n    continue;\n  }\n  const vf = f.fields.find((x) => x.type === 'number');\n  if (!vf) continue;\n  const tf = f.fields.find((x) => x.type === 'time');\n  (prom[f.refId] = prom[f.refId] || []).push({ labels: vf.labels || {},\n    points: tf ? tf.values.map((x, i) => [x, num(vf.values[i])]) : [[null, num(vf.values[vf.values.length - 1])]] });\n}\nconst lastOf = (s) => { for (let i = s.points.length - 1; i >= 0; i--) if (s.points[i][1] !== null) return s.points[i][1]; return null; };\nconst range = context.panel.data.timeRange;\nconst from = range ? range.from.valueOf() : Date.now() - 6 * 3600e3;\nconst to = range ? range.to.valueOf() : Date.now();\nconst HOUR = 3600e3;\nconst hours = Math.max(1, (to - from) / HOUR);\nconst span = (() => { const m = (to - from) / 60000; return m < 90 ? Math.round(m) + ' min' : m < 2880 ? Math.round(m / 60) + ' h' : Math.round(m / 1440) + ' d'; })();\nconst count = (v) => Math.round(v).toLocaleString('en-US');\nconst perHour = (v) => (v === null ? '—' : v < 10 && v % 1 ? v.toFixed(1) : count(v));\nconst pct = (v) => (v * 100).toFixed(v === 0 || v === 1 ? 0 : v * 100 < 10 || v * 100 > 99 ? 2 : 1);\nconst sum = (list) => (list || []).reduce((a, r) => a + r.n, 0);\n// Per hour always; past 96 hours, each point is the hourly mean of STEP hours, so a long range stays legible.\nconst STEP = Math.max(1, Math.ceil(hours / 96));\nconst START = Math.floor(from / (STEP * HOUR)) * STEP * HOUR;\nconst stepWord = STEP === 1 ? 'the hour' : 'per hour, mean of ' + STEP + ' h';\nconst bucket = (points) => {\n  const by = {}, n = {};\n  points.forEach(([t, v]) => {\n    if (t === null || t < START || v === null) return;\n    const b = START + Math.floor((t - START) / (STEP * HOUR)) * STEP * HOUR;\n    by[b] = (by[b] || 0) + v;\n    n[b] = (n[b] || 0) + 1;\n  });\n  const out = [];\n  for (let b = START; b < to; b += STEP * HOUR) out.push([b, n[b] ? by[b] / n[b] : null]);\n  return out;\n};\n// Zero-filled: Cloudflare returns no group for an hour without requests.\nconst hourly = (list) => {\n  const by = {};\n  (list || []).forEach((r) => { if (r.t !== null) by[r.t] = (by[r.t] || 0) + r.n; });\n  const pts = [];\n  for (let h = Math.floor(from / HOUR) * HOUR; h < to; h += HOUR) pts.push([h, by[h] || 0]);\n  return bucket(pts);\n};\nconst regionNames = (() => { try { return new Intl.DisplayNames(['en'], { type: 'region' }); } catch (e) { return null; } })();\nconst country = (code) => {\n  if (code === 'T1') return 'Tor';\n  if (!code || code === 'XX') return 'unknown';\n  try { return (regionNames && regionNames.of(code)) || code; } catch (e) { return code; }\n};\nconst SOURCE = { firewallManaged: 'managed rules', firewallCustom: 'custom rules', firewallRules: 'firewall rules',\n  securitylevel: 'security level', bic: 'browser check', hot: 'hotlink', waf: 'WAF', ratelimit: 'rate limit',\n  l7ddos: 'DDoS', botFight: 'bot fight', botManagement: 'bot management', uablock: 'user agent', zonelockdown: 'lockdown',\n  iprange: 'IP range', ip: 'IP', asn: 'ASN', country: 'country', validation: 'validation', dlp: 'DLP' };\nconst source = (s) => SOURCE[s] || s || 'unknown';\n// Blocked: the request never reached the origin, or met a challenge (README, Cloudflare).\nconst STOPPED = /^(block|drop|connection_close|challenge|jschallenge|managed_challenge|challenge_failed|jschallenge_failed)$/;\nconst chart = context.panel.chart;\nconst CW = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst CH = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\nconst empty = (text) => ({ backgroundColor: 'transparent', title: { text, left: 'center', top: 'middle',\n  textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } });\nconst TIP = { backgroundColor: '#10151C', borderColor: '#1F2733', textStyle: { color: '#E7ECF3', fontSize: 12 } };\nconst hourLabel = (t) => new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });\nconst surface = (x, w, h) => ({ type: 'rect', left: x, top: 0, z: -1, silent: true,\n  shape: { width: w, height: h - 1, r: 14 }, style: { fill: '#10151C', stroke: '#1F2733', lineWidth: 1 } });\nconst label = (x, y, text, w) => ({ type: 'text', left: x, top: y, silent: true,\n  style: { text: String(text).toUpperCase(), fill: '#8D99AB', font: '600 11px Inter, sans-serif', width: Math.max(10, w), overflow: 'truncate', ellipsis: '…' } });\n\nconst total = sum(cf.all);\nconst fives = sum(cf.s5);\nconst cached = sum((cf.cache || []).filter((r) => /^(hit|stale|updating|revalidated)$/.test(r.s)));\nconst cacheTotal = sum(cf.cache);\nconst events = cf.fw || [];\nconst stopped = events.filter((r) => STOPPED.test(r.k));\nconst challenged = stopped.filter((r) => /challenge/.test(r.k)).length;\nconst conn = {};\n(prom.UP || []).forEach((s) => { conn[s.labels.host] = Object.assign(conn[s.labels.host] || {}, { up: lastOf(s) }); });\n(prom.HA || []).forEach((s) => { conn[s.labels.host] = Object.assign(conn[s.labels.host] || {}, { ha: lastOf(s) }); });\nconst hosts = Object.values(conn);\nconst upCount = hosts.filter((c) => c.up !== 0 && c.ha > 0).length;\nconst haSum = hosts.reduce((s, c) => s + (c.up === 0 ? 0 : c.ha || 0), 0);\nconst cards = [];\nif (cf.ok) {\n  cards.push({ label: 'Requests', value: [count(total), ''], spark: hourly(cf.all),\n    sub: !total ? 'none · ' + span : total / hours >= 1 ? count(total / hours) + ' per hour · ' + span : 'under 1 per hour · ' + span });\n  cards.push({ label: 'Edge 5xx', value: total ? [pct(fives / total), '%'] : null,\n    colour: total ? (fives / total >= 0.05 ? '#FB7185' : fives / total >= 0.01 ? '#FBBF24' : '#E7ECF3') : null,\n    sub: total ? '5xx: ' + count(fives) + ' of ' + count(total) : 'no requests' });\n}\nif (cf.okb) cards.push({ label: 'Cache hit', value: cacheTotal ? [pct(cached / cacheTotal), '%'] : null,\n  sub: cacheTotal ? count(cached) + ' of ' + count(cacheTotal) + ' from cache' : 'no requests' });\nif (cf.okc) cards.push({ label: 'Threats blocked', value: [count(stopped.length), ''],\n  sub: stopped.length ? (challenged ? count(stopped.length - challenged) + ' blocked · ' + count(challenged) + ' challenged' : 'of ' + count(events.length) + ' WAF events')\n    : events.length ? count(events.length) + ' logged, none blocked' : 'none · ' + span });\nif (hosts.length) cards.push({ label: 'Connectors up', value: [String(upCount), 'of 4'],\n  colour: upCount >= 4 ? '#34D399' : upCount > 0 ? '#FBBF24' : '#FB7185',\n  sub: count(haSum) + ' of 16 connections' });\nif (!cards.length) return empty('no Cloudflare data in ' + span);\n\nconst n = cards.length;\nconst gap = 12;\nconst cw = CW ? (CW - gap * (n - 1)) / n : 0;\nconst graphic = [], grid = [], xAxis = [], yAxis = [], series = [];\ncards.forEach((c, i) => {\n  const x = i * (cw + gap);\n  const fit = { width: Math.max(10, cw - 32), overflow: 'truncate', ellipsis: '…' };\n  const v = c.value;\n  const colour = v === null ? '#8D99AB' : c.colour || '#E7ECF3';\n  graphic.push(surface(x, cw, CH));\n  graphic.push(label(x + 16, 12, c.label, cw - 32));\n  graphic.push({ type: 'text', left: x + 16, top: 28, silent: true,\n    style: { text: '{v|' + (v ? v[0] : '—') + '}' + (v && v[1] ? '{u| ' + v[1] + '}' : ''),\n      rich: { v: { fill: colour, font: '600 30px ' + MONO }, u: { fill: '#8D99AB', font: '13px ' + MONO, padding: [12, 0, 0, 4] } } } });\n  graphic.push({ type: 'text', left: x + 16, top: 68, silent: true, style: Object.assign({ text: c.sub, fill: '#8D99AB', font: '12px ' + MONO }, fit) });\n  if (c.spark && c.spark.some((p) => p[1] > 0)) {\n    const g = grid.length;\n    grid.push({ left: x + 12, width: cw - 24, bottom: 6, height: Math.max(14, CH - 94) });\n    xAxis.push({ type: 'time', gridIndex: g, show: false });\n    yAxis.push({ type: 'value', gridIndex: g, show: false, min: 0 });\n    series.push({ type: 'line', xAxisIndex: g, yAxisIndex: g, data: c.spark, showSymbol: false, silent: true,\n      connectNulls: false, lineStyle: { width: 1.5, color: '#60A5FA' } });\n  }\n});\nreturn { backgroundColor: 'transparent', animation: false, graphic, grid, xAxis, yAxis, series };\n"
+      },
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Mixed --"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "cloudflare"
+          },
+          "refId": "A",
+          "type": "graphql",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "",
+          "url_options": {
+            "method": "POST",
+            "body_type": "graphql",
+            "body_graphql_query": "query { viewer { zones(filter: {zoneTag_in: [\"068d993d1c3f23e994211457c96476f8\", \"bf3d282f1920e41701c27cc5be3da43e\", \"60a42fad95616837c4f586ccd932e6ba\", \"6fd27750f9a3be154e18dba1774ddf00\", \"2e5c4ce565da7cd5ba3e9d3588fe576c\", \"35b6a78fcef59563a54825ff503f0a27\"]}) {\n  zoneTag\n  all: httpRequestsAdaptiveGroups(limit: 1000, filter: {datetime_geq: \"${__timeFrom:date:iso}\", datetime_lt: \"${__timeTo:date:iso}\"}, orderBy: [datetimeHour_ASC]) { count dimensions { datetimeHour } }\n  s2: httpRequestsAdaptiveGroups(limit: 1000, filter: {datetime_geq: \"${__timeFrom:date:iso}\", datetime_lt: \"${__timeTo:date:iso}\", edgeResponseStatus_geq: 200, edgeResponseStatus_lt: 300}, orderBy: [datetimeHour_ASC]) { count dimensions { datetimeHour } }\n  s3: httpRequestsAdaptiveGroups(limit: 1000, filter: {datetime_geq: \"${__timeFrom:date:iso}\", datetime_lt: \"${__timeTo:date:iso}\", edgeResponseStatus_geq: 300, edgeResponseStatus_lt: 400}, orderBy: [datetimeHour_ASC]) { count dimensions { datetimeHour } }\n  s4: httpRequestsAdaptiveGroups(limit: 1000, filter: {datetime_geq: \"${__timeFrom:date:iso}\", datetime_lt: \"${__timeTo:date:iso}\", edgeResponseStatus_geq: 400, edgeResponseStatus_lt: 500}, orderBy: [datetimeHour_ASC]) { count dimensions { datetimeHour } }\n  s5: httpRequestsAdaptiveGroups(limit: 1000, filter: {datetime_geq: \"${__timeFrom:date:iso}\", datetime_lt: \"${__timeTo:date:iso}\", edgeResponseStatus_geq: 500}, orderBy: [datetimeHour_ASC]) { count dimensions { datetimeHour } }\n} } }",
+            "data": ""
+          },
+          "root_selector": "($names := {\"068d993d1c3f23e994211457c96476f8\": \"0xc0.cc\", \"bf3d282f1920e41701c27cc5be3da43e\": \"artistlabco.com\", \"60a42fad95616837c4f586ccd932e6ba\": \"asrtistlabco.com\", \"6fd27750f9a3be154e18dba1774ddf00\": \"matchmark.dev\", \"2e5c4ce565da7cd5ba3e9d3588fe576c\": \"offby1.cc\", \"35b6a78fcef59563a54825ff503f0a27\": \"sergioaten.cloud\"}; $append($append($append($append($append([{\"q\": \"ok\"}], data.viewer.zones.($z := $lookup($names, zoneTag); all.{\"q\": \"all\", \"zone\": $z, \"t\": dimensions.datetimeHour, \"n\": count})), data.viewer.zones.($z := $lookup($names, zoneTag); s2.{\"q\": \"s2\", \"zone\": $z, \"t\": dimensions.datetimeHour, \"n\": count})), data.viewer.zones.($z := $lookup($names, zoneTag); s3.{\"q\": \"s3\", \"zone\": $z, \"t\": dimensions.datetimeHour, \"n\": count})), data.viewer.zones.($z := $lookup($names, zoneTag); s4.{\"q\": \"s4\", \"zone\": $z, \"t\": dimensions.datetimeHour, \"n\": count})), data.viewer.zones.($z := $lookup($names, zoneTag); s5.{\"q\": \"s5\", \"zone\": $z, \"t\": dimensions.datetimeHour, \"n\": count})))",
+          "columns": [
+            {
+              "selector": "q",
+              "text": "q",
+              "type": "string"
+            },
+            {
+              "selector": "zone",
+              "text": "zone",
+              "type": "string"
+            },
+            {
+              "selector": "t",
+              "text": "t",
+              "type": "string"
+            },
+            {
+              "selector": "k",
+              "text": "k",
+              "type": "string"
+            },
+            {
+              "selector": "s",
+              "text": "s",
+              "type": "string"
+            },
+            {
+              "selector": "r",
+              "text": "r",
+              "type": "string"
+            },
+            {
+              "selector": "n",
+              "text": "n",
+              "type": "number"
+            }
+          ],
+          "filters": []
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "cloudflare"
+          },
+          "refId": "B",
+          "type": "graphql",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "",
+          "url_options": {
+            "method": "POST",
+            "body_type": "graphql",
+            "body_graphql_query": "query { viewer { zones(filter: {zoneTag_in: [\"068d993d1c3f23e994211457c96476f8\", \"bf3d282f1920e41701c27cc5be3da43e\", \"60a42fad95616837c4f586ccd932e6ba\", \"6fd27750f9a3be154e18dba1774ddf00\", \"2e5c4ce565da7cd5ba3e9d3588fe576c\", \"35b6a78fcef59563a54825ff503f0a27\"]}) {\n  zoneTag\n  cache: httpRequestsAdaptiveGroups(limit: 100, filter: {datetime_geq: \"${__timeFrom:date:iso}\", datetime_lt: \"${__timeTo:date:iso}\"}) { count dimensions { cacheStatus } }\n  countries: httpRequestsAdaptiveGroups(limit: 50, filter: {datetime_geq: \"${__timeFrom:date:iso}\", datetime_lt: \"${__timeTo:date:iso}\"}, orderBy: [count_DESC]) { count dimensions { clientCountryName } }\n} } }",
+            "data": ""
+          },
+          "root_selector": "($names := {\"068d993d1c3f23e994211457c96476f8\": \"0xc0.cc\", \"bf3d282f1920e41701c27cc5be3da43e\": \"artistlabco.com\", \"60a42fad95616837c4f586ccd932e6ba\": \"asrtistlabco.com\", \"6fd27750f9a3be154e18dba1774ddf00\": \"matchmark.dev\", \"2e5c4ce565da7cd5ba3e9d3588fe576c\": \"offby1.cc\", \"35b6a78fcef59563a54825ff503f0a27\": \"sergioaten.cloud\"}; $append($append([{\"q\": \"okb\"}], data.viewer.zones.($z := $lookup($names, zoneTag); cache.{\"q\": \"cache\", \"zone\": $z, \"s\": dimensions.cacheStatus, \"n\": count})), data.viewer.zones.($z := $lookup($names, zoneTag); countries.{\"q\": \"countries\", \"zone\": $z, \"k\": dimensions.clientCountryName, \"n\": count})))",
+          "columns": [
+            {
+              "selector": "q",
+              "text": "q",
+              "type": "string"
+            },
+            {
+              "selector": "zone",
+              "text": "zone",
+              "type": "string"
+            },
+            {
+              "selector": "t",
+              "text": "t",
+              "type": "string"
+            },
+            {
+              "selector": "k",
+              "text": "k",
+              "type": "string"
+            },
+            {
+              "selector": "s",
+              "text": "s",
+              "type": "string"
+            },
+            {
+              "selector": "r",
+              "text": "r",
+              "type": "string"
+            },
+            {
+              "selector": "n",
+              "text": "n",
+              "type": "number"
+            }
+          ],
+          "filters": []
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "cloudflare"
+          },
+          "refId": "C",
+          "type": "graphql",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "",
+          "url_options": {
+            "method": "POST",
+            "body_type": "graphql",
+            "body_graphql_query": "query { viewer { zones(filter: {zoneTag_in: [\"068d993d1c3f23e994211457c96476f8\", \"bf3d282f1920e41701c27cc5be3da43e\", \"60a42fad95616837c4f586ccd932e6ba\", \"6fd27750f9a3be154e18dba1774ddf00\", \"2e5c4ce565da7cd5ba3e9d3588fe576c\", \"35b6a78fcef59563a54825ff503f0a27\"]}) {\n  zoneTag\n  fw: firewallEventsAdaptive(limit: 2000, filter: {datetime_geq: \"${__timeFrom:date:iso}\", datetime_lt: \"${__timeTo:date:iso}\"}, orderBy: [datetime_DESC]) { action source ruleId datetime }\n} } }",
+            "data": ""
+          },
+          "root_selector": "($names := {\"068d993d1c3f23e994211457c96476f8\": \"0xc0.cc\", \"bf3d282f1920e41701c27cc5be3da43e\": \"artistlabco.com\", \"60a42fad95616837c4f586ccd932e6ba\": \"asrtistlabco.com\", \"6fd27750f9a3be154e18dba1774ddf00\": \"matchmark.dev\", \"2e5c4ce565da7cd5ba3e9d3588fe576c\": \"offby1.cc\", \"35b6a78fcef59563a54825ff503f0a27\": \"sergioaten.cloud\"}; $append([{\"q\": \"okc\"}], data.viewer.zones.($z := $lookup($names, zoneTag); fw.{\"q\": \"fw\", \"zone\": $z, \"t\": datetime, \"k\": action, \"s\": source, \"r\": ruleId, \"n\": 1})))",
+          "columns": [
+            {
+              "selector": "q",
+              "text": "q",
+              "type": "string"
+            },
+            {
+              "selector": "zone",
+              "text": "zone",
+              "type": "string"
+            },
+            {
+              "selector": "t",
+              "text": "t",
+              "type": "string"
+            },
+            {
+              "selector": "k",
+              "text": "k",
+              "type": "string"
+            },
+            {
+              "selector": "s",
+              "text": "s",
+              "type": "string"
+            },
+            {
+              "selector": "r",
+              "text": "r",
+              "type": "string"
+            },
+            {
+              "selector": "n",
+              "text": "n",
+              "type": "number"
+            }
+          ],
+          "filters": []
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "HA",
+          "expr": "max by (tunnel, host) (cloudflared_tunnel_ha_connections{job=\"cloudflared\"})",
+          "editorMode": "code",
+          "instant": true,
+          "range": false,
+          "legendFormat": "__auto"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "UP",
+          "expr": "max by (tunnel, host) (up{job=\"cloudflared\"})",
+          "editorMode": "code",
+          "instant": true,
+          "range": false,
+          "legendFormat": "__auto"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Requests",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 3
+      },
+      "collapsed": false,
+      "panels": [],
+      "id": 10
+    },
+    {
+      "type": "volkovlabs-echarts-panel",
+      "title": "Requests per hour by zone",
+      "description": "Requests per hour at the edge, one line per zone; a zone without requests in the range is left out.",
+      "transparent": true,
+      "id": 2,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        },
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));\n// Cloudflare's rows carry a q column (README, Cloudflare): cf[q] is a list of {zone, t, k, s, r, n}.\n// Prometheus frames are read by refId: prom[refId] is a list of {labels, points}.\nconst cf = {};\nconst prom = {};\nfor (const f of context.panel.data.series || []) {\n  const field = (name) => f.fields.find((x) => x.name === name);\n  const qf = field('q');\n  if (qf) {\n    const [zf, tf, kf, sf, rf, nf] = ['zone', 't', 'k', 's', 'r', 'n'].map(field);\n    for (let i = 0; i < qf.values.length; i++) {\n      const t = tf ? tf.values[i] : null;\n      (cf[qf.values[i]] = cf[qf.values[i]] || []).push({\n        zone: zf ? zf.values[i] : null,\n        t: t === null || t === undefined || t === '' ? null : typeof t === 'number' ? t : Date.parse(t),\n        k: kf ? kf.values[i] : null, s: sf ? sf.values[i] : null, r: rf ? rf.values[i] : null,\n        n: nf ? num(nf.values[i]) || 0 : 0 });\n    }\n    continue;\n  }\n  const vf = f.fields.find((x) => x.type === 'number');\n  if (!vf) continue;\n  const tf = f.fields.find((x) => x.type === 'time');\n  (prom[f.refId] = prom[f.refId] || []).push({ labels: vf.labels || {},\n    points: tf ? tf.values.map((x, i) => [x, num(vf.values[i])]) : [[null, num(vf.values[vf.values.length - 1])]] });\n}\nconst lastOf = (s) => { for (let i = s.points.length - 1; i >= 0; i--) if (s.points[i][1] !== null) return s.points[i][1]; return null; };\nconst range = context.panel.data.timeRange;\nconst from = range ? range.from.valueOf() : Date.now() - 6 * 3600e3;\nconst to = range ? range.to.valueOf() : Date.now();\nconst HOUR = 3600e3;\nconst hours = Math.max(1, (to - from) / HOUR);\nconst span = (() => { const m = (to - from) / 60000; return m < 90 ? Math.round(m) + ' min' : m < 2880 ? Math.round(m / 60) + ' h' : Math.round(m / 1440) + ' d'; })();\nconst count = (v) => Math.round(v).toLocaleString('en-US');\nconst perHour = (v) => (v === null ? '—' : v < 10 && v % 1 ? v.toFixed(1) : count(v));\nconst pct = (v) => (v * 100).toFixed(v === 0 || v === 1 ? 0 : v * 100 < 10 || v * 100 > 99 ? 2 : 1);\nconst sum = (list) => (list || []).reduce((a, r) => a + r.n, 0);\n// Per hour always; past 96 hours, each point is the hourly mean of STEP hours, so a long range stays legible.\nconst STEP = Math.max(1, Math.ceil(hours / 96));\nconst START = Math.floor(from / (STEP * HOUR)) * STEP * HOUR;\nconst stepWord = STEP === 1 ? 'the hour' : 'per hour, mean of ' + STEP + ' h';\nconst bucket = (points) => {\n  const by = {}, n = {};\n  points.forEach(([t, v]) => {\n    if (t === null || t < START || v === null) return;\n    const b = START + Math.floor((t - START) / (STEP * HOUR)) * STEP * HOUR;\n    by[b] = (by[b] || 0) + v;\n    n[b] = (n[b] || 0) + 1;\n  });\n  const out = [];\n  for (let b = START; b < to; b += STEP * HOUR) out.push([b, n[b] ? by[b] / n[b] : null]);\n  return out;\n};\n// Zero-filled: Cloudflare returns no group for an hour without requests.\nconst hourly = (list) => {\n  const by = {};\n  (list || []).forEach((r) => { if (r.t !== null) by[r.t] = (by[r.t] || 0) + r.n; });\n  const pts = [];\n  for (let h = Math.floor(from / HOUR) * HOUR; h < to; h += HOUR) pts.push([h, by[h] || 0]);\n  return bucket(pts);\n};\nconst regionNames = (() => { try { return new Intl.DisplayNames(['en'], { type: 'region' }); } catch (e) { return null; } })();\nconst country = (code) => {\n  if (code === 'T1') return 'Tor';\n  if (!code || code === 'XX') return 'unknown';\n  try { return (regionNames && regionNames.of(code)) || code; } catch (e) { return code; }\n};\nconst SOURCE = { firewallManaged: 'managed rules', firewallCustom: 'custom rules', firewallRules: 'firewall rules',\n  securitylevel: 'security level', bic: 'browser check', hot: 'hotlink', waf: 'WAF', ratelimit: 'rate limit',\n  l7ddos: 'DDoS', botFight: 'bot fight', botManagement: 'bot management', uablock: 'user agent', zonelockdown: 'lockdown',\n  iprange: 'IP range', ip: 'IP', asn: 'ASN', country: 'country', validation: 'validation', dlp: 'DLP' };\nconst source = (s) => SOURCE[s] || s || 'unknown';\n// Blocked: the request never reached the origin, or met a challenge (README, Cloudflare).\nconst STOPPED = /^(block|drop|connection_close|challenge|jschallenge|managed_challenge|challenge_failed|jschallenge_failed)$/;\nconst chart = context.panel.chart;\nconst CW = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst CH = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\nconst empty = (text) => ({ backgroundColor: 'transparent', title: { text, left: 'center', top: 'middle',\n  textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } });\nconst TIP = { backgroundColor: '#10151C', borderColor: '#1F2733', textStyle: { color: '#E7ECF3', fontSize: 12 } };\nconst hourLabel = (t) => new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });\nconst surface = (x, w, h) => ({ type: 'rect', left: x, top: 0, z: -1, silent: true,\n  shape: { width: w, height: h - 1, r: 14 }, style: { fill: '#10151C', stroke: '#1F2733', lineWidth: 1 } });\nconst label = (x, y, text, w) => ({ type: 'text', left: x, top: y, silent: true,\n  style: { text: String(text).toUpperCase(), fill: '#8D99AB', font: '600 11px Inter, sans-serif', width: Math.max(10, w), overflow: 'truncate', ellipsis: '…' } });\n\nconst ZONE = { 'offby1.cc': '#60A5FA', 'artistlabco.com': '#F59E0B', 'sergioaten.cloud': '#C4B5FD',\n  '0xc0.cc': '#7DD3FC', 'matchmark.dev': '#94A3B8', 'asrtistlabco.com': '#F0ABFC' };\nif (!cf.ok) return empty('no Cloudflare data in ' + span);\nconst zones = {};\n(cf.all || []).forEach((r) => { (zones[r.zone] = zones[r.zone] || []).push(r); });\nconst list = Object.entries(zones).map(([zone, rows]) => ({ zone, total: sum(rows), data: hourly(rows) }))\n  .filter((z) => z.total > 0).sort((a, b) => b.total - a.total);\nif (!list.length) return empty('no requests in ' + span);\nconst few = list[0].data.length <= 48;\nreturn {\n  backgroundColor: 'transparent', animation: false,\n  legend: { type: 'scroll', top: 0, left: 0, right: 0, pageIconColor: '#C9D2DE', pageTextStyle: { color: '#8D99AB' }, icon: 'circle', itemWidth: 8, itemHeight: 8, itemGap: 18,\n    textStyle: { color: '#C9D2DE', fontFamily: MONO, fontSize: 12 },\n    formatter: (name) => name + ' ' + count((list.find((z) => z.zone === name) || { total: 0 }).total) },\n  grid: { left: 48, right: 16, top: 34, bottom: 28 },\n  tooltip: Object.assign({ trigger: 'axis', axisPointer: { type: 'line', lineStyle: { color: '#1F2733' } },\n    formatter: (ps) => hourLabel(ps[0].value[0]) + ', ' + stepWord + '<br/>' + ps.filter((p) => p.value[1] > 0)\n      .sort((a, b) => b.value[1] - a.value[1]).map((p) => p.marker + p.seriesName + ' ' + perHour(p.value[1])).join('<br/>') }, TIP),\n  xAxis: { type: 'time', min: START, max: to, axisLine: { lineStyle: { color: '#1F2733' } },\n    axisTick: { show: false }, splitLine: { show: false }, axisLabel: { color: '#8D99AB', fontFamily: MONO, fontSize: 10, hideOverlap: true } },\n  yAxis: { type: 'value', min: 0, minInterval: 1, splitNumber: 4,\n    splitLine: { lineStyle: { color: '#1F2733' } }, axisLabel: { color: '#8D99AB', fontFamily: MONO, fontSize: 10,\n      formatter: (v) => (v >= 1000 ? +(v / 1000).toFixed(1) + 'k' : String(v)) } },\n  series: list.map((z) => ({ name: z.zone, type: 'line', data: z.data, showSymbol: few, symbolSize: 4, connectNulls: false,\n    lineStyle: { width: 2, color: ZONE[z.zone] || '#7DD3FC' }, itemStyle: { color: ZONE[z.zone] || '#7DD3FC' } })),\n};\n"
+      },
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Dashboard --"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "-- Dashboard --"
+          },
+          "panelId": 1,
+          "refId": "A",
+          "withTransforms": false
+        }
+      ]
+    },
+    {
+      "type": "volkovlabs-echarts-panel",
+      "title": "Answers per hour by class",
+      "description": "Answers per hour at the edge by status class, every zone together. Other: no status, or 1xx.",
+      "transparent": true,
+      "id": 3,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        },
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));\n// Cloudflare's rows carry a q column (README, Cloudflare): cf[q] is a list of {zone, t, k, s, r, n}.\n// Prometheus frames are read by refId: prom[refId] is a list of {labels, points}.\nconst cf = {};\nconst prom = {};\nfor (const f of context.panel.data.series || []) {\n  const field = (name) => f.fields.find((x) => x.name === name);\n  const qf = field('q');\n  if (qf) {\n    const [zf, tf, kf, sf, rf, nf] = ['zone', 't', 'k', 's', 'r', 'n'].map(field);\n    for (let i = 0; i < qf.values.length; i++) {\n      const t = tf ? tf.values[i] : null;\n      (cf[qf.values[i]] = cf[qf.values[i]] || []).push({\n        zone: zf ? zf.values[i] : null,\n        t: t === null || t === undefined || t === '' ? null : typeof t === 'number' ? t : Date.parse(t),\n        k: kf ? kf.values[i] : null, s: sf ? sf.values[i] : null, r: rf ? rf.values[i] : null,\n        n: nf ? num(nf.values[i]) || 0 : 0 });\n    }\n    continue;\n  }\n  const vf = f.fields.find((x) => x.type === 'number');\n  if (!vf) continue;\n  const tf = f.fields.find((x) => x.type === 'time');\n  (prom[f.refId] = prom[f.refId] || []).push({ labels: vf.labels || {},\n    points: tf ? tf.values.map((x, i) => [x, num(vf.values[i])]) : [[null, num(vf.values[vf.values.length - 1])]] });\n}\nconst lastOf = (s) => { for (let i = s.points.length - 1; i >= 0; i--) if (s.points[i][1] !== null) return s.points[i][1]; return null; };\nconst range = context.panel.data.timeRange;\nconst from = range ? range.from.valueOf() : Date.now() - 6 * 3600e3;\nconst to = range ? range.to.valueOf() : Date.now();\nconst HOUR = 3600e3;\nconst hours = Math.max(1, (to - from) / HOUR);\nconst span = (() => { const m = (to - from) / 60000; return m < 90 ? Math.round(m) + ' min' : m < 2880 ? Math.round(m / 60) + ' h' : Math.round(m / 1440) + ' d'; })();\nconst count = (v) => Math.round(v).toLocaleString('en-US');\nconst perHour = (v) => (v === null ? '—' : v < 10 && v % 1 ? v.toFixed(1) : count(v));\nconst pct = (v) => (v * 100).toFixed(v === 0 || v === 1 ? 0 : v * 100 < 10 || v * 100 > 99 ? 2 : 1);\nconst sum = (list) => (list || []).reduce((a, r) => a + r.n, 0);\n// Per hour always; past 96 hours, each point is the hourly mean of STEP hours, so a long range stays legible.\nconst STEP = Math.max(1, Math.ceil(hours / 96));\nconst START = Math.floor(from / (STEP * HOUR)) * STEP * HOUR;\nconst stepWord = STEP === 1 ? 'the hour' : 'per hour, mean of ' + STEP + ' h';\nconst bucket = (points) => {\n  const by = {}, n = {};\n  points.forEach(([t, v]) => {\n    if (t === null || t < START || v === null) return;\n    const b = START + Math.floor((t - START) / (STEP * HOUR)) * STEP * HOUR;\n    by[b] = (by[b] || 0) + v;\n    n[b] = (n[b] || 0) + 1;\n  });\n  const out = [];\n  for (let b = START; b < to; b += STEP * HOUR) out.push([b, n[b] ? by[b] / n[b] : null]);\n  return out;\n};\n// Zero-filled: Cloudflare returns no group for an hour without requests.\nconst hourly = (list) => {\n  const by = {};\n  (list || []).forEach((r) => { if (r.t !== null) by[r.t] = (by[r.t] || 0) + r.n; });\n  const pts = [];\n  for (let h = Math.floor(from / HOUR) * HOUR; h < to; h += HOUR) pts.push([h, by[h] || 0]);\n  return bucket(pts);\n};\nconst regionNames = (() => { try { return new Intl.DisplayNames(['en'], { type: 'region' }); } catch (e) { return null; } })();\nconst country = (code) => {\n  if (code === 'T1') return 'Tor';\n  if (!code || code === 'XX') return 'unknown';\n  try { return (regionNames && regionNames.of(code)) || code; } catch (e) { return code; }\n};\nconst SOURCE = { firewallManaged: 'managed rules', firewallCustom: 'custom rules', firewallRules: 'firewall rules',\n  securitylevel: 'security level', bic: 'browser check', hot: 'hotlink', waf: 'WAF', ratelimit: 'rate limit',\n  l7ddos: 'DDoS', botFight: 'bot fight', botManagement: 'bot management', uablock: 'user agent', zonelockdown: 'lockdown',\n  iprange: 'IP range', ip: 'IP', asn: 'ASN', country: 'country', validation: 'validation', dlp: 'DLP' };\nconst source = (s) => SOURCE[s] || s || 'unknown';\n// Blocked: the request never reached the origin, or met a challenge (README, Cloudflare).\nconst STOPPED = /^(block|drop|connection_close|challenge|jschallenge|managed_challenge|challenge_failed|jschallenge_failed)$/;\nconst chart = context.panel.chart;\nconst CW = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst CH = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\nconst empty = (text) => ({ backgroundColor: 'transparent', title: { text, left: 'center', top: 'middle',\n  textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } });\nconst TIP = { backgroundColor: '#10151C', borderColor: '#1F2733', textStyle: { color: '#E7ECF3', fontSize: 12 } };\nconst hourLabel = (t) => new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });\nconst surface = (x, w, h) => ({ type: 'rect', left: x, top: 0, z: -1, silent: true,\n  shape: { width: w, height: h - 1, r: 14 }, style: { fill: '#10151C', stroke: '#1F2733', lineWidth: 1 } });\nconst label = (x, y, text, w) => ({ type: 'text', left: x, top: y, silent: true,\n  style: { text: String(text).toUpperCase(), fill: '#8D99AB', font: '600 11px Inter, sans-serif', width: Math.max(10, w), overflow: 'truncate', ellipsis: '…' } });\n\nif (!cf.ok) return empty('no Cloudflare data in ' + span);\nconst CLASS = [['2xx', 's2', '#34D399'], ['3xx', 's3', '#C4B5FD'], ['4xx', 's4', '#FBBF24'], ['5xx', 's5', '#FB7185']];\nconst all = hourly(cf.all);\nconst classes = CLASS.map(([name, q, colour]) => ({ name, colour, data: hourly(cf[q]) }));\nconst other = all.map(([t, v], i) => [t, Math.max(0, v - classes.reduce((s, c) => s + c.data[i][1], 0))]);\nclasses.push({ name: 'other', colour: '#8D99AB', data: other });\nconst shown = classes.map((c) => Object.assign(c, { total: c.data.reduce((s, p) => s + p[1], 0) })).filter((c) => c.total > 0);\nif (!shown.length) return empty('no requests in ' + span);\nconst grand = shown.reduce((s, c) => s + c.total, 0);\nreturn {\n  backgroundColor: 'transparent', animation: false,\n  legend: { type: 'scroll', top: 0, left: 0, right: 0, pageIconColor: '#C9D2DE', pageTextStyle: { color: '#8D99AB' }, icon: 'circle', itemWidth: 8, itemHeight: 8, itemGap: 18,\n    textStyle: { color: '#C9D2DE', fontFamily: MONO, fontSize: 12 },\n    formatter: (name) => { const c = shown.find((s) => s.name === name); return name + ' ' + (c ? pct(c.total / grand) + ' %' : ''); } },\n  grid: { left: 48, right: 16, top: 34, bottom: 28 },\n  tooltip: Object.assign({ trigger: 'axis', axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(31,39,51,.5)' } },\n    formatter: (ps) => hourLabel(ps[0].value[0]) + ', ' + stepWord + '<br/>' + ps.filter((p) => p.value[1] > 0)\n      .map((p) => p.marker + p.seriesName + ' ' + perHour(p.value[1])).join('<br/>') }, TIP),\n  xAxis: { type: 'time', min: START - (STEP * HOUR) / 2, max: to, axisLine: { lineStyle: { color: '#1F2733' } },\n    axisTick: { show: false }, splitLine: { show: false }, axisLabel: { color: '#8D99AB', fontFamily: MONO, fontSize: 10, hideOverlap: true } },\n  yAxis: { type: 'value', min: 0, minInterval: 1, splitNumber: 4,\n    splitLine: { lineStyle: { color: '#1F2733' } }, axisLabel: { color: '#8D99AB', fontFamily: MONO, fontSize: 10,\n      formatter: (v) => (v >= 1000 ? +(v / 1000).toFixed(1) + 'k' : String(v)) } },\n  series: shown.map((c) => ({ name: c.name, type: 'bar', stack: 'classes', data: c.data, barMaxWidth: 18, barCategoryGap: '20%',\n    itemStyle: { color: c.colour } })),\n};\n"
+      },
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Dashboard --"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "-- Dashboard --"
+          },
+          "panelId": 1,
+          "refId": "A",
+          "withTransforms": false
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Countries and WAF",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      },
+      "collapsed": false,
+      "panels": [],
+      "id": 11
+    },
+    {
+      "type": "volkovlabs-echarts-panel",
+      "title": "Countries",
+      "description": "The ten countries with the most requests over the range, by zone; the share is of every country's requests. Tor shows as Tor. A ranked bar, not a map: a handful of countries carries the traffic.",
+      "transparent": true,
+      "id": 4,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 13
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        },
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));\n// Cloudflare's rows carry a q column (README, Cloudflare): cf[q] is a list of {zone, t, k, s, r, n}.\n// Prometheus frames are read by refId: prom[refId] is a list of {labels, points}.\nconst cf = {};\nconst prom = {};\nfor (const f of context.panel.data.series || []) {\n  const field = (name) => f.fields.find((x) => x.name === name);\n  const qf = field('q');\n  if (qf) {\n    const [zf, tf, kf, sf, rf, nf] = ['zone', 't', 'k', 's', 'r', 'n'].map(field);\n    for (let i = 0; i < qf.values.length; i++) {\n      const t = tf ? tf.values[i] : null;\n      (cf[qf.values[i]] = cf[qf.values[i]] || []).push({\n        zone: zf ? zf.values[i] : null,\n        t: t === null || t === undefined || t === '' ? null : typeof t === 'number' ? t : Date.parse(t),\n        k: kf ? kf.values[i] : null, s: sf ? sf.values[i] : null, r: rf ? rf.values[i] : null,\n        n: nf ? num(nf.values[i]) || 0 : 0 });\n    }\n    continue;\n  }\n  const vf = f.fields.find((x) => x.type === 'number');\n  if (!vf) continue;\n  const tf = f.fields.find((x) => x.type === 'time');\n  (prom[f.refId] = prom[f.refId] || []).push({ labels: vf.labels || {},\n    points: tf ? tf.values.map((x, i) => [x, num(vf.values[i])]) : [[null, num(vf.values[vf.values.length - 1])]] });\n}\nconst lastOf = (s) => { for (let i = s.points.length - 1; i >= 0; i--) if (s.points[i][1] !== null) return s.points[i][1]; return null; };\nconst range = context.panel.data.timeRange;\nconst from = range ? range.from.valueOf() : Date.now() - 6 * 3600e3;\nconst to = range ? range.to.valueOf() : Date.now();\nconst HOUR = 3600e3;\nconst hours = Math.max(1, (to - from) / HOUR);\nconst span = (() => { const m = (to - from) / 60000; return m < 90 ? Math.round(m) + ' min' : m < 2880 ? Math.round(m / 60) + ' h' : Math.round(m / 1440) + ' d'; })();\nconst count = (v) => Math.round(v).toLocaleString('en-US');\nconst perHour = (v) => (v === null ? '—' : v < 10 && v % 1 ? v.toFixed(1) : count(v));\nconst pct = (v) => (v * 100).toFixed(v === 0 || v === 1 ? 0 : v * 100 < 10 || v * 100 > 99 ? 2 : 1);\nconst sum = (list) => (list || []).reduce((a, r) => a + r.n, 0);\n// Per hour always; past 96 hours, each point is the hourly mean of STEP hours, so a long range stays legible.\nconst STEP = Math.max(1, Math.ceil(hours / 96));\nconst START = Math.floor(from / (STEP * HOUR)) * STEP * HOUR;\nconst stepWord = STEP === 1 ? 'the hour' : 'per hour, mean of ' + STEP + ' h';\nconst bucket = (points) => {\n  const by = {}, n = {};\n  points.forEach(([t, v]) => {\n    if (t === null || t < START || v === null) return;\n    const b = START + Math.floor((t - START) / (STEP * HOUR)) * STEP * HOUR;\n    by[b] = (by[b] || 0) + v;\n    n[b] = (n[b] || 0) + 1;\n  });\n  const out = [];\n  for (let b = START; b < to; b += STEP * HOUR) out.push([b, n[b] ? by[b] / n[b] : null]);\n  return out;\n};\n// Zero-filled: Cloudflare returns no group for an hour without requests.\nconst hourly = (list) => {\n  const by = {};\n  (list || []).forEach((r) => { if (r.t !== null) by[r.t] = (by[r.t] || 0) + r.n; });\n  const pts = [];\n  for (let h = Math.floor(from / HOUR) * HOUR; h < to; h += HOUR) pts.push([h, by[h] || 0]);\n  return bucket(pts);\n};\nconst regionNames = (() => { try { return new Intl.DisplayNames(['en'], { type: 'region' }); } catch (e) { return null; } })();\nconst country = (code) => {\n  if (code === 'T1') return 'Tor';\n  if (!code || code === 'XX') return 'unknown';\n  try { return (regionNames && regionNames.of(code)) || code; } catch (e) { return code; }\n};\nconst SOURCE = { firewallManaged: 'managed rules', firewallCustom: 'custom rules', firewallRules: 'firewall rules',\n  securitylevel: 'security level', bic: 'browser check', hot: 'hotlink', waf: 'WAF', ratelimit: 'rate limit',\n  l7ddos: 'DDoS', botFight: 'bot fight', botManagement: 'bot management', uablock: 'user agent', zonelockdown: 'lockdown',\n  iprange: 'IP range', ip: 'IP', asn: 'ASN', country: 'country', validation: 'validation', dlp: 'DLP' };\nconst source = (s) => SOURCE[s] || s || 'unknown';\n// Blocked: the request never reached the origin, or met a challenge (README, Cloudflare).\nconst STOPPED = /^(block|drop|connection_close|challenge|jschallenge|managed_challenge|challenge_failed|jschallenge_failed)$/;\nconst chart = context.panel.chart;\nconst CW = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst CH = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\nconst empty = (text) => ({ backgroundColor: 'transparent', title: { text, left: 'center', top: 'middle',\n  textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } });\nconst TIP = { backgroundColor: '#10151C', borderColor: '#1F2733', textStyle: { color: '#E7ECF3', fontSize: 12 } };\nconst hourLabel = (t) => new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });\nconst surface = (x, w, h) => ({ type: 'rect', left: x, top: 0, z: -1, silent: true,\n  shape: { width: w, height: h - 1, r: 14 }, style: { fill: '#10151C', stroke: '#1F2733', lineWidth: 1 } });\nconst label = (x, y, text, w) => ({ type: 'text', left: x, top: y, silent: true,\n  style: { text: String(text).toUpperCase(), fill: '#8D99AB', font: '600 11px Inter, sans-serif', width: Math.max(10, w), overflow: 'truncate', ellipsis: '…' } });\n\nconst ZONE = { 'offby1.cc': '#60A5FA', 'artistlabco.com': '#F59E0B', 'sergioaten.cloud': '#C4B5FD',\n  '0xc0.cc': '#7DD3FC', 'matchmark.dev': '#94A3B8', 'asrtistlabco.com': '#F0ABFC' };\nif (!cf.okb) return empty('no Cloudflare data in ' + span);\nconst by = {};\n(cf.countries || []).forEach((r) => {\n  const c = by[r.k] || (by[r.k] = { code: r.k, total: 0, zones: {} });\n  c.total += r.n;\n  c.zones[r.zone] = (c.zones[r.zone] || 0) + r.n;\n});\nconst ranked = Object.values(by).sort((a, b) => b.total - a.total);\nif (!ranked.length) return empty('no requests in ' + span);\nconst grand = ranked.reduce((s, c) => s + c.total, 0);\nconst top = ranked.slice(0, 10).reverse();\nconst zones = [...new Set(top.flatMap((c) => Object.keys(c.zones)))]\n  .map((z) => ({ zone: z, total: top.reduce((s, c) => s + (c.zones[z] || 0), 0) })).sort((a, b) => b.total - a.total);\nconst names = top.map((c) => country(c.code));\nreturn {\n  backgroundColor: 'transparent', animation: false,\n  legend: { top: 0, left: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, itemGap: 18,\n    textStyle: { color: '#C9D2DE', fontFamily: MONO, fontSize: 12 } },\n  grid: { left: 8, right: 96, top: 34, bottom: 8, containLabel: true },\n  tooltip: Object.assign({ trigger: 'axis', axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(31,39,51,.5)' } },\n    formatter: (ps) => { const c = top[ps[0].dataIndex];\n      return names[ps[0].dataIndex] + ' · ' + count(c.total) + ' (' + pct(c.total / grand) + ' %)<br/>'\n        + ps.filter((p) => p.value > 0).map((p) => p.marker + p.seriesName + ' ' + count(p.value)).join('<br/>'); } }, TIP),\n  xAxis: { type: 'value', show: false, max: top[top.length - 1].total },\n  yAxis: { type: 'category', data: names, axisLine: { show: false }, axisTick: { show: false },\n    axisLabel: { color: '#C9D2DE', fontFamily: 'Inter, sans-serif', fontSize: 12, width: 130, overflow: 'truncate', ellipsis: '…' } },\n  series: zones.map((z, i) => ({ name: z.zone, type: 'bar', stack: 'countries', barMaxWidth: 14,\n    data: top.map((c) => c.zones[z.zone] || 0), itemStyle: { color: ZONE[z.zone] || '#7DD3FC', borderRadius: 0 },\n    label: i === zones.length - 1 ? { show: true, position: 'right', distance: 0, color: '#8D99AB', fontFamily: MONO, fontSize: 12,\n      formatter: (p) => '  ' + count(top[p.dataIndex].total) + ' · ' + Math.round((top[p.dataIndex].total / grand) * 100) + ' %' } : undefined })),\n};\n"
+      },
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Dashboard --"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "-- Dashboard --"
+          },
+          "panelId": 1,
+          "refId": "A",
+          "withTransforms": false
+        }
+      ]
+    },
+    {
+      "type": "volkovlabs-echarts-panel",
+      "title": "WAF events by rule",
+      "description": "Firewall events over the range by rule (its source, and the first characters of its ID), coloured by what the rule did. Blocked: block, drop, connection close. Challenged: a challenge served. Passed: a challenge solved or bypassed.",
+      "transparent": true,
+      "id": 5,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 13
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        },
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));\n// Cloudflare's rows carry a q column (README, Cloudflare): cf[q] is a list of {zone, t, k, s, r, n}.\n// Prometheus frames are read by refId: prom[refId] is a list of {labels, points}.\nconst cf = {};\nconst prom = {};\nfor (const f of context.panel.data.series || []) {\n  const field = (name) => f.fields.find((x) => x.name === name);\n  const qf = field('q');\n  if (qf) {\n    const [zf, tf, kf, sf, rf, nf] = ['zone', 't', 'k', 's', 'r', 'n'].map(field);\n    for (let i = 0; i < qf.values.length; i++) {\n      const t = tf ? tf.values[i] : null;\n      (cf[qf.values[i]] = cf[qf.values[i]] || []).push({\n        zone: zf ? zf.values[i] : null,\n        t: t === null || t === undefined || t === '' ? null : typeof t === 'number' ? t : Date.parse(t),\n        k: kf ? kf.values[i] : null, s: sf ? sf.values[i] : null, r: rf ? rf.values[i] : null,\n        n: nf ? num(nf.values[i]) || 0 : 0 });\n    }\n    continue;\n  }\n  const vf = f.fields.find((x) => x.type === 'number');\n  if (!vf) continue;\n  const tf = f.fields.find((x) => x.type === 'time');\n  (prom[f.refId] = prom[f.refId] || []).push({ labels: vf.labels || {},\n    points: tf ? tf.values.map((x, i) => [x, num(vf.values[i])]) : [[null, num(vf.values[vf.values.length - 1])]] });\n}\nconst lastOf = (s) => { for (let i = s.points.length - 1; i >= 0; i--) if (s.points[i][1] !== null) return s.points[i][1]; return null; };\nconst range = context.panel.data.timeRange;\nconst from = range ? range.from.valueOf() : Date.now() - 6 * 3600e3;\nconst to = range ? range.to.valueOf() : Date.now();\nconst HOUR = 3600e3;\nconst hours = Math.max(1, (to - from) / HOUR);\nconst span = (() => { const m = (to - from) / 60000; return m < 90 ? Math.round(m) + ' min' : m < 2880 ? Math.round(m / 60) + ' h' : Math.round(m / 1440) + ' d'; })();\nconst count = (v) => Math.round(v).toLocaleString('en-US');\nconst perHour = (v) => (v === null ? '—' : v < 10 && v % 1 ? v.toFixed(1) : count(v));\nconst pct = (v) => (v * 100).toFixed(v === 0 || v === 1 ? 0 : v * 100 < 10 || v * 100 > 99 ? 2 : 1);\nconst sum = (list) => (list || []).reduce((a, r) => a + r.n, 0);\n// Per hour always; past 96 hours, each point is the hourly mean of STEP hours, so a long range stays legible.\nconst STEP = Math.max(1, Math.ceil(hours / 96));\nconst START = Math.floor(from / (STEP * HOUR)) * STEP * HOUR;\nconst stepWord = STEP === 1 ? 'the hour' : 'per hour, mean of ' + STEP + ' h';\nconst bucket = (points) => {\n  const by = {}, n = {};\n  points.forEach(([t, v]) => {\n    if (t === null || t < START || v === null) return;\n    const b = START + Math.floor((t - START) / (STEP * HOUR)) * STEP * HOUR;\n    by[b] = (by[b] || 0) + v;\n    n[b] = (n[b] || 0) + 1;\n  });\n  const out = [];\n  for (let b = START; b < to; b += STEP * HOUR) out.push([b, n[b] ? by[b] / n[b] : null]);\n  return out;\n};\n// Zero-filled: Cloudflare returns no group for an hour without requests.\nconst hourly = (list) => {\n  const by = {};\n  (list || []).forEach((r) => { if (r.t !== null) by[r.t] = (by[r.t] || 0) + r.n; });\n  const pts = [];\n  for (let h = Math.floor(from / HOUR) * HOUR; h < to; h += HOUR) pts.push([h, by[h] || 0]);\n  return bucket(pts);\n};\nconst regionNames = (() => { try { return new Intl.DisplayNames(['en'], { type: 'region' }); } catch (e) { return null; } })();\nconst country = (code) => {\n  if (code === 'T1') return 'Tor';\n  if (!code || code === 'XX') return 'unknown';\n  try { return (regionNames && regionNames.of(code)) || code; } catch (e) { return code; }\n};\nconst SOURCE = { firewallManaged: 'managed rules', firewallCustom: 'custom rules', firewallRules: 'firewall rules',\n  securitylevel: 'security level', bic: 'browser check', hot: 'hotlink', waf: 'WAF', ratelimit: 'rate limit',\n  l7ddos: 'DDoS', botFight: 'bot fight', botManagement: 'bot management', uablock: 'user agent', zonelockdown: 'lockdown',\n  iprange: 'IP range', ip: 'IP', asn: 'ASN', country: 'country', validation: 'validation', dlp: 'DLP' };\nconst source = (s) => SOURCE[s] || s || 'unknown';\n// Blocked: the request never reached the origin, or met a challenge (README, Cloudflare).\nconst STOPPED = /^(block|drop|connection_close|challenge|jschallenge|managed_challenge|challenge_failed|jschallenge_failed)$/;\nconst chart = context.panel.chart;\nconst CW = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst CH = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\nconst empty = (text) => ({ backgroundColor: 'transparent', title: { text, left: 'center', top: 'middle',\n  textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } });\nconst TIP = { backgroundColor: '#10151C', borderColor: '#1F2733', textStyle: { color: '#E7ECF3', fontSize: 12 } };\nconst hourLabel = (t) => new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });\nconst surface = (x, w, h) => ({ type: 'rect', left: x, top: 0, z: -1, silent: true,\n  shape: { width: w, height: h - 1, r: 14 }, style: { fill: '#10151C', stroke: '#1F2733', lineWidth: 1 } });\nconst label = (x, y, text, w) => ({ type: 'text', left: x, top: y, silent: true,\n  style: { text: String(text).toUpperCase(), fill: '#8D99AB', font: '600 11px Inter, sans-serif', width: Math.max(10, w), overflow: 'truncate', ellipsis: '…' } });\n\nif (!cf.okc) return empty('no Cloudflare data in ' + span);\nconst events = cf.fw || [];\nif (!events.length) return empty('no WAF events in ' + span);\nconst ACTION = [\n  [/^(block|drop|connection_close)$/, 'blocked', '#FB7185'],\n  [/^(challenge|jschallenge|managed_challenge|challenge_failed|jschallenge_failed)$/, 'challenged', '#FBBF24'],\n  [/(solved|bypassed|skipped)$/, 'passed a challenge', '#7DD3FC'],\n  [/^(allow|skip|bypass)$/, 'allowed', '#34D399'],\n  [/^log$/, 'logged', '#8D99AB'],\n];\nconst actionOf = (a) => (ACTION.find(([re]) => re.test(a)) || [null, a || 'other', '#C4B5FD']);\nconst rules = {};\nevents.forEach((r) => {\n  const key = source(r.s) + (r.r ? ' · ' + String(r.r).slice(0, 8) : '');\n  const rule = rules[key] || (rules[key] = { key, total: 0, by: {}, zones: {} });\n  const [, word] = actionOf(r.k);\n  rule.total += 1;\n  rule.by[word] = (rule.by[word] || 0) + 1;\n  rule.zones[r.zone] = (rule.zones[r.zone] || 0) + 1;\n});\nconst top = Object.values(rules).sort((a, b) => b.total - a.total).slice(0, 10).reverse();\nconst words = [...new Set(events.map((r) => actionOf(r.k)[1]))];\nconst colourOf = (w) => (ACTION.find((a) => a[1] === w) || [null, w, '#C4B5FD'])[2];\nconst order = ['blocked', 'challenged', 'passed a challenge', 'allowed', 'logged'];\nwords.sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99));\nreturn {\n  backgroundColor: 'transparent', animation: false,\n  legend: { top: 0, left: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, itemGap: 18,\n    textStyle: { color: '#C9D2DE', fontFamily: MONO, fontSize: 12 },\n    formatter: (w) => w + ' ' + count(events.filter((r) => actionOf(r.k)[1] === w).length) },\n  grid: { left: 8, right: 56, top: 34, bottom: 8, containLabel: true },\n  tooltip: Object.assign({ trigger: 'axis', axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(31,39,51,.5)' } },\n    formatter: (ps) => { const rule = top[ps[0].dataIndex];\n      return rule.key + ' · ' + count(rule.total) + ' events<br/>' + ps.filter((p) => p.value > 0).map((p) => p.marker + p.seriesName + ' ' + count(p.value)).join('<br/>')\n        + '<br/>' + Object.entries(rule.zones).map(([z, n]) => z + ' ' + count(n)).join(' · '); } }, TIP),\n  xAxis: { type: 'value', show: false, max: top[top.length - 1].total },\n  yAxis: { type: 'category', data: top.map((r) => r.key), axisLine: { show: false }, axisTick: { show: false },\n    axisLabel: { color: '#C9D2DE', fontFamily: MONO, fontSize: 12, width: 190, overflow: 'truncate', ellipsis: '…' } },\n  series: words.map((w, i) => ({ name: w, type: 'bar', stack: 'actions', barMaxWidth: 14,\n    data: top.map((r) => r.by[w] || 0), itemStyle: { color: colourOf(w) },\n    label: i === words.length - 1 ? { show: true, position: 'right', distance: 0, color: '#8D99AB', fontFamily: MONO, fontSize: 12,\n      formatter: (p) => '  ' + count(top[p.dataIndex].total) } : undefined })),\n};\n"
+      },
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Dashboard --"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "-- Dashboard --"
+          },
+          "panelId": 1,
+          "refId": "A",
+          "withTransforms": false
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Tunnels",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      },
+      "collapsed": false,
+      "panels": [],
+      "id": 12
+    },
+    {
+      "type": "timeseries",
+      "title": "HA connections",
+      "description": "Connections each connector holds to Cloudflare's edge (cloudflared_tunnel_ha_connections, job cloudflared). Four is whole; a gap is a target that did not answer.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "max by (tunnel, host) (cloudflared_tunnel_ha_connections{job=\"cloudflared\"})",
+          "legendFormat": "{{tunnel}} · {{host}}",
+          "range": true,
+          "instant": false,
+          "editorMode": "code",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "showPoints": "auto",
+            "spanNulls": false,
+            "lineInterpolation": "stepAfter",
+            "axisBorderShow": false,
+            "axisLabel": "connections",
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "min": 0,
+          "max": 4
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "public · vm-lb-01"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#60A5FA"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "public · vm-lb-02"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#7DD3FC"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "admin · vm-access-01"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#C4B5FD"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "admin · vm-access-02"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#F59E0B"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "id": 6,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 23
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Requests per hour",
+      "description": "Requests each connector carried from the edge, per hour (cloudflared_tunnel_total_requests).",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (tunnel, host) (rate(cloudflared_tunnel_total_requests{job=\"cloudflared\"}[$__rate_interval])) * 3600",
+          "legendFormat": "{{tunnel}} · {{host}}",
+          "range": true,
+          "instant": false,
+          "editorMode": "code",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "showPoints": "auto",
+            "spanNulls": false,
+            "lineInterpolation": "linear",
+            "axisBorderShow": false,
+            "axisLabel": "per hour",
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "public · vm-lb-01"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#60A5FA"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "public · vm-lb-02"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#7DD3FC"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "admin · vm-access-01"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#C4B5FD"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "admin · vm-access-02"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#F59E0B"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "id": 7,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 23
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Errors per hour",
+      "description": "Requests each connector failed to proxy to the origin, per hour (cloudflared_tunnel_request_errors).",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (tunnel, host) (rate(cloudflared_tunnel_request_errors{job=\"cloudflared\"}[$__rate_interval])) * 3600",
+          "legendFormat": "{{tunnel}} · {{host}}",
+          "range": true,
+          "instant": false,
+          "editorMode": "code",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "showPoints": "auto",
+            "spanNulls": false,
+            "lineInterpolation": "linear",
+            "axisBorderShow": false,
+            "axisLabel": "per hour",
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "public · vm-lb-01"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#60A5FA"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "public · vm-lb-02"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#7DD3FC"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "admin · vm-access-01"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#C4B5FD"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "admin · vm-access-02"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#F59E0B"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "id": 8,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 23
+      }
+    }
+  ]
+}
