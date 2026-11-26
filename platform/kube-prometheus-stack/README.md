@@ -129,6 +129,14 @@ Names drop the namespace beside them and the chart release they repeat:
 `rke2-coredns-rke2-coredns-autoscaler` in `kube-system` reads
 `coredns-autoscaler`. The tooltip gives the full name.
 
+The memory treemap folds what is too small to read: inside a namespace, the
+workloads under 8 % of its memory become one "N others" tile, and the
+namespaces under 2 % of the total one "other namespaces" group. A folded
+tile's state is its members' together, unless one is near its limit. The
+panel lays the treemap out itself, on a `custom` series, rather than with
+ECharts' `treemap`, which draws its tiles opaque and gives a label no measure
+of its tile: a name shows whole, broken only after a hyphen, or not at all.
+
 Every query runs once, in the strip of cards; the other blocks read its
 frames through the `-- Dashboard --` data source, and each query carries a
 `q` label that names it for the panels' code.
