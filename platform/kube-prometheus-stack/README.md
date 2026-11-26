@@ -72,15 +72,16 @@ README, Writing or rotating a secret][vault-write] says:
 | Vault | Keys | Read by |
 |---|---|---|
 | `platform/grafana/admin` | `admin_user`, `admin_password` | Grafana, through the Secret `grafana-admin` |
-| `platform/grafana/github-oauth` | `client_id`, `client_secret` | Grafana, through the Secret `grafana-github-oauth` and the variables `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`, which `auth.github` expands |
+| `platform/grafana/oidc` | `client_id`, `client_secret` | Grafana, through the Secret `grafana-oidc` and the variables `OIDC_CLIENT_ID` and `OIDC_CLIENT_SECRET`, which `auth.generic_oauth` expands |
 | `platform/grafana/cloudflare` | `api_token` | Grafana, through the Secret `cloudflare-api` and the variable `CLOUDFLARE_API_TOKEN`, which the data source `cloudflare` expands (Cloudflare, below) |
 
-Members of the GitHub team `0xc0-labs/admins` sign in with GitHub
-(`auth.github`, callback `https://grafana.int.0xc0.cc/login/github`) as
-`Admin`; any other user, an organization member included, is refused
-(`role_attribute_strict`). The role is mapped from the team
-on every login, since Grafana's database does not outlive its pod. The local
-admin login stays as break-glass.
+People sign in with Cloudflare Access (`auth.generic_oauth`, callback
+`https://grafana.int.0xc0.cc/login/generic_oauth`), as `Admin`. Admission is
+Cloudflare's: its application for Grafana admits only the GitHub team
+`0xc0-labs/admins` and the operator's emails, so every user Grafana sees is an
+administrator. The role comes from the configuration on every login, since
+Grafana's database does not outlive its pod. The local admin login stays as
+break-glass, for when Cloudflare fails.
 
 Until the admin secret is written, Grafana's pod waits for the Secret and the rest runs.
 Vault Secrets Operator restarts Grafana when the secret changes. Dashboards
