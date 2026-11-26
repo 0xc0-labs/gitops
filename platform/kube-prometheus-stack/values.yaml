@@ -112,6 +112,15 @@ grafana:
   plugins:
     - volkovlabs-echarts-panel@7.3.0
     - marcusolsson-dynamictext-panel@6.3.1
+    # Reads Cloudflare's GraphQL API (the data source below; README, Cloudflare).
+    - yesoreyeram-infinity-datasource@4.1.8
+  # The Cloudflare token (vault-secrets.yaml), expanded into the data source
+  # below when Grafana reads its provisioning at start.
+  envValueFrom:
+    CLOUDFLARE_API_TOKEN:
+      secretKeyRef:
+        name: cloudflare-api
+        key: api_token
   defaultDashboardsEnabled: true
   # Home is not loaded by the sidecar: Grafana's home dashboard is a file path,
   # and the sidecar's folders are not a stable one. Its ConfigMap
@@ -164,6 +173,17 @@ grafana:
           datasourceUid: prometheus
         nodeGraph:
           enabled: true
+    - name: Cloudflare
+      type: yesoreyeram-infinity-datasource
+      uid: cloudflare
+      url: https://api.cloudflare.com/client/v4/graphql
+      access: proxy
+      jsonData:
+        auth_method: bearerToken
+        allowedHosts:
+          - https://api.cloudflare.com
+      secureJsonData:
+        bearerToken: $CLOUDFLARE_API_TOKEN
   grafana.ini:
     server:
       domain: grafana.int.0xc0.cc

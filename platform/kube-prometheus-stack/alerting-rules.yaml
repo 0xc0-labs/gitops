@@ -1,8 +1,9 @@
 # Grafana-managed alert rules, provisioned from git (workspace#290). Each
 # rule is a query (A), the last value of each series (B) and a threshold (C).
 # Provisioning files go through Helm's tpl and Grafana's own `$` expansion:
-# no pair of braces and no dollar sign below. The expressions come from the
-# chart's default rules or the components' metrics, each rule says which.
+# no pair of braces below, and a dollar sign only doubled. The expressions come
+# from the chart's default rules or the components' metrics, each rule says
+# which.
 grafana:
   alerting:
     rules.yaml:
@@ -514,9 +515,13 @@ grafana:
           folder: Platform
           interval: 1m
           rules:
-            # cloudflare_zone_requests_status, from platform/cloudflare-exporter.
-            # The share of 5xx at the edge, only for a zone with 50 requests or
-            # more in the window.
+            # Cloudflare's GraphQL API through the Infinity data source
+            # `cloudflare`, a backend query. The share of 5xx at the edge per
+            # zone over the window, only for a zone with 50 requests or more:
+            # the JSONata drops the rest. A table of zone and ratio is a numeric
+            # table for the threshold, so there is no reduce step. The window
+            # macros and the JSONata variables carry a second dollar sign, for
+            # Grafana's own expansion. README, Cloudflare.
             - uid: edge-5xx-above-5
               title: Edge 5xx above 5% of a zone's requests for 10 minutes
               condition: C
@@ -526,25 +531,42 @@ grafana:
               labels: {severity: warning}
               annotations:
                 summary: More than 5% of a zone's requests ended in a 5xx at Cloudflare's edge in the last 10 minutes.
-                runbook_url: https://github.com/0xc0-labs/gitops/blob/main/platform/cloudflare-exporter/README.md
+                runbook_url: https://github.com/0xc0-labs/gitops/blob/main/platform/kube-prometheus-stack/README.md#cloudflare
               data:
                 - refId: A
                   relativeTimeRange: *range
-                  datasourceUid: prometheus
+                  datasourceUid: cloudflare
                   model:
                     refId: A
-                    instant: true
-                    expr: >-
-                      sum by (zone) (increase(cloudflare_zone_requests_status{status=~"5.."}[10m]))
-                      / sum by (zone) (increase(cloudflare_zone_requests_status[10m]))
-                      and sum by (zone) (increase(cloudflare_zone_requests_status[10m])) >= 50
-                - {refId: B, datasourceUid: __expr__, model: *reduce}
+                    type: graphql
+                    source: url
+                    format: table
+                    parser: backend
+                    url: ""
+                    url_options:
+                      method: POST
+                      body_type: graphql
+                      body_graphql_query: >-
+                        query { viewer { zones(filter: {zoneTag_in: ["068d993d1c3f23e994211457c96476f8", "bf3d282f1920e41701c27cc5be3da43e", "60a42fad95616837c4f586ccd932e6ba", "6fd27750f9a3be154e18dba1774ddf00", "2e5c4ce565da7cd5ba3e9d3588fe576c", "35b6a78fcef59563a54825ff503f0a27"]}) {
+                        zoneTag
+                        total: httpRequestsAdaptiveGroups(limit: 1, filter: {datetime_geq: "$${__timeFrom:date:iso}", datetime_lt: "$${__timeTo:date:iso}"}) { count }
+                        errors: httpRequestsAdaptiveGroups(limit: 1, filter: {datetime_geq: "$${__timeFrom:date:iso}", datetime_lt: "$${__timeTo:date:iso}", edgeResponseStatus_geq: 500}) { count }
+                        } } }
+                    root_selector: >-
+                      ($$names := {"068d993d1c3f23e994211457c96476f8": "0xc0.cc", "bf3d282f1920e41701c27cc5be3da43e": "artistlabco.com", "60a42fad95616837c4f586ccd932e6ba": "asrtistlabco.com", "6fd27750f9a3be154e18dba1774ddf00": "matchmark.dev", "2e5c4ce565da7cd5ba3e9d3588fe576c": "offby1.cc", "35b6a78fcef59563a54825ff503f0a27": "sergioaten.cloud"};
+                      data.viewer.zones.(
+                      $$t := $$exists(total[0].count) ? total[0].count : 0;
+                      $$e := $$exists(errors[0].count) ? errors[0].count : 0;
+                      $$t >= 50 ? {"zone": $$lookup($$names, zoneTag), "ratio": $$e / $$t}))
+                    columns:
+                      - {selector: zone, text: zone, type: string}
+                      - {selector: ratio, text: ratio, type: number}
                 - refId: C
                   datasourceUid: __expr__
                   model:
                     refId: C
                     type: threshold
-                    expression: B
+                    expression: A
                     conditions: [{evaluator: {type: gt, params: [0.05]}}]
                     datasource: {type: __expr__, uid: __expr__}
 
@@ -560,7 +582,7 @@ grafana:
               labels: {severity: warning}
               annotations:
                 summary: A cloudflared connector has fewer than 4 HA connections, or its metrics target is down.
-                runbook_url: https://github.com/0xc0-labs/gitops/blob/main/platform/cloudflare-exporter/README.md#tunnel-connectors
+                runbook_url: https://github.com/0xc0-labs/gitops/blob/main/platform/kube-prometheus-stack/README.md#tunnel-connectors
               data:
                 - refId: A
                   relativeTimeRange: *range
