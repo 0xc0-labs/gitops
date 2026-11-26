@@ -3,6 +3,7 @@ kind: Namespace
 metadata:
   name: offby1-cc
   labels:
+    0xc0.cc/pool: apps
     pod-security.kubernetes.io/enforce: restricted
     gateway.0xc0.cc/web: "true"
     vault.0xc0.cc/apps: "true"
