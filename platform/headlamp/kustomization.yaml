@@ -17,3 +17,4 @@ resources:
   - namespace.yaml
   - network-policy.yaml
   - admin.yaml
+  - vault-secrets.yaml
