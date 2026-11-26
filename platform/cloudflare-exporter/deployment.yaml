@@ -38,9 +38,12 @@ spec:
                 secretKeyRef:
                   name: cloudflare-vault
                   key: api_token
-            # Without it the exporter drops every zone on the Free plan.
+            # In 0.2.3 every per-zone query returns early when it is true,
+            # and filters out Free zones when it is false (README.md).
             - name: FREE_TIER
               value: "true"
+            - name: LOG_LEVEL
+              value: debug
             - name: LISTEN
               value: ":8080"
           ports:
