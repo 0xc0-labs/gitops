@@ -4876,13 +4876,13 @@
     {
       "type": "table",
       "id": 17,
-      "title": "Latest errors",
+      "title": "Latest errors · 6 h",
       "transparent": true,
       "datasource": {
         "type": "loki",
         "uid": "loki"
       },
-      "description": "The last 200 lines at error and above in the range, every service, grouped by service and message: how many of them each message has, and when the last one came. The message alone, from a JSON or logfmt line's message field, or the line itself without klog's file and line prefix. One log query, grouped here: a metric query grouped by message passes Loki's 500-series limit over a day.",
+      "description": "The last 200 lines at error and above in the last 6 hours, whatever the board's range, every service, grouped by service and message: how many of them each message has, and when the last one came. The message alone, from a JSON or logfmt line's message field, or the line itself without klog's file and line prefix. One log query, grouped here: a metric query grouped by message passes Loki's 500-series limit over a day. Fixed at 6 h: over 24 h the query took about 40 s and once hit Grafana's 30 s timeout.",
       "gridPos": {
         "h": 7,
         "w": 16,
@@ -5074,7 +5074,9 @@
           ],
           "fields": ""
         }
-      }
+      },
+      "timeFrom": "6h",
+      "hideTimeOverride": true
     },
     {
       "type": "volkovlabs-echarts-panel",
