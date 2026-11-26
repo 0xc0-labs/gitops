@@ -1,0 +1,21 @@
+# The cloudflared connectors of both tunnels, outside the cluster, each on its
+# own `--metrics` port (infrastructure's firewall opens 20241 from `platform`).
+# A target per static config, so each carries its own `host` label.
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: cloudflared
+  namespace: monitoring
+spec:
+  jobName: cloudflared
+  metricsPath: /metrics
+  scrapeInterval: 60s
+  staticConfigs:
+    - targets: ["10.10.4.11:20241"]
+      labels: {tunnel: public, host: vm-lb-01}
+    - targets: ["10.10.4.12:20241"]
+      labels: {tunnel: public, host: vm-lb-02}
+    - targets: ["10.10.0.10:20241"]
+      labels: {tunnel: admin, host: vm-access-01}
+    - targets: ["10.10.0.20:20241"]
+      labels: {tunnel: admin, host: vm-access-02}

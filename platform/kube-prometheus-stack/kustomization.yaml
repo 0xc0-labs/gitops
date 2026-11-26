@@ -22,6 +22,7 @@ resources:
   - network-policy.yaml
   - vault-secrets.yaml
   - httproute.yaml
+  - scrape-configs.yaml
 # No pruning: it holds data.
 commonAnnotations:
   argocd.argoproj.io/sync-options: Prune=false

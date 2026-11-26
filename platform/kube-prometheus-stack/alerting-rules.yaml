@@ -508,3 +508,75 @@ grafana:
                     expression: B
                     conditions: [{evaluator: {type: gt, params: [100]}}]
                     datasource: {type: __expr__, uid: __expr__}
+
+        - orgId: 1
+          name: cloudflare
+          folder: Platform
+          interval: 1m
+          rules:
+            # cloudflare_zone_requests_status, from platform/cloudflare-exporter.
+            # The share of 5xx at the edge, only for a zone with 50 requests or
+            # more in the window.
+            - uid: edge-5xx-above-5
+              title: Edge 5xx above 5% of a zone's requests for 10 minutes
+              condition: C
+              for: 10m
+              noDataState: OK
+              execErrState: Error
+              labels: {severity: warning}
+              annotations:
+                summary: More than 5% of a zone's requests ended in a 5xx at Cloudflare's edge in the last 10 minutes.
+                runbook_url: https://github.com/0xc0-labs/gitops/blob/main/platform/cloudflare-exporter/README.md
+              data:
+                - refId: A
+                  relativeTimeRange: *range
+                  datasourceUid: prometheus
+                  model:
+                    refId: A
+                    instant: true
+                    expr: >-
+                      sum by (zone) (increase(cloudflare_zone_requests_status{status=~"5.."}[10m]))
+                      / sum by (zone) (increase(cloudflare_zone_requests_status[10m]))
+                      and sum by (zone) (increase(cloudflare_zone_requests_status[10m])) >= 50
+                - {refId: B, datasourceUid: __expr__, model: *reduce}
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    refId: C
+                    type: threshold
+                    expression: B
+                    conditions: [{evaluator: {type: gt, params: [0.05]}}]
+                    datasource: {type: __expr__, uid: __expr__}
+
+            # cloudflared_tunnel_ha_connections, from the ScrapeConfig
+            # `cloudflared`: a connector holds four connections to the edge.
+            # A target that is down has no such series, so `up` covers it.
+            - uid: tunnel-short-of-connections
+              title: Tunnel connector short of connections or down for 5 minutes
+              condition: C
+              for: 5m
+              noDataState: OK
+              execErrState: Error
+              labels: {severity: warning}
+              annotations:
+                summary: A cloudflared connector has fewer than 4 HA connections, or its metrics target is down.
+                runbook_url: https://github.com/0xc0-labs/gitops/blob/main/platform/cloudflare-exporter/README.md#tunnel-connectors
+              data:
+                - refId: A
+                  relativeTimeRange: *range
+                  datasourceUid: prometheus
+                  model:
+                    refId: A
+                    instant: true
+                    expr: >-
+                      max by (tunnel, host) (cloudflared_tunnel_ha_connections{job="cloudflared"} < bool 4)
+                      or max by (tunnel, host) (1 - up{job="cloudflared"})
+                - {refId: B, datasourceUid: __expr__, model: *reduce}
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    refId: C
+                    type: threshold
+                    expression: B
+                    conditions: [{evaluator: {type: gt, params: [0]}}]
+                    datasource: {type: __expr__, uid: __expr__}
