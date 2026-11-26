@@ -38,12 +38,14 @@ kubectl config use-context <cluster>
 
 - **No client secret.** For `kubectl` the application is a public client:
   PKCE stands where the secret would, and a secret in every admin's kubeconfig
-  would be no secret. Headlamp is the confidential client and keeps its own
-  (`platform/headlamp/`).
+  would be no secret. Headlamp signs in through the same application and
+  holds its client secret in `platform/headlamp/`, but Access requires PKCE of
+  every request to a public client, so Headlamp sends one too.
 - **PKCE is forced.** Access's discovery document does not advertise
   `code_challenge_methods_supported`, and the plugin picks PKCE from that list
   by default: left to detection it would send none and Access would refuse the
-  login. `--oidc-pkce-method=S256` skips the detection.
+  login. `--oidc-pkce-method=S256` skips the detection. Headlamp has
+  `usePKCE` on for the same reason.
 - **`email`** is an extra scope because the plugin asks only for `openid`, and
   the API server takes the username from the token's `email`.
 
