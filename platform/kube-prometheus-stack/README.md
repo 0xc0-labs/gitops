@@ -109,13 +109,14 @@ last-applied annotation caps one near 256 KiB.
 
 | Board | `uid` | For |
 |---|---|---|
-| Estate | `home` | The estate on one screen: a health score, the KPI strip, the map of hosts, pools and nodes, traffic from entrypoint to service, golden signals per public site, the tools behind WARP, memory by pool, the log pulse and the latest errors, pool capacity, and changes |
-| Apps | `apps` | One application, chosen with `app`: header, availability against its SLO, web vitals, traffic, top pages and devices, two releases compared, latency, errors and pods |
+| Estate | `home` | The estate on one screen: a health score, the KPI strip, the map of hosts, pools and nodes, traffic from entrypoint to service, the edge, golden signals per public site, the tools behind WARP, memory by pool, the log pulse and the latest errors, pool capacity, and changes |
+| Apps | `apps` | One application, chosen with `app`: header, availability against its SLO, web vitals, traffic, top pages and devices, the site at the edge, two releases compared, latency, errors and pods |
 | Matchmark | `matchmark` | Its API, the factory worker and Temporal, and its tasks while they run |
 | Web vitals | `applications-rum` | Real-user web vitals across the sites, from Faro |
 | Traces / Overall, Traces / By service | `traces-overall`, `traces-by-service` | Spans, latency and the service map, for every service or one |
 | Argo CD, Traefik, Vault, Longhorn, CrowdSec, Kubernetes / Events | `argocd`, `traefik`, `vault`, `longhorn`, `crowdsec`, `kubernetes-events` | The platform, each trimmed to what this estate uses; the `Platform` menu lists them by the tag `platform` |
 | Right-sizing | `rightsizing` | What every workload asks for against what it used over the range (7 days by default): idle reservation, the pools, asked against used per workload, the memory reservation by namespace, and the containers closest to trouble with the change to make. In `Platform`, and linked from Estate's Pool capacity |
+| Cloudflare | `cloudflare` | The edge, every zone, over the range (24 hours by default): requests, edge 5xx, cache hits, threats blocked and connectors up; requests by zone and by status class; countries; WAF events by rule and action; each connector's connections, requests and errors. In `Platform`, and linked from Estate's Edge ([Cloudflare](#the-boards-1)) |
 
 #### Right-sizing
 
@@ -305,7 +306,34 @@ query {
 
 Cloudflare allows 300 GraphQL queries per 5 minutes per token, and every panel
 query and every rule evaluation counts. A board that uses it refreshes no
-faster than every 5 minutes.
+faster than every 5 minutes: Estate, Apps and Cloudflare refresh every 5.
+
+### The boards
+
+Every Cloudflare query of a board asks for all the zones it needs at once
+(`zoneTag_in`), with one alias per dataset and filter, and its JSONata root
+selector flattens the answer into one table: a row per group, its kind in `q`,
+then `zone`, `t` (the hour or the event's time), `k`, `s`, `r` (a WAF event's
+rule: its description, or its ID when Cloudflare gives none) and the count in
+`n`. Each query also returns one marker row (`ok`, `okb`, `okc`), so an answer
+without groups is an empty block rather than an error, and a block whose query
+failed is left out. A refresh costs two queries on Estate, one on Apps (for an
+app behind WARP too, which asks for no zone and gets none) and three on
+Cloudflare, whose other blocks read the cards' frames through `-- Dashboard --`.
+
+| Where | What, and from which dataset |
+|---|---|
+| Estate, Edge | Requests per hour at the edge (`httpRequestsAdaptiveGroups`, every zone) against Traefik's `websecure` entrypoint, the origin; the edge's 5xx share; the top countries; what the WAF blocked (`firewallEventsAdaptive`); and each tunnel's connectors, one dot each, from the job `cloudflared` |
+| Estate, Sites up · 30 d | The share of offby1.cc's and artistlabco.com's requests over 30 days that the edge answered with a status under 500 (`httpRequests1dGroups`, unsampled), or Traefik's view of the same sites when that query returns nothing. Infinity's macros take no offset, so the first day comes from the hidden variable `edge_since` |
+| Apps, Edge | The app's hosts at the edge: requests, cache hits, 5xx and top countries. The hidden variable `edge` gives the app's zone and its public hosts, and repeats the row. An app behind WARP has none, but Grafana still draws a repeat over an empty variable once: its row, titled Edge alone by the hidden variable `edge_title`, holds one line that says it is reached over WARP only |
+| Cloudflare | The cards, then requests by zone and by status class, countries and WAF events, every zone; the tunnels from Prometheus |
+
+Past 96 hours, a point of a chart is the hourly mean of several hours, so a
+long range stays legible. The Adaptive datasets hold 31 days and take 30-day
+queries: a range past 30 days fails. A 5xx counts Cloudflare's own answers too
+(52x, and 530 when a tunnel has no connector); a cache hit is `hit`, `stale`,
+`updating` or `revalidated`, over every request; blocked is an event that
+blocked the request or challenged it.
 
 ### The edge 5xx alert
 

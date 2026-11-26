@@ -369,7 +369,7 @@
     {
       "type": "volkovlabs-echarts-panel",
       "title": "",
-      "description": "Public is the websecure entrypoint, the public tunnel; WARP's tools are counted apart, under Behind WARP. Totals over the range. p95 needs 20 requests in the range, or it reads —. Sites up: the share of offby1.cc's and artistlabco.com's requests that were not 5xx, over 30 days.",
+      "description": "Public is the websecure entrypoint, the public tunnel; WARP's tools are counted apart, under Behind WARP. Totals over the range. p95 needs 20 requests in the range, or it reads —. Sites up: the share of offby1.cc's and artistlabco.com's requests over 30 days that the edge answered with a status under 500, a 5xx or no answer being down, from Cloudflare's daily groups for both zones (README, Cloudflare); without them, Traefik's view of the same sites.",
       "transparent": true,
       "id": 2,
       "gridPos": {
@@ -379,8 +379,8 @@
         "y": 0
       },
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "datasource",
+        "uid": "-- Mixed --"
       },
       "maxDataPoints": 48,
       "targets": [
@@ -482,6 +482,63 @@
           "editorMode": "code",
           "range": false,
           "instant": true
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "cloudflare"
+          },
+          "refId": "J",
+          "type": "graphql",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "",
+          "url_options": {
+            "method": "POST",
+            "body_type": "graphql",
+            "body_graphql_query": "query { viewer { zones(filter: {zoneTag_in: [\"2e5c4ce565da7cd5ba3e9d3588fe576c\", \"bf3d282f1920e41701c27cc5be3da43e\"]}) {\n  httpRequests1dGroups(limit: 40, filter: {date_geq: \"${edge_since:date:YYYY-MM-DD}\", date_leq: \"${__timeTo:date:YYYY-MM-DD}\"}) {\n    sum { requests responseStatusMap { edgeResponseStatus requests } }\n  }\n} } }",
+            "data": ""
+          },
+          "root_selector": "($g := data.viewer.zones.httpRequests1dGroups; $all := $sum($append([0], $g.sum.requests)); $down := $sum($append([0], $g.sum.responseStatusMap[edgeResponseStatus >= 500 or edgeResponseStatus = 0].requests)); [$all > 0 ? {\"q\": \"sites_up\", \"n\": 1 - $down / $all, \"k\": $string($all)}])",
+          "columns": [
+            {
+              "selector": "q",
+              "text": "q",
+              "type": "string"
+            },
+            {
+              "selector": "zone",
+              "text": "zone",
+              "type": "string"
+            },
+            {
+              "selector": "t",
+              "text": "t",
+              "type": "string"
+            },
+            {
+              "selector": "k",
+              "text": "k",
+              "type": "string"
+            },
+            {
+              "selector": "s",
+              "text": "s",
+              "type": "string"
+            },
+            {
+              "selector": "r",
+              "text": "r",
+              "type": "string"
+            },
+            {
+              "selector": "n",
+              "text": "n",
+              "type": "number"
+            }
+          ],
+          "filters": []
         }
       ],
       "fieldConfig": {
@@ -509,7 +566,7 @@
           "format": "auto"
         },
         "editorMode": "code",
-        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst cards = [\n{ label: 'Public requests', fmt: 'count', value: () => last('A'), spark: 'B', sparkColour: '#60A5FA',\n    sub: (v) => (v === null ? 'none · ' + span : Math.round(v / hours).toLocaleString('en-US') + ' per hour · ' + span) },\n  { label: 'Public errors', fmt: 'pct', value: () => { const a = last('A'); return a ? (last('C') || 0) / a : null; },\n    sub: (v) => (v === null ? 'no requests' : '5xx: ' + Math.round(last('C') || 0).toLocaleString('en-US') + ' of ' + Math.round(last('A')).toLocaleString('en-US')),\n    colour: (v) => (v >= 0.05 ? '#FB7185' : v >= 0.01 ? '#FBBF24' : '#E7ECF3') },\n  { label: 'Public p95', fmt: 'dur', value: () => last('D'),\n    sub: (v) => (v === null ? 'fewer than 20 requests' : Math.round(last('A') || 0).toLocaleString('en-US') + ' requests'),\n    colour: (v) => (v >= 1 ? '#FB7185' : v >= 0.5 ? '#FBBF24' : '#E7ECF3') },\n  { label: 'Sites up · 30 d', fmt: 'pct', value: () => last('E'), sub: () => '2 public sites',\n    colour: (v) => (v < 0.99 ? '#FB7185' : v < 0.999 ? '#FBBF24' : '#34D399') },\n  { label: 'Pods not running', fmt: 'count', value: () => last('F'),\n    sub: () => (last('G') === null ? '' : 'of ' + Math.round(last('G')).toLocaleString('en-US') + ' pods'),\n    colour: (v) => (v > 0 ? '#FBBF24' : '#E7ECF3') },\n  { label: 'Volumes degraded', fmt: 'count', value: () => last('H'),\n    sub: () => (last('I') === null ? '' : 'of ' + Math.round(last('I')) + ' volumes'),\n    colour: (v) => (v > 0 ? '#FB7185' : '#E7ECF3') },\n];\nconst frames = context.panel.data.series;\nconst byRef = (id) => frames.filter((f) => f.refId === id);\nconst num = (x) => (x === null || x === undefined || !Number.isFinite(Number(x)) ? null : Number(x));\nconst last = (id) => {\n  for (const f of byRef(id)) {\n    const v = f.fields.find((x) => x.type === 'number');\n    if (!v) continue;\n    for (let i = v.values.length - 1; i >= 0; i--) { const n = num(v.values[i]); if (n !== null) return n; }\n  }\n  return null;\n};\nconst points = (id) => {\n  const f = byRef(id)[0];\n  if (!f) return [];\n  const t = f.fields.find((x) => x.type === 'time');\n  const v = f.fields.find((x) => x.type === 'number');\n  if (!t || !v) return [];\n  return t.values.map((x, i) => [x, num(v.values[i])]);\n};\nconst span = (() => {\n  const r = context.panel.data.timeRange;\n  if (!r) return '';\n  const m = (r.to.valueOf() - r.from.valueOf()) / 60000;\n  if (m < 90) return Math.round(m) + ' min';\n  if (m < 48 * 60) return Math.round(m / 60) + ' h';\n  return Math.round(m / 1440) + ' d';\n})();\nconst hours = (() => {\n  const r = context.panel.data.timeRange;\n  return r ? (r.to.valueOf() - r.from.valueOf()) / 3600000 : 1;\n})();\nconst fmt = {\n  count: (v) => [Math.round(v).toLocaleString('en-US'), ''],\n  pct: (v) => [(v * 100).toFixed(v * 100 >= 99.95 || v === 0 ? 2 : v * 100 < 10 ? 2 : 1), '%'],\n  dur: (v) => (v < 1 ? [String(Math.round(v * 1000)), 'ms'] : [v.toFixed(v < 10 ? 2 : 1), 's']),\n  num2: (v) => [v.toFixed(2), ''],\n  ms: (v) => (v < 1000 ? [String(Math.round(v)), 'ms'] : [(v / 1000).toFixed(2), 's']),\n  bytes: (v) => {\n    const u = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];\n    let i = 0;\n    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }\n    return [v.toFixed(v < 10 ? 2 : 1), u[i]];\n  },\n};\nconst n = cards.length;\nconst chart = context.panel.chart;\nconst W = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst H = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\nconst gap = 12;\nconst cw = W ? (W - gap * (n - 1)) / n : 0;\nconst graphic = [];\nconst grid = [];\nconst xAxis = [];\nconst yAxis = [];\nconst series = [];\ncards.forEach((c, i) => {\n  const x = W ? i * (cw + gap) : 0;\n  const at = (dx) => (W ? x + dx : (i * 100) / n + 1.2 + '%');\n  const v = c.value();\n  const shown = v === null ? ['—', ''] : c.show ? c.show(v) : fmt[c.fmt](v);\n  const unit = v === null ? '' : c.unit !== undefined ? c.unit : shown[1];\n  const colour = v === null ? '#8D99AB' : c.colour ? c.colour(v) : '#E7ECF3';\n  if (W && H) graphic.push({ type: 'rect', left: x, top: 0, z: -1, silent: true,\n    shape: { width: cw, height: H - 1, r: 14 }, style: { fill: '#10151C', stroke: '#1F2733', lineWidth: 1 } });\n  const fit = W ? { width: cw - 32, overflow: 'truncate', ellipsis: '…' } : {};\n  graphic.push({ type: 'text', left: at(16), top: 12, silent: true,\n    style: Object.assign({ text: c.label.toUpperCase(), fill: '#8D99AB', font: '600 11px Inter, sans-serif' }, fit) });\n  graphic.push({ type: 'text', left: at(16), top: 28, silent: true,\n    style: { text: '{v|' + shown[0] + '}' + (unit ? '{u| ' + unit + '}' : ''),\n      rich: { v: { fill: colour, font: '600 30px ' + MONO },\n        u: { fill: '#8D99AB', font: '13px ' + MONO, padding: [12, 0, 0, 4] } } } });\n  const sub = c.sub ? c.sub(v) : '';\n  if (sub) graphic.push({ type: 'text', left: at(16), top: 68, silent: true,\n    style: Object.assign({ text: sub, fill: '#8D99AB', font: '12px ' + MONO }, fit) });\n  if (c.spark) {\n    const data = points(c.spark);\n    if (data.some((p) => p[1] !== null)) {\n      const g = grid.length;\n      const sh = H ? Math.max(14, H - 94) : 20;\n      grid.push(W ? { left: x + 12, width: cw - 24, bottom: 6, height: sh }\n        : { left: (i * 100) / n + 1.2 + '%', width: 100 / n - 2.4 + '%', bottom: 6, height: sh });\n      xAxis.push({ type: 'time', gridIndex: g, show: false });\n      yAxis.push({ type: 'value', gridIndex: g, show: false, scale: false, min: 0 });\n      series.push({ type: 'line', xAxisIndex: g, yAxisIndex: g, data, showSymbol: false, silent: true,\n        connectNulls: false, lineStyle: { width: 1.5, color: c.sparkColour || '#60A5FA' } });\n    }\n  }\n});\nreturn { backgroundColor: 'transparent', animation: false, graphic, grid, xAxis, yAxis, series };",
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst cards = [\n{ label: 'Public requests', fmt: 'count', value: () => last('A'), spark: 'B', sparkColour: '#60A5FA',\n    sub: (v) => (v === null ? 'none · ' + span : Math.round(v / hours).toLocaleString('en-US') + ' per hour · ' + span) },\n  { label: 'Public errors', fmt: 'pct', value: () => { const a = last('A'); return a ? (last('C') || 0) / a : null; },\n    sub: (v) => (v === null ? 'no requests' : '5xx: ' + Math.round(last('C') || 0).toLocaleString('en-US') + ' of ' + Math.round(last('A')).toLocaleString('en-US')),\n    colour: (v) => (v >= 0.05 ? '#FB7185' : v >= 0.01 ? '#FBBF24' : '#E7ECF3') },\n  { label: 'Public p95', fmt: 'dur', value: () => last('D'),\n    sub: (v) => (v === null ? 'fewer than 20 requests' : Math.round(last('A') || 0).toLocaleString('en-US') + ' requests'),\n    colour: (v) => (v >= 1 ? '#FB7185' : v >= 0.5 ? '#FBBF24' : '#E7ECF3') },\n  { label: 'Sites up · 30 d', fmt: 'pct', value: () => (last('J') !== null ? last('J') : last('E')),\n    sub: () => (last('J') !== null ? '2 sites · edge' : '2 sites · origin'),\n    colour: (v) => (v < 0.99 ? '#FB7185' : v < 0.999 ? '#FBBF24' : '#34D399') },\n  { label: 'Pods not running', fmt: 'count', value: () => last('F'),\n    sub: () => (last('G') === null ? '' : 'of ' + Math.round(last('G')).toLocaleString('en-US') + ' pods'),\n    colour: (v) => (v > 0 ? '#FBBF24' : '#E7ECF3') },\n  { label: 'Volumes degraded', fmt: 'count', value: () => last('H'),\n    sub: () => (last('I') === null ? '' : 'of ' + Math.round(last('I')) + ' volumes'),\n    colour: (v) => (v > 0 ? '#FB7185' : '#E7ECF3') },\n];\nconst frames = context.panel.data.series;\nconst byRef = (id) => frames.filter((f) => f.refId === id);\nconst num = (x) => (x === null || x === undefined || !Number.isFinite(Number(x)) ? null : Number(x));\nconst last = (id) => {\n  for (const f of byRef(id)) {\n    const v = f.fields.find((x) => x.type === 'number');\n    if (!v) continue;\n    for (let i = v.values.length - 1; i >= 0; i--) { const n = num(v.values[i]); if (n !== null) return n; }\n  }\n  return null;\n};\nconst points = (id) => {\n  const f = byRef(id)[0];\n  if (!f) return [];\n  const t = f.fields.find((x) => x.type === 'time');\n  const v = f.fields.find((x) => x.type === 'number');\n  if (!t || !v) return [];\n  return t.values.map((x, i) => [x, num(v.values[i])]);\n};\nconst span = (() => {\n  const r = context.panel.data.timeRange;\n  if (!r) return '';\n  const m = (r.to.valueOf() - r.from.valueOf()) / 60000;\n  if (m < 90) return Math.round(m) + ' min';\n  if (m < 48 * 60) return Math.round(m / 60) + ' h';\n  return Math.round(m / 1440) + ' d';\n})();\nconst hours = (() => {\n  const r = context.panel.data.timeRange;\n  return r ? (r.to.valueOf() - r.from.valueOf()) / 3600000 : 1;\n})();\nconst fmt = {\n  count: (v) => [Math.round(v).toLocaleString('en-US'), ''],\n  pct: (v) => [(v * 100).toFixed(v * 100 >= 99.95 || v === 0 ? 2 : v * 100 < 10 ? 2 : 1), '%'],\n  dur: (v) => (v < 1 ? [String(Math.round(v * 1000)), 'ms'] : [v.toFixed(v < 10 ? 2 : 1), 's']),\n  num2: (v) => [v.toFixed(2), ''],\n  ms: (v) => (v < 1000 ? [String(Math.round(v)), 'ms'] : [(v / 1000).toFixed(2), 's']),\n  bytes: (v) => {\n    const u = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];\n    let i = 0;\n    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }\n    return [v.toFixed(v < 10 ? 2 : 1), u[i]];\n  },\n};\nconst n = cards.length;\nconst chart = context.panel.chart;\nconst W = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst H = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\nconst gap = 12;\nconst cw = W ? (W - gap * (n - 1)) / n : 0;\nconst graphic = [];\nconst grid = [];\nconst xAxis = [];\nconst yAxis = [];\nconst series = [];\ncards.forEach((c, i) => {\n  const x = W ? i * (cw + gap) : 0;\n  const at = (dx) => (W ? x + dx : (i * 100) / n + 1.2 + '%');\n  const v = c.value();\n  const shown = v === null ? ['—', ''] : c.show ? c.show(v) : fmt[c.fmt](v);\n  const unit = v === null ? '' : c.unit !== undefined ? c.unit : shown[1];\n  const colour = v === null ? '#8D99AB' : c.colour ? c.colour(v) : '#E7ECF3';\n  if (W && H) graphic.push({ type: 'rect', left: x, top: 0, z: -1, silent: true,\n    shape: { width: cw, height: H - 1, r: 14 }, style: { fill: '#10151C', stroke: '#1F2733', lineWidth: 1 } });\n  const fit = W ? { width: cw - 32, overflow: 'truncate', ellipsis: '…' } : {};\n  graphic.push({ type: 'text', left: at(16), top: 12, silent: true,\n    style: Object.assign({ text: c.label.toUpperCase(), fill: '#8D99AB', font: '600 11px Inter, sans-serif' }, fit) });\n  graphic.push({ type: 'text', left: at(16), top: 28, silent: true,\n    style: { text: '{v|' + shown[0] + '}' + (unit ? '{u| ' + unit + '}' : ''),\n      rich: { v: { fill: colour, font: '600 30px ' + MONO },\n        u: { fill: '#8D99AB', font: '13px ' + MONO, padding: [12, 0, 0, 4] } } } });\n  const sub = c.sub ? c.sub(v) : '';\n  if (sub) graphic.push({ type: 'text', left: at(16), top: 68, silent: true,\n    style: Object.assign({ text: sub, fill: '#8D99AB', font: '12px ' + MONO }, fit) });\n  if (c.spark) {\n    const data = points(c.spark);\n    if (data.some((p) => p[1] !== null)) {\n      const g = grid.length;\n      const sh = H ? Math.max(14, H - 94) : 20;\n      grid.push(W ? { left: x + 12, width: cw - 24, bottom: 6, height: sh }\n        : { left: (i * 100) / n + 1.2 + '%', width: 100 / n - 2.4 + '%', bottom: 6, height: sh });\n      xAxis.push({ type: 'time', gridIndex: g, show: false });\n      yAxis.push({ type: 'value', gridIndex: g, show: false, scale: false, min: 0 });\n      series.push({ type: 'line', xAxisIndex: g, yAxisIndex: g, data, showSymbol: false, silent: true,\n        connectNulls: false, lineStyle: { width: 1.5, color: c.sparkColour || '#60A5FA' } });\n    }\n  }\n});\nreturn { backgroundColor: 'transparent', animation: false, graphic, grid, xAxis, yAxis, series };",
         "baidu": {
           "callback": "bmapReady",
           "key": ""
@@ -3787,6 +3844,172 @@
       }
     },
     {
+      "type": "volkovlabs-echarts-panel",
+      "title": "Edge",
+      "description": "Cloudflare's edge, every zone (README, Cloudflare; the Adaptive datasets are sampled). Requests per hour: what reached the edge against what reached the origin, Traefik's websecure entrypoint; the gap is what the edge answered itself (cache, redirects, blocks), and what came over WARP to a public name counts at the origin alone. 5xx at the edge: answers of 500 or more, the origin's and Cloudflare's own. WAF blocked: firewall events that blocked or challenged the request. Top countries: shares of every request. Tunnels: each cloudflared connector's connections to the edge, of four, and whether its target answers.",
+      "transparent": true,
+      "id": 21,
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 15
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        },
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));\n// Cloudflare's rows carry a q column (README, Cloudflare): cf[q] is a list of {zone, t, k, s, r, n}.\n// Prometheus frames are read by refId: prom[refId] is a list of {labels, points}.\nconst cf = {};\nconst prom = {};\nfor (const f of context.panel.data.series || []) {\n  const field = (name) => f.fields.find((x) => x.name === name);\n  const qf = field('q');\n  if (qf) {\n    const [zf, tf, kf, sf, rf, nf] = ['zone', 't', 'k', 's', 'r', 'n'].map(field);\n    for (let i = 0; i < qf.values.length; i++) {\n      const t = tf ? tf.values[i] : null;\n      (cf[qf.values[i]] = cf[qf.values[i]] || []).push({\n        zone: zf ? zf.values[i] : null,\n        t: t === null || t === undefined || t === '' ? null : typeof t === 'number' ? t : Date.parse(t),\n        k: kf ? kf.values[i] : null, s: sf ? sf.values[i] : null, r: rf ? rf.values[i] : null,\n        n: nf ? num(nf.values[i]) || 0 : 0 });\n    }\n    continue;\n  }\n  const vf = f.fields.find((x) => x.type === 'number');\n  if (!vf) continue;\n  const tf = f.fields.find((x) => x.type === 'time');\n  (prom[f.refId] = prom[f.refId] || []).push({ labels: vf.labels || {},\n    points: tf ? tf.values.map((x, i) => [x, num(vf.values[i])]) : [[null, num(vf.values[vf.values.length - 1])]] });\n}\nconst lastOf = (s) => { for (let i = s.points.length - 1; i >= 0; i--) if (s.points[i][1] !== null) return s.points[i][1]; return null; };\nconst range = context.panel.data.timeRange;\nconst from = range ? range.from.valueOf() : Date.now() - 6 * 3600e3;\nconst to = range ? range.to.valueOf() : Date.now();\nconst HOUR = 3600e3;\nconst hours = Math.max(1, (to - from) / HOUR);\nconst span = (() => { const m = (to - from) / 60000; return m < 90 ? Math.round(m) + ' min' : m < 2880 ? Math.round(m / 60) + ' h' : Math.round(m / 1440) + ' d'; })();\nconst count = (v) => Math.round(v).toLocaleString('en-US');\nconst perHour = (v) => (v === null ? '—' : v < 10 && v % 1 ? v.toFixed(1) : count(v));\nconst pct = (v) => (v * 100).toFixed(v === 0 || v === 1 ? 0 : v * 100 < 10 || v * 100 > 99 ? 2 : 1);\nconst sum = (list) => (list || []).reduce((a, r) => a + r.n, 0);\n// Per hour always; past 96 hours, each point is the hourly mean of STEP hours, so a long range stays legible.\nconst STEP = Math.max(1, Math.ceil(hours / 96));\nconst START = Math.floor(from / (STEP * HOUR)) * STEP * HOUR;\nconst stepWord = STEP === 1 ? 'the hour' : 'per hour, mean of ' + STEP + ' h';\nconst bucket = (points) => {\n  const by = {}, n = {};\n  points.forEach(([t, v]) => {\n    if (t === null || t < START || v === null) return;\n    const b = START + Math.floor((t - START) / (STEP * HOUR)) * STEP * HOUR;\n    by[b] = (by[b] || 0) + v;\n    n[b] = (n[b] || 0) + 1;\n  });\n  const out = [];\n  for (let b = START; b < to; b += STEP * HOUR) out.push([b, n[b] ? by[b] / n[b] : null]);\n  return out;\n};\n// Zero-filled: Cloudflare returns no group for an hour without requests.\nconst hourly = (list) => {\n  const by = {};\n  (list || []).forEach((r) => { if (r.t !== null) by[r.t] = (by[r.t] || 0) + r.n; });\n  const pts = [];\n  for (let h = Math.floor(from / HOUR) * HOUR; h < to; h += HOUR) pts.push([h, by[h] || 0]);\n  return bucket(pts);\n};\nconst regionNames = (() => { try { return new Intl.DisplayNames(['en'], { type: 'region' }); } catch (e) { return null; } })();\nconst country = (code) => {\n  if (code === 'T1') return 'Tor';\n  if (!code || code === 'XX') return 'unknown';\n  try { return (regionNames && regionNames.of(code)) || code; } catch (e) { return code; }\n};\nconst SOURCE = { firewallManaged: 'managed rules', firewallCustom: 'custom rules', firewallRules: 'firewall rules',\n  securitylevel: 'security level', bic: 'browser check', hot: 'hotlink', waf: 'WAF', ratelimit: 'rate limit',\n  l7ddos: 'DDoS', botFight: 'bot fight', botManagement: 'bot management', uablock: 'user agent', zonelockdown: 'lockdown',\n  iprange: 'IP range', ip: 'IP', asn: 'ASN', country: 'country', validation: 'validation', dlp: 'DLP' };\nconst source = (s) => SOURCE[s] || s || 'unknown';\n// Blocked: the request never reached the origin, or met a challenge (README, Cloudflare).\nconst STOPPED = /^(block|drop|connection_close|challenge|jschallenge|managed_challenge|challenge_failed|jschallenge_failed)$/;\nconst chart = context.panel.chart;\nconst CW = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst CH = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\nconst empty = (text) => ({ backgroundColor: 'transparent', title: { text, left: 'center', top: 'middle',\n  textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } });\nconst TIP = { backgroundColor: '#10151C', borderColor: '#1F2733', textStyle: { color: '#E7ECF3', fontSize: 12 } };\nconst hourLabel = (t) => new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });\nconst surface = (x, w, h) => ({ type: 'rect', left: x, top: 0, z: -1, silent: true,\n  shape: { width: w, height: h - 1, r: 14 }, style: { fill: '#10151C', stroke: '#1F2733', lineWidth: 1 } });\nconst label = (x, y, text, w) => ({ type: 'text', left: x, top: y, silent: true,\n  style: { text: String(text).toUpperCase(), fill: '#8D99AB', font: '600 11px Inter, sans-serif', width: Math.max(10, w), overflow: 'truncate', ellipsis: '…' } });\n\nconst edgeOk = !!cf.ok;\nconst edgeTotal = sum(cf.all);\nconst edgeSeries = edgeOk ? hourly(cf.all) : [];\n// Traefik's increase over the hour before each step: drawn at the hour's start, as Cloudflare's groups are.\nconst originSeries = bucket(((prom.O || [])[0] || { points: [] }).points.map(([t, v]) => [t - HOUR, v]));\nconst originTotal = (prom.OT || []).length ? lastOf(prom.OT[0]) : null;\nconst hasOrigin = originSeries.some((p) => p[1] !== null);\nconst e5 = sum(cf.e5);\nconst countries = {};\n(cf.countries || []).forEach((r) => { countries[r.k] = (countries[r.k] || 0) + r.n; });\nconst top = Object.entries(countries).sort((a, b) => b[1] - a[1]).slice(0, 5);\nconst events = cf.fw || [];\nconst stopped = events.filter((r) => STOPPED.test(r.k));\nconst bySource = {};\nstopped.forEach((r) => { bySource[r.s] = (bySource[r.s] || 0) + 1; });\nconst mostly = Object.entries(bySource).sort((a, b) => b[1] - a[1])[0];\nconst conn = {};\n(prom.UP || []).forEach((s) => { const k = s.labels.tunnel + '|' + s.labels.host; conn[k] = Object.assign(conn[k] || {}, { tunnel: s.labels.tunnel, host: s.labels.host, up: lastOf(s) }); });\n(prom.HA || []).forEach((s) => { const k = s.labels.tunnel + '|' + s.labels.host; conn[k] = Object.assign(conn[k] || {}, { tunnel: s.labels.tunnel, host: s.labels.host, ha: lastOf(s) }); });\nconst STATE = { ok: '#34D399', short: '#FBBF24', down: '#FB7185' };\nconst connectors = Object.values(conn).map((c) => {\n  const ha = c.up === 0 ? 0 : c.ha || 0;\n  return Object.assign(c, { ha, state: c.up === 0 || ha === 0 ? 'down' : ha < 4 ? 'short' : 'ok' });\n}).sort((a, b) => String(a.host).localeCompare(String(b.host)));\nconst tunnels = ['public', 'admin'].concat([...new Set(connectors.map((c) => c.tunnel))].filter((t) => t !== 'public' && t !== 'admin'))\n  .map((t) => ({ name: t, list: connectors.filter((c) => c.tunnel === t) })).filter((t) => t.list.length);\n\nconst blocks = [];\nif (edgeOk || hasOrigin) blocks.push({ id: 'requests', weight: 2.3 });\nif (edgeOk) blocks.push({ id: 'stats', weight: 0.95 }, { id: 'countries', weight: 1.2 });\nif (tunnels.length) blocks.push({ id: 'tunnels', weight: 1.25 });\nif (!blocks.length) return empty('no edge data in ' + span);\n\nconst gap = 12;\nconst totalW = blocks.reduce((s, b) => s + b.weight, 0);\nconst free = CW - gap * (blocks.length - 1);\nconst graphic = [], grid = [], xAxis = [], yAxis = [], series = [];\nlet tooltip;\nlet x = 0;\nblocks.forEach((b) => {\n  const cw = CW ? (free * b.weight) / totalW : 0;\n  graphic.push(surface(x, cw, CH));\n  if (b.id === 'requests') {\n    graphic.push(label(x + 16, 12, 'Requests per hour', cw * 0.4));\n    const parts = [];\n    if (edgeOk) parts.push('{e|●} edge ' + count(edgeTotal));\n    if (hasOrigin && originTotal !== null) parts.push('{o|●} origin ' + count(originTotal));\n    graphic.push({ type: 'text', right: CW - x - cw + 16, top: 11, silent: true,\n      style: { text: parts.join('   '), fill: '#C9D2DE', font: '12px ' + MONO, align: 'right',\n        rich: { e: { fill: '#60A5FA', font: '12px ' + MONO }, o: { fill: '#C4B5FD', font: '12px ' + MONO } } } });\n    grid.push({ left: x + 52, top: 40, width: Math.max(10, cw - 72), height: Math.max(20, CH - 40 - 30) });\n    xAxis.push({ type: 'time', gridIndex: 0, min: START, max: to,\n      axisLine: { lineStyle: { color: '#1F2733' } }, axisTick: { show: false }, splitLine: { show: false },\n      axisLabel: { color: '#8D99AB', fontFamily: MONO, fontSize: 10, hideOverlap: true } });\n    yAxis.push({ type: 'value', gridIndex: 0, min: 0, minInterval: 1, splitNumber: 3,\n      splitLine: { lineStyle: { color: '#1F2733' } },\n      axisLabel: { color: '#8D99AB', fontFamily: MONO, fontSize: 10,\n        formatter: (v) => (v >= 1000 ? +(v / 1000).toFixed(1) + 'k' : String(v)) } });\n    const few = edgeSeries.length <= 24;\n    if (edgeOk) series.push({ name: 'edge', type: 'line', data: edgeSeries, showSymbol: few, symbolSize: 4,\n      connectNulls: false, lineStyle: { width: 2, color: '#60A5FA' }, itemStyle: { color: '#60A5FA' } });\n    if (hasOrigin) series.push({ name: 'origin', type: 'line', data: originSeries, showSymbol: few, symbolSize: 4,\n      connectNulls: false, lineStyle: { width: 2, color: '#C4B5FD' }, itemStyle: { color: '#C4B5FD' } });\n    tooltip = Object.assign({ trigger: 'axis', axisPointer: { type: 'line', lineStyle: { color: '#1F2733' } },\n      formatter: (ps) => hourLabel(ps[0].value[0]) + ', ' + stepWord + '<br/>' + ps.map((p) => p.marker + p.seriesName + ' '\n        + perHour(p.value[1])).join('<br/>') }, TIP);\n  } else if (b.id === 'stats') {\n    const half = CH / 2;\n    const fit = { width: Math.max(10, cw - 32), overflow: 'truncate', ellipsis: '…' };\n    const share = edgeTotal ? e5 / edgeTotal : null;\n    const colour = share === null ? '#8D99AB' : share >= 0.05 ? '#FB7185' : share >= 0.01 ? '#FBBF24' : '#E7ECF3';\n    graphic.push(label(x + 16, 12, '5xx at the edge', cw - 32));\n    graphic.push({ type: 'text', left: x + 16, top: 28, silent: true,\n      style: { text: '{v|' + (share === null ? '—' : pct(share)) + '}' + (share === null ? '' : '{u| %}'),\n        rich: { v: { fill: colour, font: '600 26px ' + MONO }, u: { fill: '#8D99AB', font: '13px ' + MONO, padding: [10, 0, 0, 2] } } } });\n    graphic.push({ type: 'text', left: x + 16, top: 64, silent: true,\n      style: Object.assign({ text: edgeTotal ? count(e5) + ' of ' + count(edgeTotal) : 'no requests', fill: '#8D99AB', font: '12px ' + MONO }, fit) });\n    graphic.push({ type: 'line', silent: true, shape: { x1: x + 16, y1: half, x2: x + cw - 16, y2: half }, style: { stroke: '#1F2733', lineWidth: 1 } });\n    graphic.push(label(x + 16, half + 12, 'WAF blocked', cw - 32));\n    graphic.push({ type: 'text', left: x + 16, top: half + 28, silent: true,\n      style: { text: '{v|' + count(stopped.length) + '}', rich: { v: { fill: '#E7ECF3', font: '600 26px ' + MONO } } } });\n    graphic.push({ type: 'text', left: x + 16, top: half + 64, silent: true,\n      style: Object.assign({ text: mostly ? 'mostly ' + source(mostly[0]) : events.length ? count(events.length) + ' logged, none blocked' : 'none in ' + span,\n        fill: '#8D99AB', font: '12px ' + MONO }, fit) });\n  } else if (b.id === 'countries') {\n    graphic.push(label(x + 16, 12, 'Top countries', cw - 32));\n    if (!top.length) {\n      graphic.push({ type: 'text', left: x + 16, top: 40, silent: true, style: { text: 'no requests in ' + span, fill: '#8D99AB', font: '12px ' + MONO } });\n    }\n    const rowH = Math.min(34, (CH - 44) / Math.max(top.length, 1));\n    const bw = cw - 32;\n    top.forEach(([code, n], i) => {\n      const y = 38 + i * rowH;\n      const share = edgeTotal ? n / edgeTotal : 0;\n      graphic.push({ type: 'text', left: x + 16, top: y, silent: true,\n        style: { text: country(code), fill: '#C9D2DE', font: '12px Inter, sans-serif', width: bw - 56, overflow: 'truncate', ellipsis: '…' } });\n      graphic.push({ type: 'text', right: CW - x - cw + 16, top: y, silent: true,\n        style: { text: Math.round(share * 100) + ' %', fill: '#8D99AB', font: '12px ' + MONO, align: 'right' } });\n      graphic.push({ type: 'rect', left: x + 16, top: y + 17, silent: true, shape: { width: bw, height: 5, r: 3 }, style: { fill: 'rgba(96,165,250,.14)' } });\n      graphic.push({ type: 'rect', left: x + 16, top: y + 17, shape: { width: Math.max(3, share * bw), height: 5, r: 3 }, style: { fill: '#60A5FA' },\n        info: country(code) + ': ' + count(n) });\n    });\n  } else if (b.id === 'tunnels') {\n    graphic.push(label(x + 16, 12, 'Tunnels', cw - 32));\n    const rowH = (CH - 40) / tunnels.length;\n    tunnels.forEach((t, i) => {\n      const y = 36 + i * rowH;\n      const worst = t.list.some((c) => c.state === 'down') ? 'down' : t.list.some((c) => c.state === 'short') ? 'short' : 'ok';\n      const word = worst === 'ok' ? '● up' : worst === 'short' ? '▲ short' : '✕ down';\n      graphic.push({ type: 'text', left: x + 16, top: y + 4, silent: true, style: { text: t.name, fill: '#E7ECF3', font: '600 13px Inter, sans-serif' } });\n      graphic.push({ type: 'text', right: CW - x - cw + 16, top: y + 4, silent: true,\n        style: { text: word, fill: STATE[worst], font: '12px ' + MONO, align: 'right' } });\n      const colW = (cw - 32) / Math.max(2, t.list.length);\n      t.list.forEach((c, j) => {\n        const cx = x + 16 + j * colW;\n        graphic.push({ type: 'circle', left: cx, top: y + 28, shape: { r: 6 }, style: { fill: STATE[c.state] },\n          info: c.host + ': ' + c.ha + ' of 4 connections' + (c.up === 0 ? ', target down' : '') });\n        graphic.push({ type: 'text', left: cx + 18, top: y + 26, silent: true,\n          style: { text: String(c.host).replace(/^vm-/, ''), fill: '#C9D2DE', font: '12px ' + MONO, width: colW - 22, overflow: 'truncate', ellipsis: '…' } });\n        graphic.push({ type: 'text', left: cx + 18, top: y + 42, silent: true,\n          style: { text: c.up === 0 ? 'target down' : c.ha + ' of 4', fill: STATE[c.state], font: '11px ' + MONO, width: colW - 22, overflow: 'truncate', ellipsis: '…' } });\n      });\n    });\n  }\n  x += cw + gap;\n});\nreturn { backgroundColor: 'transparent', animation: false, graphic, grid, xAxis, yAxis, series, tooltip };\n"
+      },
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Mixed --"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "cloudflare"
+          },
+          "refId": "E",
+          "type": "graphql",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "",
+          "url_options": {
+            "method": "POST",
+            "body_type": "graphql",
+            "body_graphql_query": "query { viewer { zones(filter: {zoneTag_in: [\"068d993d1c3f23e994211457c96476f8\", \"bf3d282f1920e41701c27cc5be3da43e\", \"60a42fad95616837c4f586ccd932e6ba\", \"6fd27750f9a3be154e18dba1774ddf00\", \"2e5c4ce565da7cd5ba3e9d3588fe576c\", \"35b6a78fcef59563a54825ff503f0a27\"]}) {\n  zoneTag\n  all: httpRequestsAdaptiveGroups(limit: 1000, filter: {datetime_geq: \"${__timeFrom:date:iso}\", datetime_lt: \"${__timeTo:date:iso}\"}, orderBy: [datetimeHour_ASC]) { count dimensions { datetimeHour } }\n  e5: httpRequestsAdaptiveGroups(limit: 1, filter: {datetime_geq: \"${__timeFrom:date:iso}\", datetime_lt: \"${__timeTo:date:iso}\", edgeResponseStatus_geq: 500}) { count }\n  countries: httpRequestsAdaptiveGroups(limit: 10, filter: {datetime_geq: \"${__timeFrom:date:iso}\", datetime_lt: \"${__timeTo:date:iso}\"}, orderBy: [count_DESC]) { count dimensions { clientCountryName } }\n  fw: firewallEventsAdaptive(limit: 2000, filter: {datetime_geq: \"${__timeFrom:date:iso}\", datetime_lt: \"${__timeTo:date:iso}\"}) { action source }\n} } }",
+            "data": ""
+          },
+          "root_selector": "($names := {\"068d993d1c3f23e994211457c96476f8\": \"0xc0.cc\", \"bf3d282f1920e41701c27cc5be3da43e\": \"artistlabco.com\", \"60a42fad95616837c4f586ccd932e6ba\": \"asrtistlabco.com\", \"6fd27750f9a3be154e18dba1774ddf00\": \"matchmark.dev\", \"2e5c4ce565da7cd5ba3e9d3588fe576c\": \"offby1.cc\", \"35b6a78fcef59563a54825ff503f0a27\": \"sergioaten.cloud\"}; $append($append($append($append([{\"q\": \"ok\"}], data.viewer.zones.($z := $lookup($names, zoneTag); all.{\"q\": \"all\", \"zone\": $z, \"t\": dimensions.datetimeHour, \"n\": count})), data.viewer.zones.($z := $lookup($names, zoneTag); e5.{\"q\": \"e5\", \"zone\": $z, \"n\": count})), data.viewer.zones.($z := $lookup($names, zoneTag); countries.{\"q\": \"countries\", \"zone\": $z, \"k\": dimensions.clientCountryName, \"n\": count})), data.viewer.zones.($z := $lookup($names, zoneTag); fw.{\"q\": \"fw\", \"zone\": $z, \"k\": action, \"s\": source, \"n\": 1})))",
+          "columns": [
+            {
+              "selector": "q",
+              "text": "q",
+              "type": "string"
+            },
+            {
+              "selector": "zone",
+              "text": "zone",
+              "type": "string"
+            },
+            {
+              "selector": "t",
+              "text": "t",
+              "type": "string"
+            },
+            {
+              "selector": "k",
+              "text": "k",
+              "type": "string"
+            },
+            {
+              "selector": "s",
+              "text": "s",
+              "type": "string"
+            },
+            {
+              "selector": "r",
+              "text": "r",
+              "type": "string"
+            },
+            {
+              "selector": "n",
+              "text": "n",
+              "type": "number"
+            }
+          ],
+          "filters": []
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "O",
+          "expr": "sum(increase(traefik_entrypoint_requests_total{entrypoint=\"websecure\"}[1h]))",
+          "editorMode": "code",
+          "instant": false,
+          "range": true,
+          "legendFormat": "__auto",
+          "interval": "1h"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "OT",
+          "expr": "sum(increase(traefik_entrypoint_requests_total{entrypoint=\"websecure\"}[$__range]))",
+          "editorMode": "code",
+          "instant": true,
+          "range": false,
+          "legendFormat": "__auto"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "HA",
+          "expr": "max by (tunnel, host) (cloudflared_tunnel_ha_connections{job=\"cloudflared\"})",
+          "editorMode": "code",
+          "instant": true,
+          "range": false,
+          "legendFormat": "__auto"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "UP",
+          "expr": "max by (tunnel, host) (up{job=\"cloudflared\"})",
+          "editorMode": "code",
+          "instant": true,
+          "range": false,
+          "legendFormat": "__auto"
+        }
+      ],
+      "links": [
+        {
+          "title": "Cloudflare: the edge, zone by zone",
+          "url": "/d/cloudflare",
+          "targetBlank": false
+        }
+      ]
+    },
+    {
       "type": "table",
       "title": "Public sites · golden signals",
       "description": "Every backend behind the public tunnel (websecure) that served requests in the range: requests, the share that were 5xx, p95 latency (— under 20 requests), and requests over time. The name opens its App board.",
@@ -4305,7 +4528,7 @@
         "h": 9,
         "w": 16,
         "x": 0,
-        "y": 15
+        "y": 22
       },
       "maxDataPoints": 40
     },
@@ -4619,7 +4842,7 @@
         "h": 9,
         "w": 8,
         "x": 16,
-        "y": 15
+        "y": 22
       }
     },
     {
@@ -4636,7 +4859,7 @@
         "h": 5,
         "w": 16,
         "x": 0,
-        "y": 24
+        "y": 31
       },
       "maxDataPoints": 48,
       "targets": [
@@ -4887,7 +5110,7 @@
         "h": 7,
         "w": 16,
         "x": 0,
-        "y": 29
+        "y": 36
       },
       "targets": [
         {
@@ -5151,7 +5374,7 @@
         "h": 12,
         "w": 8,
         "x": 16,
-        "y": 24
+        "y": 31
       }
     },
     {
@@ -5168,7 +5391,7 @@
         "h": 8,
         "w": 16,
         "x": 0,
-        "y": 36
+        "y": 43
       },
       "interval": "1m",
       "targets": [
@@ -5420,7 +5643,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 36
+        "y": 43
       },
       "links": [
         {
@@ -5431,14 +5654,40 @@
       ]
     }
   ],
-  "refresh": "1m",
+  "refresh": "5m",
   "schemaVersion": 41,
   "tags": [
     "0xc0",
     "estate"
   ],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "name": "edge_since",
+        "label": "Edge since",
+        "description": "The first day of Sites up's 30 days, in epoch milliseconds: Infinity's macros take no offset.",
+        "type": "query",
+        "hide": 2,
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "query_result(floor(vector(time()) / 86400) * 86400000 - 29 * 86400000)",
+        "query": {
+          "qryType": 5,
+          "query": "query_result(floor(vector(time()) / 86400) * 86400000 - 29 * 86400000)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "regex": "/\\} (\\d+) /",
+        "refresh": 2,
+        "current": {},
+        "options": [],
+        "includeAll": false,
+        "multi": false,
+        "skipUrlSync": false,
+        "sort": 0
+      }
+    ]
   },
   "time": {
     "from": "now-6h",
