@@ -19,10 +19,10 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "enable": true,
+        "enable": false,
         "hide": false,
         "iconColor": "#7DD3FC",
-        "expr": "sum by (name) (increase(argocd_app_sync_total{phase=\"Succeeded\"}[2m])) > 0",
+        "expr": "sum by (name) (argocd_app_sync_total{phase=\"Succeeded\"}) - sum by (name) (argocd_app_sync_total{phase=\"Succeeded\"} offset 1m) > 0",
         "step": "60s",
         "titleFormat": "sync {{name}}",
         "textFormat": "Argo CD synced {{name}}",
@@ -35,15 +35,15 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "enable": true,
+        "enable": false,
         "hide": false,
         "iconColor": "#34D399",
-        "expr": "label_replace(count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}) unless count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"} offset 10m), \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")",
+        "expr": "label_replace((min_over_time(timestamp(count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}))[15m:1m]) * 1000) and (count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}) unless count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"} offset 10m)), \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")",
         "step": "60s",
         "titleFormat": "{{namespace}} {{version}}",
         "textFormat": "{{image_spec}}",
         "tagKeys": "namespace,version",
-        "useValueForTime": false
+        "useValueForTime": true
       }
     ]
   },
@@ -132,7 +132,7 @@
     {
       "type": "marcusolsson-dynamictext-panel",
       "title": "",
-      "description": "Four checks, 25 points each: every node Ready (kube-state-metrics), every Argo CD application Synced and Healthy (argocd_app_info), Vault unsealed (vault_core_unsealed), and no alert firing (Grafana's rules, grafana_alerting_alerts, plus Prometheus's, ALERTS).",
+      "description": "25 points each: every node Ready, every Argo CD application synced and healthy, Vault unsealed, no alert firing.",
       "transparent": true,
       "targets": [
         {
@@ -316,10 +316,10 @@
           "styles",
           "helpers"
         ],
-        "content": "<div class=\"cr\">\n  <div class=\"ring\">\n    <svg viewBox=\"0 0 168 168\" role=\"img\" aria-label=\"Estate health {{score}} of 100\">\n      <circle cx=\"84\" cy=\"84\" r=\"70\" pathLength=\"100\" class=\"track\"/>\n      <circle cx=\"84\" cy=\"84\" r=\"70\" pathLength=\"100\" class=\"arc {{#if score_ok}}ok{{else if score_warn}}warn{{else}}crit{{/if}}\"\n        stroke-dasharray=\"{{score}} 100\" transform=\"rotate(-90 84 84)\"/>\n    </svg>\n    <div class=\"mid\">\n      <span class=\"num\">{{score}}</span>\n      <span class=\"lbl {{#if score_ok}}ok{{else if score_warn}}warn{{else}}crit{{/if}}\">{{#if score_ok}}healthy{{else if score_warn}}degraded{{else}}critical{{/if}}</span>\n    </div>\n  </div>\n  <div class=\"checks\">\n    <div class=\"lbl\">Estate health</div>\n    <div class=\"check\"><span class=\"dot {{#if nodes_ok}}ok{{else}}crit{{/if}}\"></span><span class=\"name\">Nodes ready</span><span class=\"num\">{{nodes_ready}} / {{nodes_total}}</span><span class=\"word\">{{#if nodes_ok}}ok{{else}}down{{/if}}</span></div>\n    <div class=\"check\"><span class=\"dot {{#if apps_all}}ok{{else}}warn{{/if}}\"></span><span class=\"name\">Argo CD synced and healthy</span><span class=\"num\">{{apps_ok}} / {{apps_total}}</span><span class=\"word\">{{#if apps_all}}ok{{else}}drift{{/if}}</span></div>\n    <div class=\"check\"><span class=\"dot {{#if vault}}ok{{else}}crit{{/if}}\"></span><span class=\"name\">Vault</span><span class=\"num\">{{#if vault}}unsealed{{else}}sealed{{/if}}</span><span class=\"word\">{{#if vault}}ok{{else}}act{{/if}}</span></div>\n    <div class=\"check\"><span class=\"dot {{#if alerts_ok}}ok{{else}}crit{{/if}}\"></span><span class=\"name\">Alerts firing</span><span class=\"num\">{{alerts}}</span><span class=\"word\">{{#if alerts_ok}}none{{else}}firing{{/if}}</span></div>\n  </div>\n</div>",
+        "content": "<div class=\"cr\">\n  <div class=\"ring s{{score}} {{#if score_ok}}ok{{else if score_warn}}warn{{else}}crit{{/if}}\">\n    <div class=\"arc\"></div>\n    <div class=\"mid\">\n      <span class=\"num\">{{score}}</span>\n      <span class=\"lbl {{#if score_ok}}ok{{else if score_warn}}warn{{else}}crit{{/if}}\">{{#if score_ok}}healthy{{else if score_warn}}degraded{{else}}critical{{/if}}</span>\n    </div>\n  </div>\n  <div class=\"checks\">\n    <div class=\"lbl\">Estate health</div>\n    <div class=\"check\"><span class=\"dot {{#if nodes_ok}}ok{{else}}crit{{/if}}\"></span><span class=\"name\">Nodes ready</span><span class=\"num\">{{nodes_ready}} / {{nodes_total}}</span></div>\n    <div class=\"check\"><span class=\"dot {{#if apps_all}}ok{{else}}warn{{/if}}\"></span><span class=\"name\">Argo CD synced</span><span class=\"num\">{{apps_ok}} / {{apps_total}}</span></div>\n    <div class=\"check\"><span class=\"dot {{#if vault}}ok{{else}}crit{{/if}}\"></span><span class=\"name\">Vault</span><span class=\"num\">{{#if vault}}unsealed{{else}}sealed{{/if}}</span></div>\n    <div class=\"check\"><span class=\"dot {{#if alerts_ok}}ok{{else}}crit{{/if}}\"></span><span class=\"name\">Alerts firing</span><span class=\"num\">{{alerts}}</span></div>\n  </div>\n</div>",
         "defaultContent": "<div class=\"cr\"><div class=\"checks\"><div class=\"lbl\">Estate health</div>\n<div class=\"name\">No data: Prometheus answered nothing for the checks in this range.</div></div></div>",
         "helpers": "",
-        "styles": "\n.cr { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; height: 100%;\n  font-family: Inter, sans-serif; color: #E7ECF3; }\n.lbl { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #8D99AB; font-weight: 600; }\n.num { font-family: 'Roboto Mono', 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }\n.ring { position: relative; width: 168px; height: 168px; flex: none; }\n.ring svg { width: 168px; height: 168px; }\n.track { fill: none; stroke: #1A222D; stroke-width: 12; }\n.arc { fill: none; stroke-width: 12; stroke-linecap: round; }\n.arc.ok { stroke: #34D399; } .arc.warn { stroke: #FBBF24; } .arc.crit { stroke: #FB7185; }\n.mid { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }\n.mid .num { font-size: 44px; font-weight: 600; line-height: 1; }\n.mid .lbl { margin-top: 6px; }\n.lbl.ok { color: #34D399; } .lbl.warn { color: #FBBF24; } .lbl.crit { color: #FB7185; }\n.checks { flex: 1 1 200px; display: flex; flex-direction: column; gap: 12px; }\n.check { display: flex; align-items: center; gap: 10px; font-size: 14px; }\n.check .name { flex: 1; color: #C9D2DE; }\n.check .word { font-size: 11px; color: #8D99AB; width: 44px; text-align: right; }\n.dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }\n.dot.ok { background: #34D399; } .dot.warn { background: #FBBF24; } .dot.crit { background: #FB7185; }\n",
+        "styles": "\n.cr { display: flex; align-items: center; gap: 20px; height: 100%; padding: 0 4px;\n  font-family: Inter, sans-serif; color: #E7ECF3; }\n.lbl { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #8D99AB; font-weight: 600; }\n.num { font-family: 'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }\n.ring { position: relative; width: 132px; height: 132px; flex: none; --p: 0; --c: #FB7185; }\n.ring.s25 { --p: 25; } .ring.s50 { --p: 50; } .ring.s75 { --p: 75; } .ring.s100 { --p: 100; }\n.ring.ok { --c: #34D399; } .ring.warn { --c: #FBBF24; } .ring.crit { --c: #FB7185; }\n.arc { position: absolute; inset: 0; border-radius: 50%;\n  background: conic-gradient(var(--c) calc(var(--p) * 1%), #1A222D 0);\n  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 11px), #000 calc(100% - 10px));\n  mask: radial-gradient(farthest-side, transparent calc(100% - 11px), #000 calc(100% - 10px)); }\n.mid { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }\n.mid .num { font-size: 38px; font-weight: 600; line-height: 1; }\n.mid .lbl { margin-top: 6px; }\n.lbl.ok { color: #34D399; } .lbl.warn { color: #FBBF24; } .lbl.crit { color: #FB7185; }\n.checks { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 9px; }\n.check { display: flex; align-items: center; gap: 10px; font-size: 13px; }\n.check .name { flex: 1; color: #C9D2DE; white-space: nowrap; }\n.check .num { color: #E7ECF3; white-space: nowrap; }\n.dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }\n.dot.ok { background: #34D399; } .dot.warn { background: #FBBF24; } .dot.crit { background: #FB7185; }\n",
         "wrap": false,
         "contentPartials": [],
         "externalStyles": [],
@@ -360,39 +360,132 @@
       ],
       "id": 1,
       "gridPos": {
-        "h": 10,
-        "w": 9,
+        "h": 5,
+        "w": 6,
         "x": 0,
         "y": 0
       }
     },
     {
-      "type": "stat",
-      "title": "Requests / s",
-      "description": "Every request Traefik's entrypoints took (websecure and internal). The delta is the change across the range.",
+      "type": "volkovlabs-echarts-panel",
+      "title": "",
+      "description": "Public is the websecure entrypoint, the public tunnel; WARP's tools are counted apart, under Behind WARP. Totals over the range. p95 needs 20 requests in the range, or it reads —. Sites up: the share of offby1.cc's and artistlabco.com's requests that were not 5xx, over 30 days.",
       "transparent": true,
+      "id": 2,
+      "gridPos": {
+        "h": 5,
+        "w": 18,
+        "x": 6,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "maxDataPoints": 48,
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(traefik_entrypoint_requests_total[$__rate_interval]))",
-          "legendFormat": "__auto",
-          "range": true,
-          "instant": false,
+          "refId": "A",
+          "expr": "sum(increase(traefik_entrypoint_requests_total{entrypoint=\"websecure\"}[$__range]))",
           "editorMode": "code",
-          "refId": "A"
+          "range": false,
+          "instant": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "B",
+          "expr": "sum(increase(traefik_entrypoint_requests_total{entrypoint=\"websecure\"}[$__interval]))",
+          "editorMode": "code",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "C",
+          "expr": "sum(increase(traefik_entrypoint_requests_total{entrypoint=\"websecure\", code=~\"5..\"}[$__range])) or vector(0)",
+          "editorMode": "code",
+          "range": false,
+          "instant": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "D",
+          "expr": "histogram_quantile(0.95, sum by (le) (increase(traefik_entrypoint_request_duration_seconds_bucket{entrypoint=\"websecure\"}[$__range]))) and on () (sum(increase(traefik_entrypoint_request_duration_seconds_count{entrypoint=\"websecure\"}[$__range])) >= 20)",
+          "editorMode": "code",
+          "range": false,
+          "instant": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "E",
+          "expr": "1 - (sum(increase(traefik_service_requests_total{exported_service=~\"httproute-(offby1-cc|artistlabco-com)-.*\", exported_service!~\".*otel-gateway.*\", code=~\"5..\"}[30d])) or vector(0)) / sum(increase(traefik_service_requests_total{exported_service=~\"httproute-(offby1-cc|artistlabco-com)-.*\", exported_service!~\".*otel-gateway.*\"}[30d]))",
+          "editorMode": "code",
+          "range": false,
+          "instant": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "F",
+          "expr": "sum(kube_pod_status_phase{phase=~\"Pending|Failed|Unknown\"})",
+          "editorMode": "code",
+          "range": false,
+          "instant": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "G",
+          "expr": "count(kube_pod_info)",
+          "editorMode": "code",
+          "range": false,
+          "instant": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "H",
+          "expr": "count(max by (volume) (longhorn_volume_robustness{state=~\"degraded|faulted\"}) == 1) or vector(0)",
+          "editorMode": "code",
+          "range": false,
+          "instant": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "I",
+          "expr": "count(max by (volume) (longhorn_volume_robustness))",
+          "editorMode": "code",
+          "range": false,
+          "instant": true
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "reqps",
-          "decimals": 2,
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#60A5FA"
-          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -406,446 +499,34 @@
         "overrides": []
       },
       "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
         },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "orientation": "auto",
-        "showPercentChange": true,
-        "percentChangeColorMode": "standard",
-        "text": {
-          "titleSize": 11,
-          "valueSize": 34
-        }
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "id": 2,
-      "gridPos": {
-        "h": 5,
-        "w": 5,
-        "x": 9,
-        "y": 0
-      }
-    },
-    {
-      "type": "stat",
-      "title": "Error rate",
-      "description": "5xx responses as a share of every request at the entrypoints.",
-      "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum(rate(traefik_entrypoint_requests_total{code=~\"5..\"}[$__rate_interval])) / sum(rate(traefik_entrypoint_requests_total[$__rate_interval]))",
-          "legendFormat": "__auto",
-          "range": true,
-          "instant": false,
-          "editorMode": "code",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percentunit",
-          "decimals": 2,
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#34D399",
-                "value": null
-              },
-              {
-                "color": "#FBBF24",
-                "value": 0.01
-              },
-              {
-                "color": "#FB7185",
-                "value": 0.05
-              }
-            ]
-          }
+        "editor": {
+          "format": "auto"
         },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
+        "editorMode": "code",
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst cards = [\n{ label: 'Public requests', fmt: 'count', value: () => last('A'), spark: 'B', sparkColour: '#60A5FA',\n    sub: (v) => (v === null ? 'none · ' + span : Math.round(v / hours).toLocaleString('en-US') + ' per hour · ' + span) },\n  { label: 'Public errors', fmt: 'pct', value: () => { const a = last('A'); return a ? (last('C') || 0) / a : null; },\n    sub: (v) => (v === null ? 'no requests' : Math.round(last('C') || 0).toLocaleString('en-US') + ' of ' + Math.round(last('A')).toLocaleString('en-US') + ' were 5xx'),\n    colour: (v) => (v >= 0.05 ? '#FB7185' : v >= 0.01 ? '#FBBF24' : '#E7ECF3') },\n  { label: 'Public p95', fmt: 'dur', value: () => last('D'),\n    sub: (v) => (v === null ? 'fewer than 20 requests' : 'over ' + Math.round(last('A') || 0).toLocaleString('en-US') + ' requests'),\n    colour: (v) => (v >= 1 ? '#FB7185' : v >= 0.5 ? '#FBBF24' : '#E7ECF3') },\n  { label: 'Sites up · 30 d', fmt: 'pct', value: () => last('E'), sub: () => 'offby1.cc · artistlabco.com',\n    colour: (v) => (v < 0.99 ? '#FB7185' : v < 0.999 ? '#FBBF24' : '#34D399') },\n  { label: 'Pods not running', fmt: 'count', value: () => last('F'),\n    sub: () => (last('G') === null ? '' : 'of ' + Math.round(last('G')).toLocaleString('en-US') + ' pods'),\n    colour: (v) => (v > 0 ? '#FBBF24' : '#E7ECF3') },\n  { label: 'Volumes degraded', fmt: 'count', value: () => last('H'),\n    sub: () => (last('I') === null ? '' : 'of ' + Math.round(last('I')) + ' volumes · 2 replicas each'),\n    colour: (v) => (v > 0 ? '#FB7185' : '#E7ECF3') },\n];\nconst frames = context.panel.data.series;\nconst byRef = (id) => frames.filter((f) => f.refId === id);\nconst num = (x) => (x === null || x === undefined || !Number.isFinite(Number(x)) ? null : Number(x));\nconst last = (id) => {\n  for (const f of byRef(id)) {\n    const v = f.fields.find((x) => x.type === 'number');\n    if (!v) continue;\n    for (let i = v.values.length - 1; i >= 0; i--) { const n = num(v.values[i]); if (n !== null) return n; }\n  }\n  return null;\n};\nconst points = (id) => {\n  const f = byRef(id)[0];\n  if (!f) return [];\n  const t = f.fields.find((x) => x.type === 'time');\n  const v = f.fields.find((x) => x.type === 'number');\n  if (!t || !v) return [];\n  return t.values.map((x, i) => [x, num(v.values[i])]);\n};\nconst span = (() => {\n  const r = context.panel.data.timeRange;\n  if (!r) return '';\n  const m = (r.to.valueOf() - r.from.valueOf()) / 60000;\n  if (m < 90) return Math.round(m) + ' min';\n  if (m < 48 * 60) return Math.round(m / 60) + ' h';\n  return Math.round(m / 1440) + ' d';\n})();\nconst hours = (() => {\n  const r = context.panel.data.timeRange;\n  return r ? (r.to.valueOf() - r.from.valueOf()) / 3600000 : 1;\n})();\nconst fmt = {\n  count: (v) => [Math.round(v).toLocaleString('en-US'), ''],\n  pct: (v) => [(v * 100).toFixed(v * 100 >= 99.95 || v === 0 ? 2 : v * 100 < 10 ? 2 : 1), '%'],\n  dur: (v) => (v < 1 ? [String(Math.round(v * 1000)), 'ms'] : [v.toFixed(v < 10 ? 2 : 1), 's']),\n  num2: (v) => [v.toFixed(2), ''],\n  ms: (v) => (v < 1000 ? [String(Math.round(v)), 'ms'] : [(v / 1000).toFixed(2), 's']),\n  bytes: (v) => {\n    const u = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];\n    let i = 0;\n    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }\n    return [v.toFixed(v < 10 ? 2 : 1), u[i]];\n  },\n};\nconst n = cards.length;\nconst chart = context.panel.chart;\nconst W = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst H = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\nconst gap = 12;\nconst cw = W ? (W - gap * (n - 1)) / n : 0;\nconst graphic = [];\nconst grid = [];\nconst xAxis = [];\nconst yAxis = [];\nconst series = [];\ncards.forEach((c, i) => {\n  const x = W ? i * (cw + gap) : 0;\n  const at = (dx) => (W ? x + dx : (i * 100) / n + 1.2 + '%');\n  const v = c.value();\n  const shown = v === null ? ['—', ''] : c.show ? c.show(v) : fmt[c.fmt](v);\n  const unit = v === null ? '' : c.unit !== undefined ? c.unit : shown[1];\n  const colour = v === null ? '#8D99AB' : c.colour ? c.colour(v) : '#E7ECF3';\n  if (W && H) graphic.push({ type: 'rect', left: x, top: 0, z: -1, silent: true,\n    shape: { width: cw, height: H - 1, r: 14 }, style: { fill: '#10151C', stroke: '#1F2733', lineWidth: 1 } });\n  graphic.push({ type: 'text', left: at(16), top: 14, silent: true,\n    style: { text: c.label.toUpperCase(), fill: '#8D99AB', font: '600 11px Inter, sans-serif' } });\n  graphic.push({ type: 'text', left: at(16), top: 34, silent: true,\n    style: { text: '{v|' + shown[0] + '}' + (unit ? '{u| ' + unit + '}' : ''),\n      rich: { v: { fill: colour, font: '600 30px ' + MONO },\n        u: { fill: '#8D99AB', font: '13px ' + MONO, padding: [12, 0, 0, 4] } } } });\n  const sub = c.sub ? c.sub(v) : '';\n  if (sub) graphic.push({ type: 'text', left: at(16), top: 76, silent: true,\n    style: { text: sub, fill: '#8D99AB', font: '12px ' + MONO } });\n  if (c.spark) {\n    const data = points(c.spark);\n    if (data.some((p) => p[1] !== null)) {\n      const g = grid.length;\n      grid.push(W ? { left: x + 10, width: cw - 20, bottom: 6, height: 30 }\n        : { left: (i * 100) / n + 1.2 + '%', width: 100 / n - 2.4 + '%', bottom: 6, height: 30 });\n      xAxis.push({ type: 'time', gridIndex: g, show: false });\n      yAxis.push({ type: 'value', gridIndex: g, show: false, scale: false, min: 0 });\n      series.push({ type: 'line', xAxisIndex: g, yAxisIndex: g, data, showSymbol: false, silent: true,\n        connectNulls: false, lineStyle: { width: 1.5, color: c.sparkColour || '#60A5FA' } });\n    }\n  }\n});\nreturn { backgroundColor: 'transparent', animation: false, graphic, grid, xAxis, yAxis, series };",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
         },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "orientation": "auto",
-        "showPercentChange": true,
-        "percentChangeColorMode": "inverted",
-        "text": {
-          "titleSize": 11,
-          "valueSize": 34
-        }
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "id": 3,
-      "gridPos": {
-        "h": 5,
-        "w": 5,
-        "x": 14,
-        "y": 0
-      }
-    },
-    {
-      "type": "stat",
-      "title": "p95 latency",
-      "description": "95th percentile of the time Traefik's services took to answer.",
-      "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(traefik_service_request_duration_seconds_bucket[$__rate_interval])))",
-          "legendFormat": "__auto",
-          "range": true,
-          "instant": false,
-          "editorMode": "code",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "decimals": 3,
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#F59E0B",
-                "value": null
-              },
-              {
-                "color": "#FBBF24",
-                "value": 0.5
-              },
-              {
-                "color": "#FB7185",
-                "value": 1
-              }
-            ]
-          }
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
         },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
         },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "orientation": "auto",
-        "showPercentChange": true,
-        "percentChangeColorMode": "inverted",
-        "text": {
-          "titleSize": 11,
-          "valueSize": 34
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
         }
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "id": 4,
-      "gridPos": {
-        "h": 5,
-        "w": 5,
-        "x": 19,
-        "y": 0
-      }
-    },
-    {
-      "type": "stat",
-      "title": "Sites up · 30 d",
-      "description": "The public sites (offby1.cc, artistlabco.com): requests that did not end in a 5xx over the last 30 days, at Traefik.",
-      "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "1 - (sum(increase(traefik_service_requests_total{exported_service=~\"httproute-(offby1-cc|artistlabco-com)-.*\", exported_service!~\".*otel-gateway.*\", code=~\"5..\"}[30d])) or vector(0)) / sum(increase(traefik_service_requests_total{exported_service=~\"httproute-(offby1-cc|artistlabco-com)-.*\", exported_service!~\".*otel-gateway.*\"}[30d]))",
-          "legendFormat": "__auto",
-          "range": true,
-          "instant": false,
-          "editorMode": "code",
-          "interval": "1h",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percentunit",
-          "decimals": 3,
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#FB7185",
-                "value": null
-              },
-              {
-                "color": "#FBBF24",
-                "value": 0.995
-              },
-              {
-                "color": "#34D399",
-                "value": 0.999
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "orientation": "auto",
-        "showPercentChange": false,
-        "percentChangeColorMode": "standard",
-        "text": {
-          "titleSize": 11,
-          "valueSize": 34
-        }
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "maxDataPoints": 48,
-      "id": 5,
-      "gridPos": {
-        "h": 5,
-        "w": 5,
-        "x": 9,
-        "y": 5
-      }
-    },
-    {
-      "type": "stat",
-      "title": "Pods not running",
-      "description": "Pods Pending, Failed or Unknown (kube-state-metrics). 0 is a real count.",
-      "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum(kube_pod_status_phase{phase=~\"Pending|Failed|Unknown\"})",
-          "legendFormat": "__auto",
-          "range": true,
-          "instant": false,
-          "editorMode": "code",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#34D399",
-                "value": null
-              },
-              {
-                "color": "#FBBF24",
-                "value": 1
-              },
-              {
-                "color": "#FB7185",
-                "value": 3
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "orientation": "auto",
-        "showPercentChange": true,
-        "percentChangeColorMode": "inverted",
-        "text": {
-          "titleSize": 11,
-          "valueSize": 34
-        }
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "id": 6,
-      "gridPos": {
-        "h": 5,
-        "w": 5,
-        "x": 14,
-        "y": 5
-      }
-    },
-    {
-      "type": "stat",
-      "title": "Volumes degraded",
-      "description": "Longhorn volumes degraded or faulted, each counted once. A detached volume reports unknown and is not counted. 0 is a real count.",
-      "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "count(max by (volume) (longhorn_volume_robustness{state=~\"degraded|faulted\"}) == 1) or vector(0)",
-          "legendFormat": "__auto",
-          "range": true,
-          "instant": false,
-          "editorMode": "code",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#34D399",
-                "value": null
-              },
-              {
-                "color": "#FBBF24",
-                "value": 1
-              },
-              {
-                "color": "#FB7185",
-                "value": 3
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "orientation": "auto",
-        "showPercentChange": true,
-        "percentChangeColorMode": "inverted",
-        "text": {
-          "titleSize": 11,
-          "valueSize": 34
-        }
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "id": 7,
-      "gridPos": {
-        "h": 5,
-        "w": 5,
-        "x": 19,
-        "y": 5
-      }
-    },
-    {
-      "type": "row",
-      "title": "Estate and traffic",
-      "collapsed": false,
-      "panels": [],
-      "id": 8,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 10
       }
     },
     {
@@ -1100,14 +781,14 @@
                 "radius": 14
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 0,
+                "left": 0.0,
+                "right": 27.696,
                 "top": 0,
-                "width": 590,
-                "height": 410,
+                "height": 392,
                 "rotation": 0
               },
               "connections": []
@@ -1140,13 +821,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 14,
+                "left": 1.716,
+                "right": 73.775,
                 "top": 8,
-                "width": 200,
                 "height": 22,
                 "rotation": 0
               },
@@ -1180,13 +861,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 380,
+                "left": 46.569,
+                "right": 29.412,
                 "top": 8,
-                "width": 196,
                 "height": 22,
                 "rotation": 0
               },
@@ -1220,13 +901,13 @@
                 "radius": 12
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 12,
+                "left": 1.471,
+                "right": 29.167,
                 "top": 38,
-                "width": 566,
                 "height": 122,
                 "rotation": 0
               },
@@ -1260,13 +941,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 24,
+                "left": 2.941,
+                "right": 72.549,
                 "top": 42,
-                "width": 200,
                 "height": 20,
                 "rotation": 0
               },
@@ -1300,13 +981,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 330,
+                "left": 40.441,
+                "right": 30.637,
                 "top": 42,
-                "width": 236,
                 "height": 20,
                 "rotation": 0
               },
@@ -1340,13 +1021,13 @@
                 "radius": 10
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 24,
+                "left": 2.941,
+                "right": 75.49,
                 "top": 66,
-                "width": 176,
                 "height": 84,
                 "rotation": 0
               },
@@ -1380,13 +1061,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 34,
+                "left": 4.167,
+                "right": 85.294,
                 "top": 72,
-                "width": 86,
                 "height": 18,
                 "rotation": 0
               },
@@ -1422,13 +1103,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 118,
+                "left": 14.461,
+                "right": 76.716,
                 "top": 72,
-                "width": 72,
                 "height": 18,
                 "rotation": 0
               },
@@ -1462,13 +1143,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 34,
+                "left": 4.167,
+                "right": 91.667,
                 "top": 94,
-                "width": 34,
                 "height": 16,
                 "rotation": 0
               },
@@ -1504,13 +1185,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 68,
+                "left": 8.333,
+                "right": 76.716,
                 "top": 94,
-                "width": 122,
                 "height": 16,
                 "rotation": 0
               },
@@ -1544,13 +1225,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 34,
+                "left": 4.167,
+                "right": 91.667,
                 "top": 112,
-                "width": 34,
                 "height": 16,
                 "rotation": 0
               },
@@ -1586,13 +1267,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 68,
+                "left": 8.333,
+                "right": 76.716,
                 "top": 112,
-                "width": 122,
                 "height": 16,
                 "rotation": 0
               },
@@ -1627,13 +1308,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 34,
+                "left": 4.167,
+                "right": 76.716,
                 "top": 130,
-                "width": 156,
                 "height": 16,
                 "rotation": 0
               },
@@ -1667,13 +1348,13 @@
                 "radius": 10
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 210,
+                "left": 25.735,
+                "right": 52.696,
                 "top": 66,
-                "width": 176,
                 "height": 84,
                 "rotation": 0
               },
@@ -1707,13 +1388,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 220,
+                "left": 26.961,
+                "right": 62.5,
                 "top": 72,
-                "width": 86,
                 "height": 18,
                 "rotation": 0
               },
@@ -1749,13 +1430,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 304,
+                "left": 37.255,
+                "right": 53.922,
                 "top": 72,
-                "width": 72,
                 "height": 18,
                 "rotation": 0
               },
@@ -1789,13 +1470,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 220,
+                "left": 26.961,
+                "right": 68.873,
                 "top": 94,
-                "width": 34,
                 "height": 16,
                 "rotation": 0
               },
@@ -1831,13 +1512,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 254,
+                "left": 31.127,
+                "right": 53.922,
                 "top": 94,
-                "width": 122,
                 "height": 16,
                 "rotation": 0
               },
@@ -1871,13 +1552,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 220,
+                "left": 26.961,
+                "right": 68.873,
                 "top": 112,
-                "width": 34,
                 "height": 16,
                 "rotation": 0
               },
@@ -1913,13 +1594,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 254,
+                "left": 31.127,
+                "right": 53.922,
                 "top": 112,
-                "width": 122,
                 "height": 16,
                 "rotation": 0
               },
@@ -1954,13 +1635,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 220,
+                "left": 26.961,
+                "right": 53.922,
                 "top": 130,
-                "width": 156,
                 "height": 16,
                 "rotation": 0
               },
@@ -1994,13 +1675,13 @@
                 "radius": 10
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 396,
+                "left": 48.529,
+                "right": 29.902,
                 "top": 66,
-                "width": 176,
                 "height": 84,
                 "rotation": 0
               },
@@ -2034,13 +1715,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 406,
+                "left": 49.755,
+                "right": 39.706,
                 "top": 72,
-                "width": 86,
                 "height": 18,
                 "rotation": 0
               },
@@ -2076,13 +1757,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 490,
+                "left": 60.049,
+                "right": 31.127,
                 "top": 72,
-                "width": 72,
                 "height": 18,
                 "rotation": 0
               },
@@ -2116,13 +1797,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 406,
+                "left": 49.755,
+                "right": 46.078,
                 "top": 94,
-                "width": 34,
                 "height": 16,
                 "rotation": 0
               },
@@ -2158,13 +1839,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 440,
+                "left": 53.922,
+                "right": 31.127,
                 "top": 94,
-                "width": 122,
                 "height": 16,
                 "rotation": 0
               },
@@ -2198,13 +1879,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 406,
+                "left": 49.755,
+                "right": 46.078,
                 "top": 112,
-                "width": 34,
                 "height": 16,
                 "rotation": 0
               },
@@ -2240,13 +1921,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 440,
+                "left": 53.922,
+                "right": 31.127,
                 "top": 112,
-                "width": 122,
                 "height": 16,
                 "rotation": 0
               },
@@ -2281,13 +1962,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 406,
+                "left": 49.755,
+                "right": 31.127,
                 "top": 130,
-                "width": 156,
                 "height": 16,
                 "rotation": 0
               },
@@ -2321,13 +2002,13 @@
                 "radius": 12
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 12,
+                "left": 1.471,
+                "right": 29.167,
                 "top": 170,
-                "width": 566,
                 "height": 122,
                 "rotation": 0
               },
@@ -2361,13 +2042,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 24,
+                "left": 2.941,
+                "right": 72.549,
                 "top": 174,
-                "width": 200,
                 "height": 20,
                 "rotation": 0
               },
@@ -2401,13 +2082,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 330,
+                "left": 40.441,
+                "right": 30.637,
                 "top": 174,
-                "width": 236,
                 "height": 20,
                 "rotation": 0
               },
@@ -2441,13 +2122,13 @@
                 "radius": 10
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 24,
+                "left": 2.941,
+                "right": 75.49,
                 "top": 198,
-                "width": 176,
                 "height": 84,
                 "rotation": 0
               },
@@ -2481,13 +2162,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 34,
+                "left": 4.167,
+                "right": 85.294,
                 "top": 204,
-                "width": 86,
                 "height": 18,
                 "rotation": 0
               },
@@ -2523,13 +2204,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 118,
+                "left": 14.461,
+                "right": 76.716,
                 "top": 204,
-                "width": 72,
                 "height": 18,
                 "rotation": 0
               },
@@ -2563,13 +2244,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 34,
+                "left": 4.167,
+                "right": 91.667,
                 "top": 226,
-                "width": 34,
                 "height": 16,
                 "rotation": 0
               },
@@ -2605,13 +2286,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 68,
+                "left": 8.333,
+                "right": 76.716,
                 "top": 226,
-                "width": 122,
                 "height": 16,
                 "rotation": 0
               },
@@ -2645,13 +2326,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 34,
+                "left": 4.167,
+                "right": 91.667,
                 "top": 244,
-                "width": 34,
                 "height": 16,
                 "rotation": 0
               },
@@ -2687,13 +2368,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 68,
+                "left": 8.333,
+                "right": 76.716,
                 "top": 244,
-                "width": 122,
                 "height": 16,
                 "rotation": 0
               },
@@ -2728,13 +2409,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 34,
+                "left": 4.167,
+                "right": 76.716,
                 "top": 262,
-                "width": 156,
                 "height": 16,
                 "rotation": 0
               },
@@ -2768,13 +2449,13 @@
                 "radius": 10
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 210,
+                "left": 25.735,
+                "right": 52.696,
                 "top": 198,
-                "width": 176,
                 "height": 84,
                 "rotation": 0
               },
@@ -2808,13 +2489,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 220,
+                "left": 26.961,
+                "right": 62.5,
                 "top": 204,
-                "width": 86,
                 "height": 18,
                 "rotation": 0
               },
@@ -2850,13 +2531,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 304,
+                "left": 37.255,
+                "right": 53.922,
                 "top": 204,
-                "width": 72,
                 "height": 18,
                 "rotation": 0
               },
@@ -2890,13 +2571,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 220,
+                "left": 26.961,
+                "right": 68.873,
                 "top": 226,
-                "width": 34,
                 "height": 16,
                 "rotation": 0
               },
@@ -2932,13 +2613,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 254,
+                "left": 31.127,
+                "right": 53.922,
                 "top": 226,
-                "width": 122,
                 "height": 16,
                 "rotation": 0
               },
@@ -2972,13 +2653,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 220,
+                "left": 26.961,
+                "right": 68.873,
                 "top": 244,
-                "width": 34,
                 "height": 16,
                 "rotation": 0
               },
@@ -3014,13 +2695,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 254,
+                "left": 31.127,
+                "right": 53.922,
                 "top": 244,
-                "width": 122,
                 "height": 16,
                 "rotation": 0
               },
@@ -3055,13 +2736,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 220,
+                "left": 26.961,
+                "right": 53.922,
                 "top": 262,
-                "width": 156,
                 "height": 16,
                 "rotation": 0
               },
@@ -3095,13 +2776,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 14,
-                "top": 306,
-                "width": 300,
+                "left": 1.716,
+                "right": 61.52,
+                "top": 302,
                 "height": 18,
                 "rotation": 0
               },
@@ -3135,14 +2816,14 @@
                 "radius": 6
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 14,
-                "top": 330,
-                "width": 132,
-                "height": 26,
+                "left": 1.716,
+                "right": 82.108,
+                "top": 324,
+                "height": 24,
                 "rotation": 0
               },
               "connections": []
@@ -3175,14 +2856,14 @@
                 "radius": 6
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 156,
-                "top": 330,
-                "width": 132,
-                "height": 26,
+                "left": 19.118,
+                "right": 64.706,
+                "top": 324,
+                "height": 24,
                 "rotation": 0
               },
               "connections": []
@@ -3215,14 +2896,14 @@
                 "radius": 6
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 298,
-                "top": 330,
-                "width": 132,
-                "height": 26,
+                "left": 36.52,
+                "right": 47.304,
+                "top": 324,
+                "height": 24,
                 "rotation": 0
               },
               "connections": []
@@ -3255,14 +2936,14 @@
                 "radius": 6
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 440,
-                "top": 330,
-                "width": 132,
-                "height": 26,
+                "left": 53.922,
+                "right": 29.902,
+                "top": 324,
+                "height": 24,
                 "rotation": 0
               },
               "connections": []
@@ -3295,14 +2976,14 @@
                 "radius": 6
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 14,
-                "top": 364,
-                "width": 132,
-                "height": 26,
+                "left": 1.716,
+                "right": 82.108,
+                "top": 356,
+                "height": 24,
                 "rotation": 0
               },
               "connections": []
@@ -3335,14 +3016,14 @@
                 "radius": 6
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 156,
-                "top": 364,
-                "width": 132,
-                "height": 26,
+                "left": 19.118,
+                "right": 64.706,
+                "top": 356,
+                "height": 24,
                 "rotation": 0
               },
               "connections": []
@@ -3375,14 +3056,14 @@
                 "radius": 6
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 298,
-                "top": 364,
-                "width": 132,
-                "height": 26,
+                "left": 36.52,
+                "right": 47.304,
+                "top": 356,
+                "height": 24,
                 "rotation": 0
               },
               "connections": []
@@ -3415,14 +3096,14 @@
                 "radius": 14
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 602,
+                "left": 73.775,
+                "right": 0.245,
                 "top": 0,
-                "width": 212,
-                "height": 410,
+                "height": 392,
                 "rotation": 0
               },
               "connections": []
@@ -3455,13 +3136,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 616,
+                "left": 75.49,
+                "right": 12.255,
                 "top": 8,
-                "width": 100,
                 "height": 22,
                 "rotation": 0
               },
@@ -3495,13 +3176,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 716,
+                "left": 87.745,
+                "right": 1.716,
                 "top": 8,
-                "width": 86,
                 "height": 22,
                 "rotation": 0
               },
@@ -3535,13 +3216,13 @@
                 "radius": 12
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 614,
+                "left": 75.245,
+                "right": 1.716,
                 "top": 38,
-                "width": 188,
                 "height": 122,
                 "rotation": 0
               },
@@ -3575,13 +3256,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 626,
+                "left": 76.716,
+                "right": 12.255,
                 "top": 42,
-                "width": 90,
                 "height": 20,
                 "rotation": 0
               },
@@ -3615,13 +3296,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 716,
+                "left": 87.745,
+                "right": 2.941,
                 "top": 42,
-                "width": 76,
                 "height": 20,
                 "rotation": 0
               },
@@ -3655,13 +3336,13 @@
                 "radius": 10
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 620,
+                "left": 75.98,
+                "right": 2.451,
                 "top": 66,
-                "width": 176,
                 "height": 84,
                 "rotation": 0
               },
@@ -3695,13 +3376,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 630,
+                "left": 77.206,
+                "right": 12.255,
                 "top": 72,
-                "width": 86,
                 "height": 18,
                 "rotation": 0
               },
@@ -3737,13 +3418,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 714,
+                "left": 87.5,
+                "right": 3.676,
                 "top": 72,
-                "width": 72,
                 "height": 18,
                 "rotation": 0
               },
@@ -3777,13 +3458,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 630,
+                "left": 77.206,
+                "right": 18.627,
                 "top": 94,
-                "width": 34,
                 "height": 16,
                 "rotation": 0
               },
@@ -3819,13 +3500,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 664,
+                "left": 81.373,
+                "right": 3.676,
                 "top": 94,
-                "width": 122,
                 "height": 16,
                 "rotation": 0
               },
@@ -3859,13 +3540,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 630,
+                "left": 77.206,
+                "right": 18.627,
                 "top": 112,
-                "width": 34,
                 "height": 16,
                 "rotation": 0
               },
@@ -3901,13 +3582,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 664,
+                "left": 81.373,
+                "right": 3.676,
                 "top": 112,
-                "width": 122,
                 "height": 16,
                 "rotation": 0
               },
@@ -3942,13 +3623,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 630,
+                "left": 77.206,
+                "right": 3.676,
                 "top": 130,
-                "width": 156,
                 "height": 16,
                 "rotation": 0
               },
@@ -3982,13 +3663,13 @@
                 "radius": 0
               },
               "constraint": {
-                "horizontal": "left",
+                "horizontal": "scale",
                 "vertical": "top"
               },
               "placement": {
-                "left": 616,
+                "left": 75.49,
+                "right": 1.716,
                 "top": 176,
-                "width": 186,
                 "height": 60,
                 "rotation": 0
               },
@@ -4024,16 +3705,16 @@
       },
       "id": 9,
       "gridPos": {
-        "h": 15,
+        "h": 12,
         "w": 14,
         "x": 0,
-        "y": 11
+        "y": 5
       }
     },
     {
       "type": "volkovlabs-echarts-panel",
       "title": "Traffic",
-      "description": "Requests per second over the range, entrypoint to service. websecure is the public tunnel (blue), internal is WARP only (amber). The service is Traefik's backend, <namespace>-<service>.",
+      "description": "Requests over the range, from where they came in to the backend that answered. Public (blue) is the public tunnel, Traefik's websecure entrypoint; WARP (amber) is the internal entrypoint, reached over WARP only. Six backends per entry, the rest summed as other.",
       "transparent": true,
       "targets": [
         {
@@ -4041,13 +3722,12 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (entrypoint, service) (label_replace(label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\"}[$__range]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\"), \"entrypoint\", \"$1\", \"exported_service\", \".*-ep-(websecure|internal|web)-.*\"))",
-          "legendFormat": "__auto",
+          "refId": "A",
+          "expr": "sum by (entrypoint, name) (label_replace(label_replace(label_replace(label_replace(increase(traefik_service_requests_total[$__range]), \"name\", \"$1\", \"exported_service\", \"(.*)\"), \"name\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"name\", \"rum-$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com)-.*-svc-opentelemetry-otel-gateway-[0-9]+@kubernetesgateway\"), \"entrypoint\", \"$1\", \"exported_service\", \".*-ep-(websecure|internal|web)-.*\")) > 0",
+          "editorMode": "code",
           "range": false,
           "instant": true,
-          "editorMode": "code",
-          "format": "table",
-          "refId": "A"
+          "format": "table"
         }
       ],
       "fieldConfig": {
@@ -4075,7 +3755,7 @@
           "format": "auto"
         },
         "editorMode": "code",
-        "getOption": "const rows = [];\ncontext.panel.data.series.forEach((s) => {\n  const ep = s.fields.find((f) => f.name === 'entrypoint');\n  const sv = s.fields.find((f) => f.name === 'service');\n  const v = s.fields.find((f) => f.type === 'number');\n  if (!ep || !sv || !v) return;\n  for (let i = 0; i < v.values.length; i++) rows.push([ep.values[i], sv.values[i], v.values[i]]);\n});\nconst live = rows.filter((r) => r[0] && r[1] && r[2] > 0);\nif (!live.length) {\n  return { title: { text: 'No requests in this range', left: 'center', top: 'middle',\n    textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } };\n}\nconst colour = { websecure: '#60A5FA', internal: '#F59E0B', web: '#8D99AB' };\nconst entry = new Set(live.map((r) => r[0]));\nconst names = new Set();\nlive.forEach((r) => { names.add(r[0]); names.add(r[1]); });\nconst nodes = [...names].map((n) => ({\n  name: n,\n  itemStyle: { color: colour[n] || '#C4B5FD', borderWidth: 0 },\n  label: { position: entry.has(n) ? 'left' : 'right' },\n}));\nreturn {\n  backgroundColor: 'transparent',\n  tooltip: { trigger: 'item', valueFormatter: (x) => Number(x).toFixed(3) + ' req/s' },\n  series: [{\n    type: 'sankey', left: 100, right: 230, top: 8, bottom: 8, nodeWidth: 10, nodeGap: 10,\n    draggable: false, emphasis: { focus: 'adjacency' },\n    label: { color: '#C9D2DE', fontFamily: 'Inter, sans-serif', fontSize: 12,\n      formatter: (p) => p.name + '  ' + Number(p.value).toFixed(2) },\n    lineStyle: { color: 'source', opacity: 0.35, curveness: 0.5 },\n    data: nodes,\n    links: live.map((r) => ({ source: r[0], target: r[1], value: r[2] })),\n  }],\n};",
+        "getOption": "const DISPLAY = [\n  [/^monitoring-kube-prometheus-stack-grafana$/, 'Grafana'],\n  [/^vault-vault-active$/, 'Vault'],\n  [/^headlamp-headlamp$/, 'Headlamp'],\n  [/^argocd-argocd-server$/, 'Argo CD'],\n  [/^longhorn-system-longhorn-frontend$/, 'Longhorn'],\n  [/^matchmark-api$/, 'Matchmark API'],\n  [/^matchmark-gateway$/, 'Matchmark gateway'],\n  [/^matchmark-temporal-web$/, 'Temporal UI'],\n  [/^offby1-cc-offby1-cc$/, 'offby1.cc'],\n  [/^artistlabco-com-artistlabco-com$/, 'artistlabco.com'],\n  [/^artistlabco-com-artistlabco-com-cms$/, 'artistlabco.com CMS'],\n  [/^artistlabco-com-staging-artistlabco-com$/, 'artistlabco.com staging'],\n  [/^artistlabco-com-staging-artistlabco-com-cms$/, 'artistlabco.com CMS staging'],\n  [/^rum-offby1-cc$/, 'RUM (offby1.cc)'],\n  [/^rum-artistlabco-com$/, 'RUM (artistlabco.com)'],\n  [/^rum-artistlabco-com-staging$/, 'RUM (artistlabco.com staging)'],\n  [/^plane-plane-(.+)$/, 'Plane $1'],\n  [/^mautic-artistlabco-com-.*$/, 'Mautic'],\n  [/^.*api@internal.*$/, 'Traefik dashboard'],\n];\nconst display = (k) => { for (const [rx, t] of DISPLAY) if (rx.test(k)) return k.replace(rx, t); return k; };\nconst nameOf = (k, e) => (e === 'internal' && /^mautic-/.test(k) ? 'Mautic admin' : display(k));\nconst ENTRY = {\n  websecure: { label: 'Public', colour: '#60A5FA', rank: 0 },\n  internal: { label: 'WARP', colour: '#F59E0B', rank: 1 },\n  web: { label: 'Redirects', colour: '#8D99AB', rank: 2 },\n};\nconst TOP = 6;\nconst rows = [];\nfor (const f of context.panel.data.series) {\n  const v = f.fields.find((x) => x.type === 'number');\n  if (!v) continue;\n  const ep = f.fields.find((x) => x.name === 'entrypoint');\n  const nm = f.fields.find((x) => x.name === 'name');\n  for (let i = 0; i < v.values.length; i++) {\n    const e = ep ? ep.values[i] : (v.labels || {}).entrypoint;\n    const n = nm ? nm.values[i] : (v.labels || {}).name;\n    if (ENTRY[e] && n && v.values[i] > 0) rows.push({ e, n: nameOf(n, e), v: v.values[i] });\n  }\n}\nif (!rows.length) {\n  return { title: { text: 'No requests in this range', left: 'center', top: 'middle',\n    textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } };\n}\nconst count = (x) => Math.round(x).toLocaleString('en-US');\nconst totals = {};\nconst byEntry = {};\nrows.forEach((r) => { totals[r.e] = (totals[r.e] || 0) + r.v; (byEntry[r.e] = byEntry[r.e] || []).push(r); });\nconst entries = Object.keys(byEntry).sort((a, b) => ENTRY[a].rank - ENTRY[b].rank);\nconst nodes = [];\nconst links = [];\nentries.forEach((e) => {\n  nodes.push({ name: ENTRY[e].label, value: totals[e], itemStyle: { color: ENTRY[e].colour },\n    label: { position: 'left', formatter: () => ENTRY[e].label + '\\n{v|' + count(totals[e]) + '}' } });\n});\nentries.forEach((e) => {\n  const list = byEntry[e].sort((a, b) => b.v - a.v);\n  const shown = list.slice(0, TOP);\n  const rest = list.slice(TOP).reduce((s, r) => s + r.v, 0);\n  if (rest > 0) shown.push({ e, n: 'other ' + ENTRY[e].label + ' (' + (list.length - TOP) + ')', v: rest });\n  shown.forEach((r) => {\n    if (!nodes.find((x) => x.name === r.n)) {\n      nodes.push({ name: r.n, itemStyle: { color: ENTRY[e].colour },\n        label: { position: 'right', formatter: (p) => '{v|' + count(p.value) + '}  ' + p.name } });\n    }\n    links.push({ source: ENTRY[e].label, target: r.n, value: r.v,\n      lineStyle: { color: ENTRY[e].colour, opacity: 0.35 } });\n  });\n});\nreturn {\n  backgroundColor: 'transparent',\n  tooltip: { trigger: 'item', formatter: (p) => (p.dataType === 'edge'\n    ? p.data.source + ' → ' + p.data.target + ': ' + count(p.value) + ' requests'\n    : p.name + ': ' + count(p.value) + ' requests') },\n  series: [{\n    type: 'sankey', data: nodes, links, left: 78, right: 230, top: 8, bottom: 8,\n    nodeWidth: 10, nodeGap: 10, layoutIterations: 0, nodeAlign: 'justify', draggable: false,\n    emphasis: { focus: 'adjacency' },\n    label: { color: '#C9D2DE', fontSize: 12, fontFamily: 'Inter, sans-serif', lineHeight: 16,\n      rich: { v: { color: '#E7ECF3', fontFamily: \"'JetBrains Mono', 'Roboto Mono', monospace\", fontSize: 12 } } },\n  }],\n};",
         "baidu": {
           "callback": "bmapReady",
           "key": ""
@@ -4100,29 +3780,16 @@
       },
       "id": 10,
       "gridPos": {
-        "h": 15,
+        "h": 12,
         "w": 10,
         "x": 14,
-        "y": 11
-      }
-    },
-    {
-      "type": "row",
-      "title": "Services",
-      "collapsed": false,
-      "panels": [],
-      "id": 11,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 26
+        "y": 5
       }
     },
     {
       "type": "table",
-      "title": "Golden signals",
-      "description": "Every service behind Traefik's Gateway, worst first: req/s, 5xx share and p95 over the range, the request rate as a sparkline, and a state (ok under 1% errors, warning under 5%, critical above). A row of an application opens its App board.",
+      "title": "Public sites · golden signals",
+      "description": "Every backend behind the public tunnel (websecure) that served requests in the range: requests, the share that were 5xx, p95 latency (— under 20 requests), and requests over time. The name opens its App board.",
       "transparent": true,
       "targets": [
         {
@@ -4130,64 +3797,47 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (service, app) (label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\"}[$__range]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\"))",
-          "legendFormat": "__auto",
+          "refId": "A",
+          "expr": "sum by (name, app) (label_replace(label_replace(label_replace(label_replace(increase(traefik_service_requests_total{exported_service=~\".*-ep-websecure-.*\"}[$__range]), \"name\", \"$1\", \"exported_service\", \"(.*)\"), \"name\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"name\", \"rum-$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com)-.*-svc-opentelemetry-otel-gateway-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\")) > 0",
+          "editorMode": "code",
           "range": false,
           "instant": true,
-          "editorMode": "code",
-          "format": "table",
-          "refId": "A"
+          "format": "table"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "((sum by (service, app) (label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\", code=~\"5..\"}[$__range]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\"))) or (sum by (service, app) (label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\"}[$__range]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\"))) * 0) / (sum by (service, app) (label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\"}[$__range]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\")))",
-          "legendFormat": "__auto",
+          "refId": "B",
+          "expr": "(sum by (name, app) (label_replace(label_replace(label_replace(label_replace(increase(traefik_service_requests_total{exported_service=~\".*-ep-websecure-.*\", code=~\"5..\"}[$__range]), \"name\", \"$1\", \"exported_service\", \"(.*)\"), \"name\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"name\", \"rum-$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com)-.*-svc-opentelemetry-otel-gateway-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\")) or sum by (name, app) (label_replace(label_replace(label_replace(label_replace(increase(traefik_service_requests_total{exported_service=~\".*-ep-websecure-.*\"}[$__range]), \"name\", \"$1\", \"exported_service\", \"(.*)\"), \"name\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"name\", \"rum-$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com)-.*-svc-opentelemetry-otel-gateway-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\")) * 0) / sum by (name, app) (label_replace(label_replace(label_replace(label_replace(increase(traefik_service_requests_total{exported_service=~\".*-ep-websecure-.*\"}[$__range]), \"name\", \"$1\", \"exported_service\", \"(.*)\"), \"name\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"name\", \"rum-$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com)-.*-svc-opentelemetry-otel-gateway-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\"))",
+          "editorMode": "code",
           "range": false,
           "instant": true,
-          "editorMode": "code",
-          "format": "table",
-          "refId": "B"
+          "format": "table"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.95, sum by (service, app, le) (label_replace(label_replace(rate(traefik_service_request_duration_seconds_bucket{exported_service=~\"httproute-.*\"}[$__range]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\")))",
-          "legendFormat": "__auto",
+          "refId": "C",
+          "expr": "histogram_quantile(0.95, sum by (name, app, le) (label_replace(label_replace(label_replace(label_replace(increase(traefik_service_request_duration_seconds_bucket{exported_service=~\".*-ep-websecure-.*\"}[$__range]), \"name\", \"$1\", \"exported_service\", \"(.*)\"), \"name\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"name\", \"rum-$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com)-.*-svc-opentelemetry-otel-gateway-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\"))) and on (name, app) (sum by (name, app) (label_replace(label_replace(label_replace(label_replace(increase(traefik_service_request_duration_seconds_count{exported_service=~\".*-ep-websecure-.*\"}[$__range]), \"name\", \"$1\", \"exported_service\", \"(.*)\"), \"name\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"name\", \"rum-$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com)-.*-svc-opentelemetry-otel-gateway-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\")) >= 20)",
+          "editorMode": "code",
           "range": false,
           "instant": true,
-          "editorMode": "code",
-          "format": "table",
-          "refId": "C"
+          "format": "table"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (service, app) (label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\"}[$__rate_interval]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\"))",
-          "legendFormat": "__auto",
+          "refId": "D",
+          "expr": "sum by (name, app) (label_replace(label_replace(label_replace(label_replace(increase(traefik_service_requests_total{exported_service=~\".*-ep-websecure-.*\"}[$__interval]), \"name\", \"$1\", \"exported_service\", \"(.*)\"), \"name\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"name\", \"rum-$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com)-.*-svc-opentelemetry-otel-gateway-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\"))",
+          "editorMode": "code",
           "range": true,
-          "instant": false,
-          "editorMode": "code",
-          "refId": "D"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "clamp_max(floor((((sum by (service, app) (label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\", code=~\"5..\"}[$__range]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\"))) or (sum by (service, app) (label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\"}[$__range]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\"))) * 0) / (sum by (service, app) (label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\"}[$__range]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\")))) / 0.01), 1) + clamp_max(floor((((sum by (service, app) (label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\", code=~\"5..\"}[$__range]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\"))) or (sum by (service, app) (label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\"}[$__range]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\"))) * 0) / (sum by (service, app) (label_replace(label_replace(rate(traefik_service_requests_total{exported_service=~\"httproute-.*\"}[$__range]), \"service\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"app\", \"$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com|mautic-artistlabco-com|plane|matchmark)-.*\")))) / 0.05), 1)",
-          "legendFormat": "__auto",
-          "range": false,
-          "instant": true,
-          "editorMode": "code",
-          "format": "table",
-          "refId": "E"
+          "instant": false
         }
       ],
       "fieldConfig": {
@@ -4214,21 +3864,121 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "service"
+              "options": "Service"
             },
             "properties": [
               {
-                "id": "links",
+                "id": "mappings",
                 "value": [
                   {
-                    "title": "Open the App board",
-                    "url": "/d/apps?var-app=${__data.fields.app}&${__url_time_range}"
+                    "type": "value",
+                    "options": {
+                      "monitoring-kube-prometheus-stack-grafana": {
+                        "text": "Grafana",
+                        "index": 0
+                      },
+                      "vault-vault-active": {
+                        "text": "Vault",
+                        "index": 1
+                      },
+                      "headlamp-headlamp": {
+                        "text": "Headlamp",
+                        "index": 2
+                      },
+                      "argocd-argocd-server": {
+                        "text": "Argo CD",
+                        "index": 3
+                      },
+                      "longhorn-system-longhorn-frontend": {
+                        "text": "Longhorn",
+                        "index": 4
+                      },
+                      "matchmark-api": {
+                        "text": "Matchmark API",
+                        "index": 5
+                      },
+                      "matchmark-gateway": {
+                        "text": "Matchmark gateway",
+                        "index": 6
+                      },
+                      "matchmark-temporal-web": {
+                        "text": "Temporal UI",
+                        "index": 7
+                      },
+                      "offby1-cc-offby1-cc": {
+                        "text": "offby1.cc",
+                        "index": 8
+                      },
+                      "artistlabco-com-artistlabco-com": {
+                        "text": "artistlabco.com",
+                        "index": 9
+                      },
+                      "artistlabco-com-artistlabco-com-cms": {
+                        "text": "artistlabco.com CMS",
+                        "index": 10
+                      },
+                      "artistlabco-com-staging-artistlabco-com": {
+                        "text": "artistlabco.com staging",
+                        "index": 11
+                      },
+                      "artistlabco-com-staging-artistlabco-com-cms": {
+                        "text": "artistlabco.com CMS staging",
+                        "index": 12
+                      },
+                      "rum-offby1-cc": {
+                        "text": "RUM (offby1.cc)",
+                        "index": 13
+                      },
+                      "rum-artistlabco-com": {
+                        "text": "RUM (artistlabco.com)",
+                        "index": 14
+                      },
+                      "rum-artistlabco-com-staging": {
+                        "text": "RUM (artistlabco.com staging)",
+                        "index": 15
+                      }
+                    }
+                  },
+                  {
+                    "type": "regex",
+                    "options": {
+                      "pattern": "^plane-plane-(.+)$",
+                      "result": {
+                        "text": "Plane $1",
+                        "index": 16
+                      }
+                    }
+                  },
+                  {
+                    "type": "regex",
+                    "options": {
+                      "pattern": "^mautic-artistlabco-com-.*$",
+                      "result": {
+                        "text": "Mautic",
+                        "index": 17
+                      }
+                    }
+                  },
+                  {
+                    "type": "regex",
+                    "options": {
+                      "pattern": "^.*api@internal.*$",
+                      "result": {
+                        "text": "Traefik dashboard",
+                        "index": 18
+                      }
+                    }
                   }
                 ]
               },
               {
-                "id": "custom.width",
-                "value": 260
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open its App board",
+                    "url": "/d/apps?var-app=${__data.fields.app}&${__url_time_range}"
+                  }
+                ]
               }
             ]
           },
@@ -4239,48 +3989,35 @@
             },
             "properties": [
               {
-                "id": "displayName",
-                "value": "app"
-              },
-              {
-                "id": "custom.width",
-                "value": 190
+                "id": "custom.hidden",
+                "value": true
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "req/s"
+              "options": "Requests"
             },
             "properties": [
               {
                 "id": "unit",
-                "value": "reqps"
+                "value": "locale"
               },
               {
                 "id": "decimals",
-                "value": 3
+                "value": 0
               },
               {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#60A5FA"
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
-                }
+                "id": "custom.width",
+                "value": 110
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "errors"
+              "options": "Errors"
             },
             "properties": [
               {
@@ -4289,7 +4026,7 @@
               },
               {
                 "id": "decimals",
-                "value": 2
+                "value": 1
               },
               {
                 "id": "thresholds",
@@ -4297,7 +4034,7 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "#34D399",
+                      "color": "#8D99AB",
                       "value": null
                     },
                     {
@@ -4322,6 +4059,10 @@
                 "value": {
                   "type": "color-text"
                 }
+              },
+              {
+                "id": "custom.width",
+                "value": 90
               }
             ]
           },
@@ -4337,7 +4078,11 @@
               },
               {
                 "id": "decimals",
-                "value": 3
+                "value": 0
+              },
+              {
+                "id": "noValue",
+                "value": "—"
               },
               {
                 "id": "thresholds",
@@ -4370,13 +4115,17 @@
                 "value": {
                   "type": "color-text"
                 }
+              },
+              {
+                "id": "custom.width",
+                "value": 90
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "trend"
+              "options": "Over the range"
             },
             "properties": [
               {
@@ -4385,9 +4134,11 @@
                   "type": "sparkline",
                   "hideValue": true,
                   "lineWidth": 1,
-                  "fillOpacity": 15,
+                  "fillOpacity": 0,
                   "drawStyle": "line",
-                  "gradientMode": "opacity"
+                  "lineInterpolation": "linear",
+                  "spanNulls": false,
+                  "showPoints": "never"
                 }
               },
               {
@@ -4399,33 +4150,49 @@
               },
               {
                 "id": "custom.width",
-                "value": 140
+                "value": 160
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "state"
+              "options": "State"
             },
             "properties": [
               {
                 "id": "mappings",
                 "value": [
                   {
-                    "type": "value",
+                    "type": "range",
                     "options": {
-                      "0": {
+                      "from": 0,
+                      "to": 0.0099999,
+                      "result": {
                         "text": "● ok",
                         "color": "#34D399",
                         "index": 0
-                      },
-                      "1": {
-                        "text": "● warning",
+                      }
+                    }
+                  },
+                  {
+                    "type": "range",
+                    "options": {
+                      "from": 0.01,
+                      "to": 0.0499999,
+                      "result": {
+                        "text": "● watch",
                         "color": "#FBBF24",
                         "index": 1
-                      },
-                      "2": {
+                      }
+                    }
+                  },
+                  {
+                    "type": "range",
+                    "options": {
+                      "from": 0.05,
+                      "to": 1,
+                      "result": {
                         "text": "● critical",
                         "color": "#FB7185",
                         "index": 2
@@ -4442,7 +4209,7 @@
               },
               {
                 "id": "custom.width",
-                "value": 110
+                "value": 100
               }
             ]
           }
@@ -4460,7 +4227,7 @@
         },
         "sortBy": [
           {
-            "displayName": "state",
+            "displayName": "Requests",
             "desc": true
           }
         ]
@@ -4479,42 +4246,797 @@
           "options": {}
         },
         {
+          "id": "filterByValue",
+          "options": {
+            "type": "exclude",
+            "match": "any",
+            "filters": [
+              {
+                "fieldName": "Value #A",
+                "config": {
+                  "id": "isNull",
+                  "options": {}
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "reduceRow",
+            "alias": "State",
+            "reduce": {
+              "include": [
+                "Value #B"
+              ],
+              "reducer": "lastNotNull"
+            },
+            "replaceFields": false
+          }
+        },
+        {
           "id": "organize",
           "options": {
             "excludeByName": {
               "Time": true
             },
             "indexByName": {
-              "service": 0,
+              "name": 0,
               "app": 1,
               "Value #A": 2,
               "Value #B": 3,
               "Value #C": 4,
               "Trend #D": 5,
-              "Value #E": 6
+              "State": 6
             },
             "renameByName": {
-              "Value #A": "req/s",
-              "Value #B": "errors",
+              "name": "Service",
+              "Value #A": "Requests",
+              "Value #B": "Errors",
               "Value #C": "p95",
-              "Trend #D": "trend",
-              "Value #E": "state"
+              "Trend #D": "Over the range"
             }
           }
         }
       ],
       "id": 12,
       "gridPos": {
-        "h": 12,
+        "h": 9,
         "w": 16,
         "x": 0,
-        "y": 27
+        "y": 17
+      },
+      "maxDataPoints": 40
+    },
+    {
+      "type": "table",
+      "title": "Behind WARP · tools",
+      "description": "Traefik's internal entrypoint, reached over WARP only: the portals and admin tools. Requests over the range and how many were 5xx. Much of it is these boards polling.",
+      "transparent": true,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "A",
+          "expr": "sum by (name) (label_replace(label_replace(label_replace(increase(traefik_service_requests_total{exported_service=~\".*-ep-internal-.*\"}[$__range]), \"name\", \"$1\", \"exported_service\", \"(.*)\"), \"name\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"name\", \"rum-$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com)-.*-svc-opentelemetry-otel-gateway-[0-9]+@kubernetesgateway\")) > 0",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "B",
+          "expr": "sum by (name) (label_replace(label_replace(label_replace(increase(traefik_service_requests_total{exported_service=~\".*-ep-internal-.*\", code=~\"5..\"}[$__range]), \"name\", \"$1\", \"exported_service\", \"(.*)\"), \"name\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"name\", \"rum-$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com)-.*-svc-opentelemetry-otel-gateway-[0-9]+@kubernetesgateway\")) or sum by (name) (label_replace(label_replace(label_replace(increase(traefik_service_requests_total{exported_service=~\".*-ep-internal-.*\"}[$__range]), \"name\", \"$1\", \"exported_service\", \"(.*)\"), \"name\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"name\", \"rum-$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com)-.*-svc-opentelemetry-otel-gateway-[0-9]+@kubernetesgateway\")) * 0",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tool"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "monitoring-kube-prometheus-stack-grafana": {
+                        "text": "Grafana",
+                        "index": 1
+                      },
+                      "vault-vault-active": {
+                        "text": "Vault",
+                        "index": 2
+                      },
+                      "headlamp-headlamp": {
+                        "text": "Headlamp",
+                        "index": 3
+                      },
+                      "argocd-argocd-server": {
+                        "text": "Argo CD",
+                        "index": 4
+                      },
+                      "longhorn-system-longhorn-frontend": {
+                        "text": "Longhorn",
+                        "index": 5
+                      },
+                      "matchmark-api": {
+                        "text": "Matchmark API",
+                        "index": 6
+                      },
+                      "matchmark-gateway": {
+                        "text": "Matchmark gateway",
+                        "index": 7
+                      },
+                      "matchmark-temporal-web": {
+                        "text": "Temporal UI",
+                        "index": 8
+                      },
+                      "offby1-cc-offby1-cc": {
+                        "text": "offby1.cc",
+                        "index": 9
+                      },
+                      "artistlabco-com-artistlabco-com": {
+                        "text": "artistlabco.com",
+                        "index": 10
+                      },
+                      "artistlabco-com-artistlabco-com-cms": {
+                        "text": "artistlabco.com CMS",
+                        "index": 11
+                      },
+                      "artistlabco-com-staging-artistlabco-com": {
+                        "text": "artistlabco.com staging",
+                        "index": 12
+                      },
+                      "artistlabco-com-staging-artistlabco-com-cms": {
+                        "text": "artistlabco.com CMS staging",
+                        "index": 13
+                      },
+                      "rum-offby1-cc": {
+                        "text": "RUM (offby1.cc)",
+                        "index": 14
+                      },
+                      "rum-artistlabco-com": {
+                        "text": "RUM (artistlabco.com)",
+                        "index": 15
+                      },
+                      "rum-artistlabco-com-staging": {
+                        "text": "RUM (artistlabco.com staging)",
+                        "index": 16
+                      }
+                    }
+                  },
+                  {
+                    "type": "regex",
+                    "options": {
+                      "pattern": "^mautic-artistlabco-com-.*$",
+                      "result": {
+                        "text": "Mautic admin",
+                        "index": 0
+                      }
+                    }
+                  },
+                  {
+                    "type": "regex",
+                    "options": {
+                      "pattern": "^plane-plane-(.+)$",
+                      "result": {
+                        "text": "Plane $1",
+                        "index": 17
+                      }
+                    }
+                  },
+                  {
+                    "type": "regex",
+                    "options": {
+                      "pattern": "^mautic-artistlabco-com-.*$",
+                      "result": {
+                        "text": "Mautic",
+                        "index": 18
+                      }
+                    }
+                  },
+                  {
+                    "type": "regex",
+                    "options": {
+                      "pattern": "^.*api@internal.*$",
+                      "result": {
+                        "text": "Traefik dashboard",
+                        "index": 19
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Requests"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "locale"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "5xx"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "locale"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#8D99AB",
+                      "value": null
+                    },
+                    {
+                      "color": "#FBBF24",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 70
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        },
+        "sortBy": [
+          {
+            "displayName": "Requests",
+            "desc": true
+          }
+        ]
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "filterByValue",
+          "options": {
+            "type": "exclude",
+            "match": "any",
+            "filters": [
+              {
+                "fieldName": "Value #A",
+                "config": {
+                  "id": "isNull",
+                  "options": {}
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "name": 0,
+              "Value #A": 1,
+              "Value #B": 2
+            },
+            "renameByName": {
+              "name": "Tool",
+              "Value #A": "Requests",
+              "Value #B": "5xx"
+            }
+          }
+        }
+      ],
+      "id": 20,
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 16,
+        "y": 17
+      }
+    },
+    {
+      "type": "status-history",
+      "id": 15,
+      "title": "Log pulse",
+      "transparent": true,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "Log lines per interval, every service, by the level Loki detected; the brighter the cell, the more lines. Read error and warn against their own past, not against info.",
+      "gridPos": {
+        "h": 5,
+        "w": 16,
+        "x": 0,
+        "y": 26
+      },
+      "maxDataPoints": 48,
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "expr": "sum by (level) (label_replace(label_replace(label_replace(label_replace(label_replace(sum by (detected_level) (count_over_time({service_name=~\".+\"} [$__auto])), \"level\", \"other\", \"detected_level\", \".*\"), \"level\", \"debug\", \"detected_level\", \"(?i)(debug|trace)\"), \"level\", \"info\", \"detected_level\", \"(?i)(info|notice)\"), \"level\", \"warn\", \"detected_level\", \"(?i)warn(ing)?\"), \"level\", \"error\", \"detected_level\", \"(?i)(error|err|fatal|critical|crit|panic)\"))",
+          "editorMode": "code",
+          "queryType": "range",
+          "legendFormat": "{{level}}"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "indexByName": {
+              "Time": 0,
+              "error": 1,
+              "warn": 2,
+              "info": 3,
+              "debug": 4,
+              "other": 5
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "unit": "locale",
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "lineWidth": 0,
+            "fillOpacity": 90
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "error"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "percentage",
+                  "steps": [
+                    {
+                      "color": "rgba(251, 113, 133, 0.22)",
+                      "value": null
+                    },
+                    {
+                      "color": "rgba(251, 113, 133, 0.5)",
+                      "value": 34
+                    },
+                    {
+                      "color": "rgba(251, 113, 133, 0.78)",
+                      "value": 67
+                    },
+                    {
+                      "color": "#FB7185",
+                      "value": 90
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "warn"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "percentage",
+                  "steps": [
+                    {
+                      "color": "rgba(251, 191, 36, 0.22)",
+                      "value": null
+                    },
+                    {
+                      "color": "rgba(251, 191, 36, 0.5)",
+                      "value": 34
+                    },
+                    {
+                      "color": "rgba(251, 191, 36, 0.78)",
+                      "value": 67
+                    },
+                    {
+                      "color": "#FBBF24",
+                      "value": 90
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "info"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "percentage",
+                  "steps": [
+                    {
+                      "color": "rgba(125, 211, 252, 0.22)",
+                      "value": null
+                    },
+                    {
+                      "color": "rgba(125, 211, 252, 0.5)",
+                      "value": 34
+                    },
+                    {
+                      "color": "rgba(125, 211, 252, 0.78)",
+                      "value": 67
+                    },
+                    {
+                      "color": "#7DD3FC",
+                      "value": 90
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "debug"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "percentage",
+                  "steps": [
+                    {
+                      "color": "rgba(196, 181, 253, 0.22)",
+                      "value": null
+                    },
+                    {
+                      "color": "rgba(196, 181, 253, 0.5)",
+                      "value": 34
+                    },
+                    {
+                      "color": "rgba(196, 181, 253, 0.78)",
+                      "value": 67
+                    },
+                    {
+                      "color": "#C4B5FD",
+                      "value": 90
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "other"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "percentage",
+                  "steps": [
+                    {
+                      "color": "rgba(141, 153, 171, 0.22)",
+                      "value": null
+                    },
+                    {
+                      "color": "rgba(141, 153, 171, 0.5)",
+                      "value": 34
+                    },
+                    {
+                      "color": "rgba(141, 153, 171, 0.78)",
+                      "value": 67
+                    },
+                    {
+                      "color": "#8D99AB",
+                      "value": 90
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showValue": "never",
+        "rowHeight": 0.82,
+        "colWidth": 0.92,
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "type": "table",
+      "id": 17,
+      "title": "Latest errors",
+      "transparent": true,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "The latest 20 lines at error and above, every service: the message alone, from a JSON or logfmt line's message field, or the line itself without klog's file and line prefix.",
+      "gridPos": {
+        "h": 7,
+        "w": 16,
+        "x": 0,
+        "y": 31
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "expr": "{service_name=~\".+\"} | detected_level=~\"(?i)(error|err|fatal|critical|crit|panic)\" | json m_message=\"message\", m_msg=\"msg\", m_body=\"body\" | logfmt m_msg=\"msg\" | drop __error__, __error_details__ | line_format `{{ regexReplaceAll \"^[IWEF][0-9]{4} [0-9:.]+ +[0-9]+ [^ ]+:[0-9]+[]] \" (default (default (default __line__ .m_body) .m_msg) .m_message) \"\" }}`",
+          "editorMode": "code",
+          "queryType": "range",
+          "maxLines": 20
+        }
+      ],
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "labels",
+            "format": "auto",
+            "replace": false,
+            "keepTime": false
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "Time",
+                "service_name",
+                "Line"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "indexByName": {
+              "Time": 0,
+              "service_name": 1,
+              "Line": 2
+            },
+            "renameByName": {
+              "Time": "When",
+              "service_name": "Service",
+              "Line": "Message"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "When",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "When"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "time: HH:mm:ss"
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Service"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Message"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#C9D2DE"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
       }
     },
     {
       "type": "volkovlabs-echarts-panel",
       "title": "Memory by pool",
-      "description": "Working set of every container, pool then namespace; the total in the middle. The pool is the node's 0xc0.cc/pool label, from kube-state-metrics.",
+      "description": "Working set of every container, by the pool of the node it runs on (0xc0.cc/pool), then by namespace: the four largest per pool, the rest as other. The total in the middle; the largest namespaces below.",
       "transparent": true,
       "targets": [
         {
@@ -4556,7 +5078,7 @@
           "format": "auto"
         },
         "editorMode": "code",
-        "getOption": "const colour = { infra: '#7DD3FC', apps: '#F59E0B', sandbox: '#C4B5FD' };\nconst tree = {};\nlet total = 0;\ncontext.panel.data.series.forEach((s) => {\n  const pool = s.fields.find((f) => f.name === 'pool');\n  const ns = s.fields.find((f) => f.name === 'namespace');\n  const v = s.fields.find((f) => f.type === 'number');\n  if (!ns || !v) return;\n  for (let i = 0; i < v.values.length; i++) {\n    const p = (pool && pool.values[i]) || 'no pool label';\n    (tree[p] = tree[p] || []).push({ name: ns.values[i], value: v.values[i] });\n    total += v.values[i];\n  }\n});\nif (!total) {\n  return { title: { text: 'No memory reported in this range', left: 'center', top: 'middle',\n    textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } };\n}\nconst gib = (b) => (b / 2 ** 30).toFixed(2) + ' GiB';\nconst data = Object.keys(tree).sort().map((p) => ({\n  name: p,\n  itemStyle: { color: colour[p] || '#8D99AB' },\n  children: tree[p].sort((a, b) => b.value - a.value).map((k) => ({\n    ...k, itemStyle: { color: colour[p] || '#8D99AB', opacity: 0.55 },\n  })),\n}));\nreturn {\n  backgroundColor: 'transparent',\n  tooltip: { trigger: 'item', formatter: (p) => p.name + ': ' + gib(p.value) },\n  graphic: [{ type: 'text', left: 'center', top: 'middle',\n    style: { text: (total / 2 ** 30).toFixed(1) + '\\nGiB in use', fill: '#E7ECF3', align: 'center',\n      font: '600 18px \"Roboto Mono\", ui-monospace, monospace', lineHeight: 22 } }],\n  series: [{\n    type: 'sunburst', radius: ['34%', '92%'], data, sort: null,\n    itemStyle: { borderColor: '#0D1218', borderWidth: 2 },\n    label: { color: '#0D1218', fontSize: 11, minAngle: 14, rotate: 'tangential' },\n    levels: [{}, { label: { color: '#0D1218', fontWeight: 600 } }, { label: { color: '#E7ECF3' } }],\n  }],\n};",
+        "getOption": "const SHADES = {\n  infra: ['#7DD3FC', '#38BDF8', '#0EA5E9', '#0284C7', '#0369A1'],\n  apps: ['#FBBF24', '#F59E0B', '#D97706', '#B45309', '#92400E'],\n  sandbox: ['#C4B5FD', '#A78BFA', '#8B5CF6', '#7C3AED', '#6D28D9'],\n};\nconst TOP = 4;\nconst tree = {};\nlet total = 0;\nfor (const s of context.panel.data.series) {\n  const pool = s.fields.find((f) => f.name === 'pool');\n  const ns = s.fields.find((f) => f.name === 'namespace');\n  const v = s.fields.find((f) => f.type === 'number');\n  if (!ns || !v) continue;\n  for (let i = 0; i < v.values.length; i++) {\n    const p = (pool && pool.values[i]) || 'no pool';\n    (tree[p] = tree[p] || []).push({ name: ns.values[i], value: v.values[i] });\n    total += v.values[i];\n  }\n}\nif (!total) {\n  return { title: { text: 'No memory reported in this range', left: 'center', top: 'middle',\n    textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } };\n}\nconst gib = (b) => (b / 2 ** 30).toFixed(1) + ' GiB';\nconst order = ['infra', 'apps', 'sandbox'];\nconst pools = Object.keys(tree).sort((a, b) => (order.indexOf(a) + 9) % 9 - (order.indexOf(b) + 9) % 9);\nconst legend = [];\nconst data = pools.map((p) => {\n  const shades = SHADES[p] || ['#8D99AB', '#7C8798', '#6B7585', '#5A6372', '#49515F'];\n  const list = tree[p].sort((a, b) => b.value - a.value);\n  const top = list.slice(0, TOP).map((k, i) => {\n    legend.push({ name: k.name, value: k.value, colour: shades[i] });\n    return { name: k.name, value: k.value, itemStyle: { color: shades[i] } };\n  });\n  const rest = list.slice(TOP).reduce((s, k) => s + k.value, 0);\n  if (rest > 0) top.push({ name: 'other in ' + p, value: rest, itemStyle: { color: '#334155' } });\n  return { name: p, itemStyle: { color: shades[0] }, children: top };\n});\nconst shown = legend.sort((a, b) => b.value - a.value).slice(0, 8);\nconst graphic = [{ type: 'text', left: 'center', top: '32%',\n  style: { text: (total / 2 ** 30).toFixed(1) + '\\nGiB', fill: '#E7ECF3', align: 'center',\n    font: \"600 18px 'JetBrains Mono', 'Roboto Mono', monospace\", lineHeight: 22 } }];\nshown.forEach((k, i) => {\n  const col = i % 2;\n  const row = Math.floor(i / 2);\n  graphic.push({ type: 'group', left: (col ? 52 : 4) + '%', bottom: 72 - row * 20, children: [\n    { type: 'circle', shape: { cx: 4, cy: 7, r: 4 }, style: { fill: k.colour } },\n    { type: 'text', left: 14, top: 0, style: { text: k.name, fill: '#C9D2DE', font: '12px Inter, sans-serif' } },\n    { type: 'text', left: 150, top: 0, style: { text: gib(k.value), fill: '#E7ECF3', align: 'right',\n      font: \"12px 'JetBrains Mono', 'Roboto Mono', monospace\" } },\n  ] });\n});\nreturn {\n  backgroundColor: 'transparent',\n  tooltip: { trigger: 'item', formatter: (p) => p.name + ': ' + gib(p.value) },\n  graphic,\n  series: [{\n    type: 'sunburst', center: ['50%', '38%'], radius: ['26%', '66%'], data, sort: null,\n    itemStyle: { borderColor: '#111217', borderWidth: 2 },\n    levels: [{},\n      { r0: '26%', r: '44%', label: { color: '#0D1218', fontWeight: 600, fontSize: 12, minAngle: 20, rotate: 0 } },\n      { r0: '44%', r: '66%', label: { show: false } }],\n  }],\n};",
         "baidu": {
           "callback": "bmapReady",
           "key": ""
@@ -4584,43 +5106,93 @@
         "h": 12,
         "w": 8,
         "x": 16,
-        "y": 27
+        "y": 26
       }
     },
     {
-      "type": "row",
-      "title": "Logs and capacity",
-      "collapsed": false,
-      "panels": [],
-      "id": 14,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 39
-      }
-    },
-    {
-      "type": "heatmap",
-      "title": "Log pulse",
-      "description": "Lines per interval by level, every service, the levels normalised to lower case (Loki's detected_level).",
+      "type": "table",
+      "id": 19,
+      "title": "Changes",
       "transparent": true,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "What changed in the range, newest first: each Argo CD sync that succeeded, and each image of ours that started running, a release in prod or a promotion to staging. OpenTofu applies leave no metric and are not shown. The Argo CD syncs and Releases toggles mark the same moments on every chart.",
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 0,
+        "y": 38
+      },
+      "interval": "1m",
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "prometheus",
+            "uid": "prometheus"
           },
-          "expr": "sum by (level) (count_over_time({service_name=~\".+\"} | label_format level=\"{{ ToLower .detected_level }}\" [$__auto]))",
-          "queryType": "range",
+          "refId": "A",
+          "expr": "sum by (kind, what) (label_replace(label_replace((sum by (name) (argocd_app_sync_total{phase=\"Succeeded\"}) - sum by (name) (argocd_app_sync_total{phase=\"Succeeded\"} offset $__interval)) > 0, \"kind\", \"sync\", \"\", \"\"), \"what\", \"$1\", \"name\", \"(.*)\"))",
           "editorMode": "code",
-          "legendFormat": "{{level}}",
-          "refId": "A"
+          "range": true,
+          "instant": false,
+          "format": "table",
+          "interval": "1m"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "B",
+          "expr": "sum by (kind, what) (label_replace(label_replace(label_join(label_replace(count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}) unless count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"} offset $__interval), \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\"), \"what\", \" \", \"namespace\", \"version\"), \"kind\", \"release\", \"\", \"\"), \"kind\", \"promotion\", \"namespace\", \".*-staging\"))",
+          "editorMode": "code",
+          "range": true,
+          "instant": false,
+          "format": "table",
+          "interval": "1m"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Value": true,
+              "Value #A": true,
+              "Value #B": true
+            },
+            "indexByName": {
+              "Time": 0,
+              "kind": 1,
+              "what": 2
+            },
+            "renameByName": {
+              "Time": "When",
+              "kind": "Kind",
+              "what": "What"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "When",
+                "desc": true
+              }
+            ]
+          }
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -4629,60 +5201,87 @@
                 "value": null
               }
             ]
+          },
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "When"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsLocalNoDateIfToday"
+              },
+              {
+                "id": "custom.width",
+                "value": 170
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Kind"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "sync": {
+                        "text": "● sync",
+                        "color": "#7DD3FC",
+                        "index": 0
+                      },
+                      "release": {
+                        "text": "● release",
+                        "color": "#34D399",
+                        "index": 1
+                      },
+                      "promotion": {
+                        "text": "● promotion",
+                        "color": "#C4B5FD",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          }
+        ]
       },
       "options": {
-        "calculate": false,
-        "cellGap": 2,
-        "cellValues": {
-          "unit": "short"
-        },
-        "color": {
-          "mode": "scheme",
-          "scheme": "Oranges",
-          "steps": 64,
-          "exponent": 0.5,
-          "fill": "#60A5FA",
-          "scale": "exponential",
-          "reverse": false
-        },
-        "exemplars": {
-          "color": "#F59E0B"
-        },
-        "filterValues": {
-          "le": 1e-09
-        },
-        "legend": {
-          "show": false
-        },
-        "rowsFrame": {
-          "layout": "unknown",
-          "value": "lines"
-        },
-        "tooltip": {
-          "mode": "single",
-          "yHistogram": false,
-          "showColorScale": false
-        },
-        "yAxis": {
-          "axisPlacement": "left",
-          "reverse": false,
-          "unit": "short",
-          "axisLabel": ""
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
         }
-      },
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "id": 15,
-      "gridPos": {
-        "h": 7,
-        "w": 16,
-        "x": 0,
-        "y": 40
       }
     },
     {
@@ -4709,7 +5308,7 @@
             "uid": "prometheus"
           },
           "expr": "sum by (label_0xc0_cc_pool) (kube_pod_container_resource_requests{resource=\"memory\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=~\"Running|Pending\"} == 1) * on (node) group_left (label_0xc0_cc_pool) max by (node, label_0xc0_cc_pool) (kube_node_labels)) / sum by (label_0xc0_cc_pool) (kube_node_status_allocatable{resource=\"memory\"} * on (node) group_left (label_0xc0_cc_pool) max by (node, label_0xc0_cc_pool) (kube_node_labels))",
-          "legendFormat": "{{label_0xc0_cc_pool}} · mem",
+          "legendFormat": "{{label_0xc0_cc_pool}} · memory",
           "range": false,
           "instant": true,
           "editorMode": "code",
@@ -4757,11 +5356,15 @@
         },
         "showUnfilled": true,
         "valueMode": "color",
-        "namePlacement": "top",
+        "namePlacement": "left",
         "sizing": "auto",
-        "minVizHeight": 16,
+        "minVizHeight": 14,
         "minVizWidth": 8,
-        "maxVizHeight": 24
+        "maxVizHeight": 22,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 14
+        }
       },
       "datasource": {
         "type": "prometheus",
@@ -4769,222 +5372,10 @@
       },
       "id": 16,
       "gridPos": {
-        "h": 14,
+        "h": 8,
         "w": 8,
         "x": 16,
-        "y": 40
-      }
-    },
-    {
-      "type": "logs",
-      "title": "Latest errors",
-      "description": "The latest lines at error and above, every service.",
-      "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "{service_name=~\".+\"} | detected_level=~\"(?i)(error|fatal|critical)\"",
-          "queryType": "range",
-          "editorMode": "code",
-          "maxLines": 50,
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#E7ECF3",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "showTime": true,
-        "wrapLogMessage": true,
-        "enableLogDetails": true,
-        "sortOrder": "Descending",
-        "dedupStrategy": "none",
-        "prettifyLogMessage": false,
-        "showLabels": false,
-        "showCommonLabels": false,
-        "enableInfiniteScrolling": false
-      },
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "id": 17,
-      "gridPos": {
-        "h": 7,
-        "w": 16,
-        "x": 0,
-        "y": 47
-      }
-    },
-    {
-      "type": "row",
-      "title": "Changes",
-      "collapsed": false,
-      "panels": [],
-      "id": 18,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 54
-      }
-    },
-    {
-      "type": "state-timeline",
-      "title": "Changes",
-      "description": "Argo CD syncs per application (argocd_app_sync_total), and which release of ours runs in each app namespace (the image tag, from kube-state-metrics): a new row is a release or a promotion. OpenTofu applies leave no metric and are not shown.",
-      "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum by (name) (increase(argocd_app_sync_total[$__interval])) > 0",
-          "legendFormat": "sync · {{name}}",
-          "range": true,
-          "instant": false,
-          "editorMode": "code",
-          "interval": "5m",
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "count by (namespace, version) (label_replace(kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}, \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\"))",
-          "legendFormat": "{{namespace}} · {{version}}",
-          "range": true,
-          "instant": false,
-          "editorMode": "code",
-          "refId": "B"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#E7ECF3",
-                "value": null
-              }
-            ]
-          },
-          "custom": {
-            "fillOpacity": 80,
-            "lineWidth": 0,
-            "spanNulls": false
-          },
-          "noValue": "No syncs or releases in this range"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byFrameRefID",
-              "options": "A"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#7DD3FC"
-                }
-              },
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "range",
-                    "options": {
-                      "from": 0.0001,
-                      "to": 1000000000.0,
-                      "result": {
-                        "text": "synced",
-                        "color": "#7DD3FC"
-                      }
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byFrameRefID",
-              "options": "B"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#C4B5FD"
-                }
-              },
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "range",
-                    "options": {
-                      "from": 1,
-                      "to": 1000000000.0,
-                      "result": {
-                        "text": "running",
-                        "color": "#C4B5FD"
-                      }
-                    }
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "showValue": "never",
-        "mergeValues": true,
-        "alignValue": "left",
-        "rowHeight": 0.8,
-        "legend": {
-          "showLegend": false,
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "single"
-        }
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "id": 19,
-      "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 55
+        "y": 38
       }
     }
   ],
