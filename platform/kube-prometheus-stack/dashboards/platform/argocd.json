@@ -591,7 +591,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (name) (increase(argocd_app_sync_total[$__interval]))",
+          "expr": "sum by (name) (increase(argocd_app_sync_total[$__interval])) > 0",
           "legendFormat": "{{name}}",
           "range": true,
           "instant": false,
@@ -634,7 +634,8 @@
               "mode": "off"
             },
             "barAlignment": 0
-          }
+          },
+          "min": 0
         },
         "overrides": []
       },
@@ -810,7 +811,8 @@
               "mode": "off"
             }
           },
-          "decimals": 0
+          "decimals": 0,
+          "min": 0
         },
         "overrides": []
       },
@@ -891,7 +893,8 @@
               "mode": "off"
             }
           },
-          "decimals": 0
+          "decimals": 0,
+          "min": 0
         },
         "overrides": []
       },
@@ -972,7 +975,8 @@
               "mode": "off"
             }
           },
-          "decimals": 0
+          "decimals": 0,
+          "min": 0
         },
         "overrides": []
       },

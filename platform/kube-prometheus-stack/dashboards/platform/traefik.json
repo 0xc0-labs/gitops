@@ -325,7 +325,8 @@
               "mode": "off"
             }
           },
-          "decimals": 0
+          "decimals": 0,
+          "min": 0
         },
         "overrides": [
           {
@@ -437,7 +438,8 @@
               "mode": "off"
             }
           },
-          "decimals": 0
+          "decimals": 0,
+          "min": 0
         },
         "overrides": [
           {
@@ -607,7 +609,8 @@
               "mode": "off"
             }
           },
-          "decimals": 0
+          "decimals": 0,
+          "min": 0
         },
         "overrides": []
       },
@@ -997,7 +1000,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (name) (label_replace(label_replace(label_replace(increase(traefik_service_requests_total{exported_service=~\"httproute-.*\", code=~\"5..\"}[$__interval]), \"name\", \"$1\", \"exported_service\", \"(.*)\"), \"name\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"name\", \"rum-$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com)-.*-svc-opentelemetry-otel-gateway-[0-9]+@kubernetesgateway\"))",
+          "expr": "sum by (name) (label_replace(label_replace(label_replace(increase(traefik_service_requests_total{exported_service=~\"httproute-.*\", code=~\"5..\"}[$__interval]), \"name\", \"$1\", \"exported_service\", \"(.*)\"), \"name\", \"$1\", \"exported_service\", \".*-svc-(.+)-[0-9]+@kubernetesgateway\"), \"name\", \"rum-$1\", \"exported_service\", \"httproute-(offby1-cc|artistlabco-com-staging|artistlabco-com)-.*-svc-opentelemetry-otel-gateway-[0-9]+@kubernetesgateway\")) > 0",
           "legendFormat": "{{name}}",
           "range": true,
           "instant": false,
@@ -1039,7 +1042,8 @@
               "mode": "off"
             }
           },
-          "noValue": "no 5xx in range"
+          "noValue": "no 5xx in range",
+          "min": 0
         },
         "overrides": []
       },

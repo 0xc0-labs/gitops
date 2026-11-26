@@ -730,7 +730,8 @@
             "thresholdsStyle": {
               "mode": "off"
             }
-          }
+          },
+          "min": 0
         },
         "overrides": []
       },
@@ -810,7 +811,8 @@
             "thresholdsStyle": {
               "mode": "off"
             }
-          }
+          },
+          "min": 0
         },
         "overrides": []
       },

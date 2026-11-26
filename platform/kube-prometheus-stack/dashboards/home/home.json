@@ -3755,7 +3755,7 @@
           "format": "auto"
         },
         "editorMode": "code",
-        "getOption": "const DISPLAY = [\n  [/^monitoring-kube-prometheus-stack-grafana$/, 'Grafana'],\n  [/^vault-vault-active$/, 'Vault'],\n  [/^headlamp-headlamp$/, 'Headlamp'],\n  [/^argocd-argocd-server$/, 'Argo CD'],\n  [/^longhorn-system-longhorn-frontend$/, 'Longhorn'],\n  [/^matchmark-api$/, 'Matchmark API'],\n  [/^matchmark-gateway$/, 'Matchmark gateway'],\n  [/^matchmark-temporal-web$/, 'Temporal UI'],\n  [/^offby1-cc-offby1-cc$/, 'offby1.cc'],\n  [/^artistlabco-com-artistlabco-com$/, 'artistlabco.com'],\n  [/^artistlabco-com-artistlabco-com-cms$/, 'artistlabco.com CMS'],\n  [/^artistlabco-com-staging-artistlabco-com$/, 'artistlabco.com staging'],\n  [/^artistlabco-com-staging-artistlabco-com-cms$/, 'artistlabco.com CMS staging'],\n  [/^rum-offby1-cc$/, 'RUM (offby1.cc)'],\n  [/^rum-artistlabco-com$/, 'RUM (artistlabco.com)'],\n  [/^rum-artistlabco-com-staging$/, 'RUM (artistlabco.com staging)'],\n  [/^plane-plane-(.+)$/, 'Plane $1'],\n  [/^mautic-artistlabco-com-.*$/, 'Mautic'],\n  [/^.*api@internal.*$/, 'Traefik dashboard'],\n];\nconst display = (k) => { for (const [rx, t] of DISPLAY) if (rx.test(k)) return k.replace(rx, t); return k; };\nconst nameOf = (k, e) => (e === 'internal' && /^mautic-/.test(k) ? 'Mautic admin' : display(k));\nconst ENTRY = {\n  websecure: { label: 'Public', colour: '#60A5FA', flow: 'rgba(96,165,250,.3)', rank: 0 },\n  internal: { label: 'WARP', colour: '#F59E0B', flow: 'rgba(245,158,11,.3)', rank: 1 },\n  web: { label: 'Redirects', colour: '#8D99AB', flow: 'rgba(141,153,171,.3)', rank: 2 },\n};\nconst TOP = 6;\nconst rows = [];\nfor (const f of context.panel.data.series) {\n  const v = f.fields.find((x) => x.type === 'number');\n  if (!v) continue;\n  const ep = f.fields.find((x) => x.name === 'entrypoint');\n  const nm = f.fields.find((x) => x.name === 'name');\n  for (let i = 0; i < v.values.length; i++) {\n    const e = ep ? ep.values[i] : (v.labels || {}).entrypoint;\n    const n = nm ? nm.values[i] : (v.labels || {}).name;\n    if (ENTRY[e] && n && v.values[i] > 0) rows.push({ e, n: nameOf(n, e), v: v.values[i] });\n  }\n}\nif (!rows.length) {\n  return { title: { text: 'No requests in this range', left: 'center', top: 'middle',\n    textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } };\n}\nconst count = (x) => Math.round(x).toLocaleString('en-US');\nconst totals = {};\nconst byEntry = {};\nrows.forEach((r) => { totals[r.e] = (totals[r.e] || 0) + r.v; (byEntry[r.e] = byEntry[r.e] || []).push(r); });\nconst entries = Object.keys(byEntry).sort((a, b) => ENTRY[a].rank - ENTRY[b].rank);\nconst nodes = [];\nconst links = [];\nentries.forEach((e) => {\n  nodes.push({ name: ENTRY[e].label, value: totals[e], itemStyle: { color: ENTRY[e].colour },\n    label: { position: 'left', formatter: () => ENTRY[e].label + '\\n{v|' + count(totals[e]) + '}' } });\n});\nentries.forEach((e) => {\n  const list = byEntry[e].sort((a, b) => b.v - a.v);\n  const shown = list.slice(0, TOP);\n  const rest = list.slice(TOP).reduce((s, r) => s + r.v, 0);\n  if (rest > 0) shown.push({ e, n: 'other ' + ENTRY[e].label + ' (' + (list.length - TOP) + ')', v: rest });\n  shown.forEach((r) => {\n    if (!nodes.find((x) => x.name === r.n)) {\n      nodes.push({ name: r.n, itemStyle: { color: ENTRY[e].colour },\n        label: { position: 'right', formatter: (p) => '{v|' + count(p.value) + '}  ' + p.name } });\n    }\n    links.push({ source: ENTRY[e].label, target: r.n, value: r.v,\n      lineStyle: { color: ENTRY[e].flow, opacity: 1 } });\n  });\n});\nreturn {\n  backgroundColor: 'transparent',\n  tooltip: { trigger: 'item', formatter: (p) => (p.dataType === 'edge'\n    ? p.data.source + ' → ' + p.data.target + ': ' + count(p.value) + ' requests'\n    : p.name + ': ' + count(p.value) + ' requests') },\n  series: [{\n    type: 'sankey', data: nodes, links, left: 78, right: 230, top: 8, bottom: 8,\n    nodeWidth: 10, nodeGap: 10, layoutIterations: 0, nodeAlign: 'justify', draggable: false,\n    emphasis: { focus: 'adjacency' },\n    label: { color: '#C9D2DE', fontSize: 12, fontFamily: 'Inter, sans-serif', lineHeight: 16,\n      rich: { v: { color: '#E7ECF3', fontFamily: \"'JetBrains Mono', 'Roboto Mono', monospace\", fontSize: 12 } } },\n  }],\n};",
+        "getOption": "const DISPLAY = [\n  [/^monitoring-kube-prometheus-stack-grafana$/, 'Grafana'],\n  [/^vault-vault-active$/, 'Vault'],\n  [/^headlamp-headlamp$/, 'Headlamp'],\n  [/^argocd-argocd-server$/, 'Argo CD'],\n  [/^longhorn-system-longhorn-frontend$/, 'Longhorn'],\n  [/^matchmark-api$/, 'Matchmark API'],\n  [/^matchmark-gateway$/, 'Matchmark gateway'],\n  [/^matchmark-temporal-web$/, 'Temporal UI'],\n  [/^offby1-cc-offby1-cc$/, 'offby1.cc'],\n  [/^artistlabco-com-artistlabco-com$/, 'artistlabco.com'],\n  [/^artistlabco-com-artistlabco-com-cms$/, 'artistlabco.com CMS'],\n  [/^artistlabco-com-staging-artistlabco-com$/, 'artistlabco.com staging'],\n  [/^artistlabco-com-staging-artistlabco-com-cms$/, 'artistlabco.com CMS staging'],\n  [/^rum-offby1-cc$/, 'RUM (offby1.cc)'],\n  [/^rum-artistlabco-com$/, 'RUM (artistlabco.com)'],\n  [/^rum-artistlabco-com-staging$/, 'RUM (artistlabco.com staging)'],\n  [/^plane-plane-(.+)$/, 'Plane $1'],\n  [/^mautic-artistlabco-com-.*$/, 'Mautic'],\n  [/^.*api@internal.*$/, 'Traefik dashboard'],\n];\nconst display = (k) => { for (const [rx, t] of DISPLAY) if (rx.test(k)) return k.replace(rx, t); return k; };\nconst nameOf = (k, e) => (e === 'internal' && /^mautic-/.test(k) ? 'Mautic admin' : display(k));\nconst ENTRY = {\n  websecure: { label: 'Public', colour: '#60A5FA', rgb: '96,165,250', rank: 0 },\n  internal: { label: 'WARP', colour: '#F59E0B', rgb: '251,191,36', rank: 1 },\n  web: { label: 'Redirects', colour: '#8D99AB', rgb: '141,153,171', rank: 2 },\n};\n// A wide flat band of #F59E0B at .3 reads brown on the dark panel (86,61,29 measured).\n// Each flow is a lighter tone of its entrypoint's colour fading from .5 to .18, so WARP\n// reads as translucent amber.\nconst flow = (e) => ({ type: 'linear', x: 0, y: 0, x2: 1, y2: 0, colorStops: [\n  { offset: 0, color: 'rgba(' + ENTRY[e].rgb + ',.5)' }, { offset: 1, color: 'rgba(' + ENTRY[e].rgb + ',.18)' }] });\nconst TOP = 6;\nconst rows = [];\nfor (const f of context.panel.data.series) {\n  const v = f.fields.find((x) => x.type === 'number');\n  if (!v) continue;\n  const ep = f.fields.find((x) => x.name === 'entrypoint');\n  const nm = f.fields.find((x) => x.name === 'name');\n  for (let i = 0; i < v.values.length; i++) {\n    const e = ep ? ep.values[i] : (v.labels || {}).entrypoint;\n    const n = nm ? nm.values[i] : (v.labels || {}).name;\n    if (ENTRY[e] && n && v.values[i] > 0) rows.push({ e, n: nameOf(n, e), v: v.values[i] });\n  }\n}\nif (!rows.length) {\n  return { title: { text: 'No requests in this range', left: 'center', top: 'middle',\n    textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } };\n}\nconst count = (x) => Math.round(x).toLocaleString('en-US');\nconst totals = {};\nconst byEntry = {};\nrows.forEach((r) => { totals[r.e] = (totals[r.e] || 0) + r.v; (byEntry[r.e] = byEntry[r.e] || []).push(r); });\nconst entries = Object.keys(byEntry).sort((a, b) => ENTRY[a].rank - ENTRY[b].rank);\nconst nodes = [];\nconst links = [];\nentries.forEach((e) => {\n  nodes.push({ name: ENTRY[e].label, value: totals[e], itemStyle: { color: ENTRY[e].colour },\n    label: { position: 'left', formatter: () => ENTRY[e].label + '\\n{v|' + count(totals[e]) + '}' } });\n});\nentries.forEach((e) => {\n  const list = byEntry[e].sort((a, b) => b.v - a.v);\n  const shown = list.slice(0, TOP);\n  const rest = list.slice(TOP).reduce((s, r) => s + r.v, 0);\n  if (rest > 0) shown.push({ e, n: 'other ' + ENTRY[e].label + ' (' + (list.length - TOP) + ')', v: rest });\n  shown.forEach((r) => {\n    if (!nodes.find((x) => x.name === r.n)) {\n      nodes.push({ name: r.n, itemStyle: { color: ENTRY[e].colour },\n        label: { position: 'right', formatter: (p) => '{v|' + count(p.value) + '}  ' + p.name } });\n    }\n    links.push({ source: ENTRY[e].label, target: r.n, value: r.v,\n      lineStyle: { color: flow(e), opacity: 1 } });\n  });\n});\nreturn {\n  backgroundColor: 'transparent',\n  tooltip: { trigger: 'item', formatter: (p) => (p.dataType === 'edge'\n    ? p.data.source + ' → ' + p.data.target + ': ' + count(p.value) + ' requests'\n    : p.name + ': ' + count(p.value) + ' requests') },\n  series: [{\n    type: 'sankey', data: nodes, links, left: 78, right: 230, top: 8, bottom: 8,\n    nodeWidth: 10, nodeGap: 10, layoutIterations: 0, nodeAlign: 'justify', draggable: false,\n    emphasis: { focus: 'adjacency' },\n    label: { color: '#C9D2DE', fontSize: 12, fontFamily: 'Inter, sans-serif', lineHeight: 16,\n      rich: { v: { color: '#E7ECF3', fontFamily: \"'JetBrains Mono', 'Roboto Mono', monospace\", fontSize: 12 } } },\n  }],\n};",
         "baidu": {
           "callback": "bmapReady",
           "key": ""
@@ -4882,7 +4882,7 @@
         "type": "loki",
         "uid": "loki"
       },
-      "description": "Lines at error and above, every service, grouped by service and message: how many in the range and when the last one came. The message alone, from a JSON or logfmt line's message field, or the line itself without klog's file and line prefix.",
+      "description": "The last 200 lines at error and above in the range, every service, grouped by service and message: how many of them each message has, and when the last one came. The message alone, from a JSON or logfmt line's message field, or the line itself without klog's file and line prefix. One log query, grouped here: a metric query grouped by message passes Loki's 500-series limit over a day.",
       "gridPos": {
         "h": 7,
         "w": 16,
@@ -4897,45 +4897,57 @@
           },
           "refId": "A",
           "editorMode": "code",
-          "queryType": "instant",
-          "expr": "label_replace(sum by (service_name, msg) (count_over_time({service_name=~\".+\"} | detected_level=~\"(?i)(error|err|fatal|critical|crit|panic)\" | json m_message=\"message\", m_msg=\"msg\", m_body=\"body\" | logfmt m_msg=\"msg\" | drop __error__, __error_details__ | label_format msg=`{{ trunc 140 (regexReplaceAll \"^[IWEF][0-9]{4} [0-9:.]+ +[0-9]+ [^ ]+:[0-9]+[]] \" (default (default (default __line__ .m_body) .m_msg) .m_message) \"\") }}` [$__range])), \"stat\", \"count\", \"\", \"\")"
-        },
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "refId": "B",
-          "editorMode": "code",
-          "queryType": "instant",
-          "expr": "label_replace(max by (service_name, msg) (max_over_time({service_name=~\".+\"} | detected_level=~\"(?i)(error|err|fatal|critical|crit|panic)\" | json m_message=\"message\", m_msg=\"msg\", m_body=\"body\" | logfmt m_msg=\"msg\" | drop __error__, __error_details__ | label_format msg=`{{ trunc 140 (regexReplaceAll \"^[IWEF][0-9]{4} [0-9:.]+ +[0-9]+ [^ ]+:[0-9]+[]] \" (default (default (default __line__ .m_body) .m_msg) .m_message) \"\") }}` | label_format ts=`{{ __timestamp__ | unixEpoch }}` | unwrap ts [$__range])) * 1000, \"stat\", \"last\", \"\", \"\")"
+          "queryType": "range",
+          "maxLines": 200,
+          "expr": "# Strapi logs its graceful shutdown, \"received SIGTERM, exiting\", at error on every rollout.\n{service_name=~\".+\"} | detected_level=~\"(?i)(error|err|fatal|critical|crit|panic)\" != \"received SIGTERM, exiting\" | json m_message=\"message\", m_msg=\"msg\", m_body=\"body\" | logfmt m_msg=\"msg\" | drop __error__, __error_details__ | line_format `{{ trunc 140 (regexReplaceAll \"^[IWEF][0-9]{4} [0-9:.]+ +[0-9]+ [^ ]+:[0-9]+[]] \" (default (default (default __line__ .m_body) .m_msg) .m_message) \"\") }}`"
         }
       ],
       "transformations": [
         {
-          "id": "joinByLabels",
+          "id": "extractFields",
           "options": {
-            "value": "stat",
-            "join": [
-              "service_name",
-              "msg"
-            ]
+            "source": "labels",
+            "format": "auto",
+            "replace": false,
+            "keepTime": false
+          }
+        },
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "service_name": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "Line": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "Time": {
+                "aggregations": [
+                  "max",
+                  "count"
+                ],
+                "operation": "aggregate"
+              }
+            }
           }
         },
         {
           "id": "organize",
           "options": {
             "indexByName": {
-              "last": 0,
+              "Time (max)": 0,
               "service_name": 1,
-              "msg": 2,
-              "count": 3
+              "Line": 2,
+              "Time (count)": 3
             },
             "renameByName": {
-              "last": "Last",
+              "Time (max)": "Last",
               "service_name": "Service",
-              "msg": "Message",
-              "count": "Lines"
+              "Line": "Message",
+              "Time (count)": "Lines"
             }
           }
         },
@@ -4985,11 +4997,11 @@
             "properties": [
               {
                 "id": "unit",
-                "value": "time: HH:mm"
+                "value": "time: MMM D, HH:mm"
               },
               {
                 "id": "custom.width",
-                "value": 70
+                "value": 110
               }
             ]
           },

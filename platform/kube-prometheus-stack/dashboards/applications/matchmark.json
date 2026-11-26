@@ -295,7 +295,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (http_route) (increase(http_server_request_duration_seconds_count{service_name=\"matchmark-api\"}[$__interval]))",
+          "expr": "sum by (http_route) (increase(http_server_request_duration_seconds_count{service_name=\"matchmark-api\"}[$__interval])) > 0",
           "legendFormat": "{{http_route}}",
           "range": true,
           "instant": false,
@@ -338,7 +338,8 @@
               "mode": "off"
             }
           },
-          "decimals": 0
+          "decimals": 0,
+          "min": 0
         },
         "overrides": []
       },
@@ -458,7 +459,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (http_response_status_code) (increase(http_server_request_duration_seconds_count{service_name=\"matchmark-api\"}[$__interval]))",
+          "expr": "sum by (http_response_status_code) (increase(http_server_request_duration_seconds_count{service_name=\"matchmark-api\"}[$__interval])) > 0",
           "legendFormat": "{{http_response_status_code}}",
           "range": true,
           "instant": false,
@@ -501,7 +502,8 @@
               "mode": "off"
             }
           },
-          "decimals": 0
+          "decimals": 0,
+          "min": 0
         },
         "overrides": [
           {
@@ -641,7 +643,8 @@
             }
           },
           "noValue": "no worker spans in range",
-          "decimals": 0
+          "decimals": 0,
+          "min": 0
         },
         "overrides": []
       },
@@ -848,7 +851,8 @@
               "mode": "off"
             }
           },
-          "decimals": 0
+          "decimals": 0,
+          "min": 0
         },
         "overrides": [
           {
@@ -957,7 +961,8 @@
               "mode": "off"
             }
           },
-          "decimals": 0
+          "decimals": 0,
+          "min": 0
         },
         "overrides": [
           {
@@ -1149,7 +1154,8 @@
             "thresholdsStyle": {
               "mode": "off"
             }
-          }
+          },
+          "min": 0
         },
         "overrides": [
           {
@@ -1259,7 +1265,8 @@
             }
           },
           "noValue": "no tasks in this range",
-          "decimals": 0
+          "decimals": 0,
+          "min": 0
         },
         "overrides": []
       },
@@ -1349,7 +1356,8 @@
             }
           },
           "noValue": "no tasks in this range",
-          "decimals": 0
+          "decimals": 0,
+          "min": 0
         },
         "overrides": [
           {

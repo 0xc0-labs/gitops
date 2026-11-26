@@ -1053,7 +1053,7 @@
       }
     },
     {
-      "type": "bargauge",
+      "type": "volkovlabs-echarts-panel",
       "title": "Top pages",
       "description": "Page loads by URL.",
       "transparent": true,
@@ -1066,18 +1066,11 @@
           "expr": "topk(10, sum by (page) (count_over_time({service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_ttfb!=\"\" | label_format page=`{{ regexReplaceAll \"^https?://\" .page_url \"\" }}` [$__range])))",
           "queryType": "instant",
           "editorMode": "code",
-          "legendFormat": "{{page}}",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#60A5FA"
-          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1086,29 +1079,39 @@
                 "value": null
               }
             ]
-          },
-          "noValue": "no visits in range",
-          "min": 0
+          }
         },
         "overrides": []
       },
       "options": {
-        "displayMode": "basic",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
         },
-        "showUnfilled": true,
-        "valueMode": "color",
-        "namePlacement": "top",
-        "sizing": "auto",
-        "minVizHeight": 16,
-        "minVizWidth": 8,
-        "maxVizHeight": 24
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        },
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst SANS = 'Inter, sans-serif';\nconst C = { text: '#E7ECF3', text2: '#C9D2DE', label: '#8D99AB', line: '#1F2733', a: '#60A5FA', b: '#F59E0B',\n  ok: '#34D399', warn: '#FBBF24', crit: '#FB7185' };\nconst frames = (context.panel.data && context.panel.data.series) || [];\nconst rv = (s) => { try { return context.grafana.replaceVariables(s); } catch (e) { return ''; } };\nconst unq = (s) => String(s).replace(/^\"(.*)\"$/, '$1');\nconst num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));\n// Labels of a value, wherever the data source put them: field labels, a frame name such as\n// {name=\"GET /\", p=\"0.95\"} (Tempo), or string columns of a table frame (Loki and Prometheus instant).\nconst labelsOf = (f, field) => {\n  const out = {};\n  const parse = (s) => {\n    if (!s) return;\n    const re = /([\\w.:-]+)\\s*=\\s*\"((?:[^\"\\\\]|\\\\.)*)\"/g;\n    let m;\n    while ((m = re.exec(String(s)))) out[m[1]] = unq(m[2]);\n  };\n  parse(f.name);\n  parse(field.config && field.config.displayNameFromDS);\n  Object.keys(field.labels || {}).forEach((k) => { out[k] = unq(field.labels[k]); });\n  return out;\n};\nconst refOf = (f, field) => f.refId || ((/#\\s*(\\w+)$/.exec(field.name || '') || [])[1]) || '';\nconst rows = (() => {\n  const out = [];\n  frames.forEach((f) => {\n    const fs = f.fields || [];\n    const tf = fs.find((x) => x.type === 'time');\n    const strs = fs.filter((x) => x.type === 'string');\n    fs.filter((x) => x.type === 'number').forEach((v) => {\n      const base = labelsOf(f, v);\n      const ref = refOf(f, v);\n      const n = v.values.length;\n      for (let i = 0; i < n; i++) {\n        const lab = Object.assign({}, base);\n        strs.forEach((s) => { const x = s.values[i]; if (x !== null && x !== undefined && x !== '') lab[s.name] = unq(x); });\n        out.push({ labels: lab, value: num(v.values[i]), time: tf ? Number(tf.values[i]) : null, ref: ref });\n      }\n    });\n  });\n  return out;\n})();\nconst hasKey = (lab, rx) => Object.keys(lab).some((k) => rx.test(k));\nconst chart = context.panel.chart;\nconst W = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 600;\nconst H = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 300;\nconst range = (() => {\n  const r = context.panel.data.timeRange;\n  return r ? { from: r.from.valueOf(), to: r.to.valueOf() } : { from: Date.now() - 6 * 3600000, to: Date.now() };\n})();\nconst empty = (msg) => ({ backgroundColor: 'transparent', animation: false,\n  graphic: [{ type: 'text', left: 'center', top: 'middle', silent: true,\n    style: { text: msg, fill: C.label, font: '13px ' + SANS } }] });\n// One bar per page, its count over the range, largest first, with its name and count beside it.\nconst KEY = \"page\";\nconst ORDER = [];\nconst RENAME = {};\nconst rank = (k) => (ORDER.indexOf(k) >= 0 ? ORDER.indexOf(k) : ORDER.length);\nconst totals = new Map(ORDER.map((k) => [k, 0]));\nrows.forEach((r) => {\n  const k = r.labels[KEY];\n  if (k === undefined || r.value === null) return;\n  const name = RENAME[k] || k;\n  totals.set(name, (totals.get(name) || 0) + r.value);\n});\nconst list = [...totals.entries()]\n  .filter((x) => ORDER.indexOf(x[0]) >= 0 || x[1] > 0)\n  .sort((a, b) => rank(a[0]) - rank(b[0]) || b[1] - a[1])\n  .slice(0, 10);\nif (!list.some((x) => x[1] > 0)) return empty(\"No page loads in this range\");\nconst count = (x) => Math.round(x).toLocaleString('en-US');\nconst rowH = Math.max(18, Math.min(30, (H - 8) / list.length));\nreturn {\n  backgroundColor: 'transparent', animation: false,\n  grid: { left: 4, right: 64, top: 4, height: rowH * list.length, containLabel: true },\n  tooltip: { trigger: 'item', formatter: (p) => p.name + ': ' + count(p.value) },\n  xAxis: { type: 'value', min: 0, show: false },\n  yAxis: { type: 'category', inverse: true, data: list.map((x) => x[0]), axisTick: { show: false }, axisLine: { show: false },\n    axisLabel: { color: C.text2, fontSize: 12, fontFamily: MONO, width: Math.max(90, W * 0.5), overflow: 'truncate', ellipsis: '…' } },\n  series: [{ type: 'bar', barWidth: Math.min(14, rowH - 6), data: list.map((x) => x[1]),\n    itemStyle: { color: \"#60A5FA\", borderRadius: 3 },\n    showBackground: true, backgroundStyle: { color: C.line, borderRadius: 3 },\n    label: { show: true, position: 'right', distance: 8, color: C.text, fontFamily: MONO, fontSize: 12,\n      formatter: (p) => count(p.value) } }],\n};\n"
       },
       "datasource": {
         "type": "loki",
@@ -1121,44 +1124,10 @@
         "x": 0,
         "y": 21
       },
-      "transformations": [
-        {
-          "id": "labelsToFields",
-          "options": {
-            "mode": "columns"
-          }
-        },
-        {
-          "id": "merge",
-          "options": {}
-        },
-        {
-          "id": "sortBy",
-          "options": {
-            "fields": {},
-            "sort": [
-              {
-                "field": "Value #A",
-                "desc": true
-              }
-            ]
-          }
-        },
-        {
-          "id": "rowsToFields",
-          "options": {
-            "mappings": [
-              {
-                "fieldName": "page",
-                "handlerKey": "field.name"
-              }
-            ]
-          }
-        }
-      ]
+      "transformations": null
     },
     {
-      "type": "piechart",
+      "type": "volkovlabs-echarts-panel",
       "title": "Browsers",
       "description": "Sessions by browser.",
       "transparent": true,
@@ -1171,16 +1140,11 @@
           "expr": "sum by (browser_name) (count_over_time({service_name=~\"$app\"} | kind=\"event\" | logfmt | app_environment!=\"probe\" | event_name=\"session_start\" [$__range]))",
           "queryType": "instant",
           "editorMode": "code",
-          "legendFormat": "{{browser_name}}",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
-          "color": {
-            "mode": "palette-classic"
-          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1189,33 +1153,39 @@
                 "value": null
               }
             ]
-          },
-          "noValue": "no sessions in range"
+          }
         },
         "overrides": []
       },
       "options": {
-        "pieType": "donut",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
         },
-        "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true,
-          "values": [
-            "value",
-            "percent"
-          ]
+        "editor": {
+          "format": "auto"
         },
-        "displayLabels": [],
-        "tooltip": {
-          "mode": "single"
-        }
+        "editorMode": "code",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        },
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst SANS = 'Inter, sans-serif';\nconst C = { text: '#E7ECF3', text2: '#C9D2DE', label: '#8D99AB', line: '#1F2733', a: '#60A5FA', b: '#F59E0B',\n  ok: '#34D399', warn: '#FBBF24', crit: '#FB7185' };\nconst frames = (context.panel.data && context.panel.data.series) || [];\nconst rv = (s) => { try { return context.grafana.replaceVariables(s); } catch (e) { return ''; } };\nconst unq = (s) => String(s).replace(/^\"(.*)\"$/, '$1');\nconst num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));\n// Labels of a value, wherever the data source put them: field labels, a frame name such as\n// {name=\"GET /\", p=\"0.95\"} (Tempo), or string columns of a table frame (Loki and Prometheus instant).\nconst labelsOf = (f, field) => {\n  const out = {};\n  const parse = (s) => {\n    if (!s) return;\n    const re = /([\\w.:-]+)\\s*=\\s*\"((?:[^\"\\\\]|\\\\.)*)\"/g;\n    let m;\n    while ((m = re.exec(String(s)))) out[m[1]] = unq(m[2]);\n  };\n  parse(f.name);\n  parse(field.config && field.config.displayNameFromDS);\n  Object.keys(field.labels || {}).forEach((k) => { out[k] = unq(field.labels[k]); });\n  return out;\n};\nconst refOf = (f, field) => f.refId || ((/#\\s*(\\w+)$/.exec(field.name || '') || [])[1]) || '';\nconst rows = (() => {\n  const out = [];\n  frames.forEach((f) => {\n    const fs = f.fields || [];\n    const tf = fs.find((x) => x.type === 'time');\n    const strs = fs.filter((x) => x.type === 'string');\n    fs.filter((x) => x.type === 'number').forEach((v) => {\n      const base = labelsOf(f, v);\n      const ref = refOf(f, v);\n      const n = v.values.length;\n      for (let i = 0; i < n; i++) {\n        const lab = Object.assign({}, base);\n        strs.forEach((s) => { const x = s.values[i]; if (x !== null && x !== undefined && x !== '') lab[s.name] = unq(x); });\n        out.push({ labels: lab, value: num(v.values[i]), time: tf ? Number(tf.values[i]) : null, ref: ref });\n      }\n    });\n  });\n  return out;\n})();\nconst hasKey = (lab, rx) => Object.keys(lab).some((k) => rx.test(k));\nconst chart = context.panel.chart;\nconst W = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 600;\nconst H = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 300;\nconst range = (() => {\n  const r = context.panel.data.timeRange;\n  return r ? { from: r.from.valueOf(), to: r.to.valueOf() } : { from: Date.now() - 6 * 3600000, to: Date.now() };\n})();\nconst empty = (msg) => ({ backgroundColor: 'transparent', animation: false,\n  graphic: [{ type: 'text', left: 'center', top: 'middle', silent: true,\n    style: { text: msg, fill: C.label, font: '13px ' + SANS } }] });\n// A donut of browser_name: one slice per value, the 6 largest and the rest as \"other\".\nconst KEY = \"browser_name\";\nconst RENAME = {};\nconst COLOURS = {};\nconst PALETTE = [C.a, C.b, '#C4B5FD', '#7DD3FC', C.ok, '#F472B6'];\nconst totals = new Map();\nrows.forEach((r) => {\n  const k = r.labels[KEY];\n  if (k === undefined || r.value === null || r.value <= 0) return;\n  const name = RENAME[k] || k;\n  totals.set(name, (totals.get(name) || 0) + r.value);\n});\nlet list = [...totals.entries()].sort((a, b) => b[1] - a[1]);\nif (list.length > 6) list = list.slice(0, 5).concat([['other', list.slice(5).reduce((s, x) => s + x[1], 0)]]);\nif (!list.length) return empty(\"No sessions in this range\");\nconst count = (x) => Math.round(x).toLocaleString('en-US');\nconst sum = list.reduce((s, x) => s + x[1], 0);\nconst share = (v) => Math.round((100 * v) / sum) + '%';\nconst value = Object.fromEntries(list);\nconst legendH = 20 * list.length;\nconst size = Math.max(60, Math.min(W - 16, H - legendH - 16));\nconst cy = 4 + size / 2;\nreturn {\n  backgroundColor: 'transparent', animation: false,\n  tooltip: { trigger: 'item', formatter: (p) => p.name + ': ' + count(p.value) + ' (' + share(p.value) + ')' },\n  legend: { bottom: 0, left: 'center', orient: 'vertical', icon: 'roundRect', itemWidth: 10, itemHeight: 10, itemGap: 8,\n    textStyle: { color: C.text2, fontSize: 12, rich: { v: { color: C.text, fontFamily: MONO, fontSize: 12 } } },\n    formatter: (n) => n + '  {v|' + count(value[n]) + ' · ' + share(value[n]) + '}' },\n  graphic: [{ type: 'text', left: 'center', top: cy - 16, silent: true,\n    style: { text: count(sum), fill: C.text, font: '600 18px ' + MONO, align: 'center' } },\n    { type: 'text', left: 'center', top: cy + 6, silent: true,\n    style: { text: \"sessions\", fill: C.label, font: '11px ' + SANS, align: 'center' } }],\n  series: [{ type: 'pie', radius: [size * 0.34, size * 0.5], center: ['50%', cy], label: { show: false },\n    itemStyle: { borderColor: '#111217', borderWidth: 2 },\n    data: list.map((x, i) => ({ name: x[0], value: x[1],\n      itemStyle: { color: COLOURS[x[0]] || (x[0] === 'other' ? '#475569' : PALETTE[i % PALETTE.length]) } })) }],\n};\n"
       },
       "datasource": {
         "type": "loki",
@@ -1228,32 +1198,10 @@
         "x": 10,
         "y": 21
       },
-      "transformations": [
-        {
-          "id": "labelsToFields",
-          "options": {
-            "mode": "columns"
-          }
-        },
-        {
-          "id": "merge",
-          "options": {}
-        },
-        {
-          "id": "rowsToFields",
-          "options": {
-            "mappings": [
-              {
-                "fieldName": "browser_name",
-                "handlerKey": "field.name"
-              }
-            ]
-          }
-        }
-      ]
+      "transformations": null
     },
     {
-      "type": "piechart",
+      "type": "volkovlabs-echarts-panel",
       "title": "Devices",
       "description": "Sessions on mobile and desktop.",
       "transparent": true,
@@ -1266,16 +1214,11 @@
           "expr": "sum by (browser_mobile) (count_over_time({service_name=~\"$app\"} | kind=\"event\" | logfmt | app_environment!=\"probe\" | event_name=\"session_start\" [$__range]))",
           "queryType": "instant",
           "editorMode": "code",
-          "legendFormat": "{{browser_mobile}}",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
-          "color": {
-            "mode": "palette-classic"
-          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1284,72 +1227,39 @@
                 "value": null
               }
             ]
-          },
-          "noValue": "no sessions in range"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "true"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "mobile"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#F59E0B"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "false"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "desktop"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#60A5FA"
-                }
-              }
-            ]
           }
-        ]
+        },
+        "overrides": []
       },
       "options": {
-        "pieType": "donut",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
         },
-        "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true,
-          "values": [
-            "value",
-            "percent"
-          ]
+        "editor": {
+          "format": "auto"
         },
-        "displayLabels": [],
-        "tooltip": {
-          "mode": "single"
-        }
+        "editorMode": "code",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        },
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst SANS = 'Inter, sans-serif';\nconst C = { text: '#E7ECF3', text2: '#C9D2DE', label: '#8D99AB', line: '#1F2733', a: '#60A5FA', b: '#F59E0B',\n  ok: '#34D399', warn: '#FBBF24', crit: '#FB7185' };\nconst frames = (context.panel.data && context.panel.data.series) || [];\nconst rv = (s) => { try { return context.grafana.replaceVariables(s); } catch (e) { return ''; } };\nconst unq = (s) => String(s).replace(/^\"(.*)\"$/, '$1');\nconst num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));\n// Labels of a value, wherever the data source put them: field labels, a frame name such as\n// {name=\"GET /\", p=\"0.95\"} (Tempo), or string columns of a table frame (Loki and Prometheus instant).\nconst labelsOf = (f, field) => {\n  const out = {};\n  const parse = (s) => {\n    if (!s) return;\n    const re = /([\\w.:-]+)\\s*=\\s*\"((?:[^\"\\\\]|\\\\.)*)\"/g;\n    let m;\n    while ((m = re.exec(String(s)))) out[m[1]] = unq(m[2]);\n  };\n  parse(f.name);\n  parse(field.config && field.config.displayNameFromDS);\n  Object.keys(field.labels || {}).forEach((k) => { out[k] = unq(field.labels[k]); });\n  return out;\n};\nconst refOf = (f, field) => f.refId || ((/#\\s*(\\w+)$/.exec(field.name || '') || [])[1]) || '';\nconst rows = (() => {\n  const out = [];\n  frames.forEach((f) => {\n    const fs = f.fields || [];\n    const tf = fs.find((x) => x.type === 'time');\n    const strs = fs.filter((x) => x.type === 'string');\n    fs.filter((x) => x.type === 'number').forEach((v) => {\n      const base = labelsOf(f, v);\n      const ref = refOf(f, v);\n      const n = v.values.length;\n      for (let i = 0; i < n; i++) {\n        const lab = Object.assign({}, base);\n        strs.forEach((s) => { const x = s.values[i]; if (x !== null && x !== undefined && x !== '') lab[s.name] = unq(x); });\n        out.push({ labels: lab, value: num(v.values[i]), time: tf ? Number(tf.values[i]) : null, ref: ref });\n      }\n    });\n  });\n  return out;\n})();\nconst hasKey = (lab, rx) => Object.keys(lab).some((k) => rx.test(k));\nconst chart = context.panel.chart;\nconst W = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 600;\nconst H = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 300;\nconst range = (() => {\n  const r = context.panel.data.timeRange;\n  return r ? { from: r.from.valueOf(), to: r.to.valueOf() } : { from: Date.now() - 6 * 3600000, to: Date.now() };\n})();\nconst empty = (msg) => ({ backgroundColor: 'transparent', animation: false,\n  graphic: [{ type: 'text', left: 'center', top: 'middle', silent: true,\n    style: { text: msg, fill: C.label, font: '13px ' + SANS } }] });\n// A donut of browser_mobile: one slice per value, the 6 largest and the rest as \"other\".\nconst KEY = \"browser_mobile\";\nconst RENAME = {\"true\": \"mobile\", \"false\": \"desktop\"};\nconst COLOURS = {\"mobile\": \"#F59E0B\", \"desktop\": \"#60A5FA\"};\nconst PALETTE = [C.a, C.b, '#C4B5FD', '#7DD3FC', C.ok, '#F472B6'];\nconst totals = new Map();\nrows.forEach((r) => {\n  const k = r.labels[KEY];\n  if (k === undefined || r.value === null || r.value <= 0) return;\n  const name = RENAME[k] || k;\n  totals.set(name, (totals.get(name) || 0) + r.value);\n});\nlet list = [...totals.entries()].sort((a, b) => b[1] - a[1]);\nif (list.length > 6) list = list.slice(0, 5).concat([['other', list.slice(5).reduce((s, x) => s + x[1], 0)]]);\nif (!list.length) return empty(\"No sessions in this range\");\nconst count = (x) => Math.round(x).toLocaleString('en-US');\nconst sum = list.reduce((s, x) => s + x[1], 0);\nconst share = (v) => Math.round((100 * v) / sum) + '%';\nconst value = Object.fromEntries(list);\nconst legendH = 20 * list.length;\nconst size = Math.max(60, Math.min(W - 16, H - legendH - 16));\nconst cy = 4 + size / 2;\nreturn {\n  backgroundColor: 'transparent', animation: false,\n  tooltip: { trigger: 'item', formatter: (p) => p.name + ': ' + count(p.value) + ' (' + share(p.value) + ')' },\n  legend: { bottom: 0, left: 'center', orient: 'vertical', icon: 'roundRect', itemWidth: 10, itemHeight: 10, itemGap: 8,\n    textStyle: { color: C.text2, fontSize: 12, rich: { v: { color: C.text, fontFamily: MONO, fontSize: 12 } } },\n    formatter: (n) => n + '  {v|' + count(value[n]) + ' · ' + share(value[n]) + '}' },\n  graphic: [{ type: 'text', left: 'center', top: cy - 16, silent: true,\n    style: { text: count(sum), fill: C.text, font: '600 18px ' + MONO, align: 'center' } },\n    { type: 'text', left: 'center', top: cy + 6, silent: true,\n    style: { text: \"sessions\", fill: C.label, font: '11px ' + SANS, align: 'center' } }],\n  series: [{ type: 'pie', radius: [size * 0.34, size * 0.5], center: ['50%', cy], label: { show: false },\n    itemStyle: { borderColor: '#111217', borderWidth: 2 },\n    data: list.map((x, i) => ({ name: x[0], value: x[1],\n      itemStyle: { color: COLOURS[x[0]] || (x[0] === 'other' ? '#475569' : PALETTE[i % PALETTE.length]) } })) }],\n};\n"
       },
       "datasource": {
         "type": "loki",
@@ -1362,29 +1272,7 @@
         "x": 17,
         "y": 21
       },
-      "transformations": [
-        {
-          "id": "labelsToFields",
-          "options": {
-            "mode": "columns"
-          }
-        },
-        {
-          "id": "merge",
-          "options": {}
-        },
-        {
-          "id": "rowsToFields",
-          "options": {
-            "mappings": [
-              {
-                "fieldName": "browser_mobile",
-                "handlerKey": "field.name"
-              }
-            ]
-          }
-        }
-      ]
+      "transformations": null
     },
     {
       "type": "row",

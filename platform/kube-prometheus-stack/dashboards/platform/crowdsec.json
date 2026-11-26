@@ -382,7 +382,8 @@
             "thresholdsStyle": {
               "mode": "off"
             }
-          }
+          },
+          "min": 0
         },
         "overrides": [
           {
@@ -523,7 +524,8 @@
             "thresholdsStyle": {
               "mode": "off"
             }
-          }
+          },
+          "min": 0
         },
         "overrides": []
       },
@@ -603,7 +605,8 @@
             "thresholdsStyle": {
               "mode": "off"
             }
-          }
+          },
+          "min": 0
         },
         "overrides": []
       },
@@ -684,7 +687,8 @@
               "mode": "off"
             }
           },
-          "decimals": 0
+          "decimals": 0,
+          "min": 0
         },
         "overrides": []
       },
@@ -790,7 +794,8 @@
               "mode": "off"
             }
           },
-          "decimals": 0
+          "decimals": 0,
+          "min": 0
         },
         "overrides": [
           {
@@ -902,7 +907,8 @@
               "mode": "off"
             }
           },
-          "decimals": 0
+          "decimals": 0,
+          "min": 0
         },
         "overrides": []
       },
@@ -995,7 +1001,8 @@
               "mode": "off"
             }
           },
-          "decimals": 0
+          "decimals": 0,
+          "min": 0
         },
         "overrides": [
           {

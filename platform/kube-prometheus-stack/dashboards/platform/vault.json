@@ -360,7 +360,8 @@
               "mode": "off"
             }
           },
-          "decimals": 0
+          "decimals": 0,
+          "min": 0
         },
         "overrides": [
           {
@@ -591,7 +592,8 @@
               "mode": "off"
             }
           },
-          "decimals": 0
+          "decimals": 0,
+          "min": 0
         },
         "overrides": [
           {
@@ -679,9 +681,9 @@
       }
     },
     {
-      "type": "bargauge",
+      "type": "volkovlabs-echarts-panel",
       "title": "Tokens by auth method",
-      "description": "Tokens by the auth method that created them (a periodic gauge, read over 15 m).",
+      "description": "Tokens by the auth method that created them (a periodic gauge, read over 15 m). The four methods in use always have a bar, at 0 when they hold no token.",
       "transparent": true,
       "targets": [
         {
@@ -693,18 +695,11 @@
           "range": false,
           "instant": true,
           "editorMode": "code",
-          "refId": "A",
-          "format": "table"
+          "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#7DD3FC"
-          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -713,28 +708,39 @@
                 "value": null
               }
             ]
-          },
-          "min": 0
+          }
         },
         "overrides": []
       },
       "options": {
-        "displayMode": "basic",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": true
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
         },
-        "showUnfilled": true,
-        "valueMode": "color",
-        "namePlacement": "left",
-        "sizing": "auto",
-        "minVizHeight": 16,
-        "minVizWidth": 8,
-        "maxVizHeight": 24
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        },
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst SANS = 'Inter, sans-serif';\nconst C = { text: '#E7ECF3', text2: '#C9D2DE', label: '#8D99AB', line: '#1F2733', a: '#60A5FA', b: '#F59E0B',\n  ok: '#34D399', warn: '#FBBF24', crit: '#FB7185' };\nconst frames = (context.panel.data && context.panel.data.series) || [];\nconst rv = (s) => { try { return context.grafana.replaceVariables(s); } catch (e) { return ''; } };\nconst unq = (s) => String(s).replace(/^\"(.*)\"$/, '$1');\nconst num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));\n// Labels of a value, wherever the data source put them: field labels, a frame name such as\n// {name=\"GET /\", p=\"0.95\"} (Tempo), or string columns of a table frame (Loki and Prometheus instant).\nconst labelsOf = (f, field) => {\n  const out = {};\n  const parse = (s) => {\n    if (!s) return;\n    const re = /([\\w.:-]+)\\s*=\\s*\"((?:[^\"\\\\]|\\\\.)*)\"/g;\n    let m;\n    while ((m = re.exec(String(s)))) out[m[1]] = unq(m[2]);\n  };\n  parse(f.name);\n  parse(field.config && field.config.displayNameFromDS);\n  Object.keys(field.labels || {}).forEach((k) => { out[k] = unq(field.labels[k]); });\n  return out;\n};\nconst refOf = (f, field) => f.refId || ((/#\\s*(\\w+)$/.exec(field.name || '') || [])[1]) || '';\nconst rows = (() => {\n  const out = [];\n  frames.forEach((f) => {\n    const fs = f.fields || [];\n    const tf = fs.find((x) => x.type === 'time');\n    const strs = fs.filter((x) => x.type === 'string');\n    fs.filter((x) => x.type === 'number').forEach((v) => {\n      const base = labelsOf(f, v);\n      const ref = refOf(f, v);\n      const n = v.values.length;\n      for (let i = 0; i < n; i++) {\n        const lab = Object.assign({}, base);\n        strs.forEach((s) => { const x = s.values[i]; if (x !== null && x !== undefined && x !== '') lab[s.name] = unq(x); });\n        out.push({ labels: lab, value: num(v.values[i]), time: tf ? Number(tf.values[i]) : null, ref: ref });\n      }\n    });\n  });\n  return out;\n})();\nconst hasKey = (lab, rx) => Object.keys(lab).some((k) => rx.test(k));\nconst chart = context.panel.chart;\nconst W = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 600;\nconst H = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 300;\nconst range = (() => {\n  const r = context.panel.data.timeRange;\n  return r ? { from: r.from.valueOf(), to: r.to.valueOf() } : { from: Date.now() - 6 * 3600000, to: Date.now() };\n})();\nconst empty = (msg) => ({ backgroundColor: 'transparent', animation: false,\n  graphic: [{ type: 'text', left: 'center', top: 'middle', silent: true,\n    style: { text: msg, fill: C.label, font: '13px ' + SANS } }] });\n// One bar per auth_method, its count over the range, largest first, with its name and count beside it.\nconst KEY = \"auth_method\";\nconst ORDER = [\"kubernetes\", \"jwt\", \"approle\", \"token\"];\nconst RENAME = {};\nconst rank = (k) => (ORDER.indexOf(k) >= 0 ? ORDER.indexOf(k) : ORDER.length);\nconst totals = new Map(ORDER.map((k) => [k, 0]));\nrows.forEach((r) => {\n  const k = r.labels[KEY];\n  if (k === undefined || r.value === null) return;\n  const name = RENAME[k] || k;\n  totals.set(name, (totals.get(name) || 0) + r.value);\n});\nconst list = [...totals.entries()]\n  .filter((x) => ORDER.indexOf(x[0]) >= 0 || x[1] > 0)\n  .sort((a, b) => rank(a[0]) - rank(b[0]) || b[1] - a[1])\n  .slice(0, 10);\nif (!list.some((x) => x[1] > 0)) return empty(\"No tokens\");\nconst count = (x) => Math.round(x).toLocaleString('en-US');\nconst rowH = Math.max(18, Math.min(30, (H - 8) / list.length));\nreturn {\n  backgroundColor: 'transparent', animation: false,\n  grid: { left: 4, right: 64, top: 4, height: rowH * list.length, containLabel: true },\n  tooltip: { trigger: 'item', formatter: (p) => p.name + ': ' + count(p.value) },\n  xAxis: { type: 'value', min: 0, show: false },\n  yAxis: { type: 'category', inverse: true, data: list.map((x) => x[0]), axisTick: { show: false }, axisLine: { show: false },\n    axisLabel: { color: C.text2, fontSize: 12, fontFamily: MONO, width: Math.max(90, W * 0.5), overflow: 'truncate', ellipsis: '…' } },\n  series: [{ type: 'bar', barWidth: Math.min(14, rowH - 6), data: list.map((x) => x[1]),\n    itemStyle: { color: \"#7DD3FC\", borderRadius: 3 },\n    showBackground: true, backgroundStyle: { color: C.line, borderRadius: 3 },\n    label: { show: true, position: 'right', distance: 8, color: C.text, fontFamily: MONO, fontSize: 12,\n      formatter: (p) => count(p.value) } }],\n};\n"
       },
       "datasource": {
         "type": "prometheus",
@@ -747,16 +753,7 @@
         "x": 0,
         "y": 13
       },
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true
-            }
-          }
-        }
-      ]
+      "transformations": null
     },
     {
       "type": "bargauge",
@@ -915,7 +912,8 @@
               "mode": "off"
             }
           },
-          "decimals": 0
+          "decimals": 0,
+          "min": 0
         },
         "overrides": []
       },
@@ -1007,7 +1005,8 @@
             "thresholdsStyle": {
               "mode": "off"
             }
-          }
+          },
+          "min": 0
         },
         "overrides": []
       },
