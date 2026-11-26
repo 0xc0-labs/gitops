@@ -75,9 +75,10 @@ README, Writing or rotating a secret][vault-write] says:
 | `platform/grafana/github-oauth` | `client_id`, `client_secret` | Grafana, through the Secret `grafana-github-oauth` and the variables `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`, which `auth.github` expands |
 | `platform/grafana/cloudflare` | `api_token` | Grafana, through the Secret `cloudflare-api` and the variable `CLOUDFLARE_API_TOKEN`, which the data source `cloudflare` expands (Cloudflare, below) |
 
-Members of the GitHub organization `0xc0-labs` sign in with GitHub
-(`auth.github`, callback `https://grafana.int.0xc0.cc/login/github`): the team
-`admins` is `Admin`, everyone else `Viewer`. The role is mapped from the team
+Members of the GitHub team `0xc0-labs/admins` sign in with GitHub
+(`auth.github`, callback `https://grafana.int.0xc0.cc/login/github`) as
+`Admin`; any other user, an organization member included, is refused
+(`role_attribute_strict`). The role is mapped from the team
 on every login, since Grafana's database does not outlive its pod. The local
 admin login stays as break-glass.
 
