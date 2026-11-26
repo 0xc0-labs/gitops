@@ -1,8 +1,9 @@
-# headlamp
+# cluster-access
 
-Headlamp keeps its token login (`admin.yaml`). This component also holds the
-ClusterRoleBinding `admins` (`admins.yaml`), which grants `cluster-admin` to
-the group `admins`.
+How people are cluster-admin. The ClusterRoleBinding `admins` (`admins.yaml`)
+grants `cluster-admin` to the group `admins`, which a client certificate
+carries as its organization. It is a component of its own so that removing
+another one, Headlamp for one, does not take the admins' access with it.
 
 ## A personal client certificate
 

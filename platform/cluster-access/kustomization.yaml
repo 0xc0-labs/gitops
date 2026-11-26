@@ -1,0 +1,7 @@
+# README.md: who is cluster-admin and how.
+#
+# Cluster-scoped resources only, so the Application's namespace stays empty.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - admins.yaml
