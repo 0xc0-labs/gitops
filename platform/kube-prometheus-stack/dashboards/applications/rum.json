@@ -233,7 +233,7 @@
           "format": "auto"
         },
         "editorMode": "code",
-        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst cards = [\n{ label: 'Page loads', fmt: 'count', value: () => last('A'), sub: (v) => (v === null ? 'none · ' + span : Math.round(v / hours).toLocaleString('en-US') + ' per hour · ' + span) },\n  { label: 'Sessions', fmt: 'count', value: () => last('B'), sub: (v) => (v ? (last('A') / v).toFixed(1) + ' page loads per session' : 'none · ' + span) },\n  { label: 'JS exceptions', fmt: 'count', value: () => last('C'), sub: (v) => (last('A') ? (1000 * (v || 0) / last('A')).toFixed(1) + ' per 1,000 page loads' : 'no page loads'), colour: (v) => (v > 0 ? '#FBBF24' : '#E7ECF3') },\n  { label: 'LCP', fmt: 'ms', value: () => last('D'), sub: (v) => (v === null ? 'no visits' : v <= 2500 ? 'good · p75' : v <= 4000 ? 'needs work · p75' : 'poor · p75'), colour: (v) => (v <= 2500 ? '#34D399' : v <= 4000 ? '#FBBF24' : '#FB7185') },\n  { label: 'INP', fmt: 'ms', value: () => last('E'), sub: (v) => (v === null ? 'no visits' : v <= 200 ? 'good · p75' : v <= 500 ? 'needs work · p75' : 'poor · p75'), colour: (v) => (v <= 200 ? '#34D399' : v <= 500 ? '#FBBF24' : '#FB7185') },\n  { label: 'CLS', fmt: 'num2', value: () => last('F'), sub: (v) => (v === null ? 'no visits' : v <= 0.1 ? 'good · p75' : v <= 0.25 ? 'needs work · p75' : 'poor · p75'), colour: (v) => (v <= 0.1 ? '#34D399' : v <= 0.25 ? '#FBBF24' : '#FB7185') },\n];\nconst frames = context.panel.data.series;\nconst byRef = (id) => frames.filter((f) => f.refId === id);\nconst num = (x) => (x === null || x === undefined || !Number.isFinite(Number(x)) ? null : Number(x));\nconst last = (id) => {\n  for (const f of byRef(id)) {\n    const v = f.fields.find((x) => x.type === 'number');\n    if (!v) continue;\n    for (let i = v.values.length - 1; i >= 0; i--) { const n = num(v.values[i]); if (n !== null) return n; }\n  }\n  return null;\n};\nconst points = (id) => {\n  const f = byRef(id)[0];\n  if (!f) return [];\n  const t = f.fields.find((x) => x.type === 'time');\n  const v = f.fields.find((x) => x.type === 'number');\n  if (!t || !v) return [];\n  return t.values.map((x, i) => [x, num(v.values[i])]);\n};\nconst span = (() => {\n  const r = context.panel.data.timeRange;\n  if (!r) return '';\n  const m = (r.to.valueOf() - r.from.valueOf()) / 60000;\n  if (m < 90) return Math.round(m) + ' min';\n  if (m < 48 * 60) return Math.round(m / 60) + ' h';\n  return Math.round(m / 1440) + ' d';\n})();\nconst hours = (() => {\n  const r = context.panel.data.timeRange;\n  return r ? (r.to.valueOf() - r.from.valueOf()) / 3600000 : 1;\n})();\nconst fmt = {\n  count: (v) => [Math.round(v).toLocaleString('en-US'), ''],\n  pct: (v) => [(v * 100).toFixed(v * 100 >= 99.95 || v === 0 ? 2 : v * 100 < 10 ? 2 : 1), '%'],\n  dur: (v) => (v < 1 ? [String(Math.round(v * 1000)), 'ms'] : [v.toFixed(v < 10 ? 2 : 1), 's']),\n  num2: (v) => [v.toFixed(2), ''],\n  ms: (v) => (v < 1000 ? [String(Math.round(v)), 'ms'] : [(v / 1000).toFixed(2), 's']),\n  bytes: (v) => {\n    const u = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];\n    let i = 0;\n    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }\n    return [v.toFixed(v < 10 ? 2 : 1), u[i]];\n  },\n};\nconst n = cards.length;\nconst chart = context.panel.chart;\nconst W = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst H = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\nconst gap = 12;\nconst cw = W ? (W - gap * (n - 1)) / n : 0;\nconst graphic = [];\nconst grid = [];\nconst xAxis = [];\nconst yAxis = [];\nconst series = [];\ncards.forEach((c, i) => {\n  const x = W ? i * (cw + gap) : 0;\n  const at = (dx) => (W ? x + dx : (i * 100) / n + 1.2 + '%');\n  const v = c.value();\n  const shown = v === null ? ['—', ''] : c.show ? c.show(v) : fmt[c.fmt](v);\n  const unit = v === null ? '' : c.unit !== undefined ? c.unit : shown[1];\n  const colour = v === null ? '#8D99AB' : c.colour ? c.colour(v) : '#E7ECF3';\n  if (W && H) graphic.push({ type: 'rect', left: x, top: 0, z: -1, silent: true,\n    shape: { width: cw, height: H - 1, r: 14 }, style: { fill: '#10151C', stroke: '#1F2733', lineWidth: 1 } });\n  const fit = W ? { width: cw - 32, overflow: 'truncate', ellipsis: '…' } : {};\n  graphic.push({ type: 'text', left: at(16), top: 12, silent: true,\n    style: Object.assign({ text: c.label.toUpperCase(), fill: '#8D99AB', font: '600 11px Inter, sans-serif' }, fit) });\n  graphic.push({ type: 'text', left: at(16), top: 28, silent: true,\n    style: { text: '{v|' + shown[0] + '}' + (unit ? '{u| ' + unit + '}' : ''),\n      rich: { v: { fill: colour, font: '600 30px ' + MONO },\n        u: { fill: '#8D99AB', font: '13px ' + MONO, padding: [12, 0, 0, 4] } } } });\n  const sub = c.sub ? c.sub(v) : '';\n  if (sub) graphic.push({ type: 'text', left: at(16), top: 68, silent: true,\n    style: Object.assign({ text: sub, fill: '#8D99AB', font: '12px ' + MONO }, fit) });\n  if (c.spark) {\n    const data = points(c.spark);\n    if (data.some((p) => p[1] !== null)) {\n      const g = grid.length;\n      const sh = H ? Math.max(14, H - 94) : 20;\n      grid.push(W ? { left: x + 12, width: cw - 24, bottom: 6, height: sh }\n        : { left: (i * 100) / n + 1.2 + '%', width: 100 / n - 2.4 + '%', bottom: 6, height: sh });\n      xAxis.push({ type: 'time', gridIndex: g, show: false });\n      yAxis.push({ type: 'value', gridIndex: g, show: false, scale: false, min: 0 });\n      series.push({ type: 'line', xAxisIndex: g, yAxisIndex: g, data, showSymbol: false, silent: true,\n        connectNulls: false, lineStyle: { width: 1.5, color: c.sparkColour || '#60A5FA' } });\n    }\n  }\n});\nreturn { backgroundColor: 'transparent', animation: false, graphic, grid, xAxis, yAxis, series };",
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst cards = [\n{ label: 'Page loads', fmt: 'count', value: () => last('A'), sub: (v) => (v === null ? 'none · ' + span : Math.round(v / hours).toLocaleString('en-US') + ' per hour · ' + span) },\n  { label: 'Sessions', fmt: 'count', value: () => last('B'), sub: (v) => (v ? (last('A') / v).toFixed(1) + ' loads per session' : 'none · ' + span) },\n  { label: 'JS exceptions', fmt: 'count', value: () => last('C'), sub: (v) => (last('A') ? (1000 * (v || 0) / last('A')).toFixed(1) + ' per 1,000 loads' : 'no page loads'), colour: (v) => (v > 0 ? '#FBBF24' : '#E7ECF3') },\n  { label: 'LCP', fmt: 'ms', value: () => last('D'), sub: (v) => (v === null ? 'no visits' : v <= 2500 ? 'good · p75' : v <= 4000 ? 'needs work · p75' : 'poor · p75'), colour: (v) => (v <= 2500 ? '#34D399' : v <= 4000 ? '#FBBF24' : '#FB7185') },\n  { label: 'INP', fmt: 'ms', value: () => last('E'), sub: (v) => (v === null ? 'no visits' : v <= 200 ? 'good · p75' : v <= 500 ? 'needs work · p75' : 'poor · p75'), colour: (v) => (v <= 200 ? '#34D399' : v <= 500 ? '#FBBF24' : '#FB7185') },\n  { label: 'CLS', fmt: 'num2', value: () => last('F'), sub: (v) => (v === null ? 'no visits' : v <= 0.1 ? 'good · p75' : v <= 0.25 ? 'needs work · p75' : 'poor · p75'), colour: (v) => (v <= 0.1 ? '#34D399' : v <= 0.25 ? '#FBBF24' : '#FB7185') },\n];\nconst frames = context.panel.data.series;\nconst byRef = (id) => frames.filter((f) => f.refId === id);\nconst num = (x) => (x === null || x === undefined || !Number.isFinite(Number(x)) ? null : Number(x));\nconst last = (id) => {\n  for (const f of byRef(id)) {\n    const v = f.fields.find((x) => x.type === 'number');\n    if (!v) continue;\n    for (let i = v.values.length - 1; i >= 0; i--) { const n = num(v.values[i]); if (n !== null) return n; }\n  }\n  return null;\n};\nconst points = (id) => {\n  const f = byRef(id)[0];\n  if (!f) return [];\n  const t = f.fields.find((x) => x.type === 'time');\n  const v = f.fields.find((x) => x.type === 'number');\n  if (!t || !v) return [];\n  return t.values.map((x, i) => [x, num(v.values[i])]);\n};\nconst span = (() => {\n  const r = context.panel.data.timeRange;\n  if (!r) return '';\n  const m = (r.to.valueOf() - r.from.valueOf()) / 60000;\n  if (m < 90) return Math.round(m) + ' min';\n  if (m < 48 * 60) return Math.round(m / 60) + ' h';\n  return Math.round(m / 1440) + ' d';\n})();\nconst hours = (() => {\n  const r = context.panel.data.timeRange;\n  return r ? (r.to.valueOf() - r.from.valueOf()) / 3600000 : 1;\n})();\nconst fmt = {\n  count: (v) => [Math.round(v).toLocaleString('en-US'), ''],\n  pct: (v) => [(v * 100).toFixed(v * 100 >= 99.95 || v === 0 ? 2 : v * 100 < 10 ? 2 : 1), '%'],\n  dur: (v) => (v < 1 ? [String(Math.round(v * 1000)), 'ms'] : [v.toFixed(v < 10 ? 2 : 1), 's']),\n  num2: (v) => [v.toFixed(2), ''],\n  ms: (v) => (v < 1000 ? [String(Math.round(v)), 'ms'] : [(v / 1000).toFixed(2), 's']),\n  bytes: (v) => {\n    const u = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];\n    let i = 0;\n    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }\n    return [v.toFixed(v < 10 ? 2 : 1), u[i]];\n  },\n};\nconst n = cards.length;\nconst chart = context.panel.chart;\nconst W = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst H = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\nconst gap = 12;\nconst cw = W ? (W - gap * (n - 1)) / n : 0;\nconst graphic = [];\nconst grid = [];\nconst xAxis = [];\nconst yAxis = [];\nconst series = [];\ncards.forEach((c, i) => {\n  const x = W ? i * (cw + gap) : 0;\n  const at = (dx) => (W ? x + dx : (i * 100) / n + 1.2 + '%');\n  const v = c.value();\n  const shown = v === null ? ['—', ''] : c.show ? c.show(v) : fmt[c.fmt](v);\n  const unit = v === null ? '' : c.unit !== undefined ? c.unit : shown[1];\n  const colour = v === null ? '#8D99AB' : c.colour ? c.colour(v) : '#E7ECF3';\n  if (W && H) graphic.push({ type: 'rect', left: x, top: 0, z: -1, silent: true,\n    shape: { width: cw, height: H - 1, r: 14 }, style: { fill: '#10151C', stroke: '#1F2733', lineWidth: 1 } });\n  const fit = W ? { width: cw - 32, overflow: 'truncate', ellipsis: '…' } : {};\n  graphic.push({ type: 'text', left: at(16), top: 12, silent: true,\n    style: Object.assign({ text: c.label.toUpperCase(), fill: '#8D99AB', font: '600 11px Inter, sans-serif' }, fit) });\n  graphic.push({ type: 'text', left: at(16), top: 28, silent: true,\n    style: { text: '{v|' + shown[0] + '}' + (unit ? '{u| ' + unit + '}' : ''),\n      rich: { v: { fill: colour, font: '600 30px ' + MONO },\n        u: { fill: '#8D99AB', font: '13px ' + MONO, padding: [12, 0, 0, 4] } } } });\n  const sub = c.sub ? c.sub(v) : '';\n  if (sub) graphic.push({ type: 'text', left: at(16), top: 68, silent: true,\n    style: Object.assign({ text: sub, fill: '#8D99AB', font: '12px ' + MONO }, fit) });\n  if (c.spark) {\n    const data = points(c.spark);\n    if (data.some((p) => p[1] !== null)) {\n      const g = grid.length;\n      const sh = H ? Math.max(14, H - 94) : 20;\n      grid.push(W ? { left: x + 12, width: cw - 24, bottom: 6, height: sh }\n        : { left: (i * 100) / n + 1.2 + '%', width: 100 / n - 2.4 + '%', bottom: 6, height: sh });\n      xAxis.push({ type: 'time', gridIndex: g, show: false });\n      yAxis.push({ type: 'value', gridIndex: g, show: false, scale: false, min: 0 });\n      series.push({ type: 'line', xAxisIndex: g, yAxisIndex: g, data, showSymbol: false, silent: true,\n        connectNulls: false, lineStyle: { width: 1.5, color: c.sparkColour || '#60A5FA' } });\n    }\n  }\n});\nreturn { backgroundColor: 'transparent', animation: false, graphic, grid, xAxis, yAxis, series };",
         "baidu": {
           "callback": "bmapReady",
           "key": ""
@@ -640,65 +640,63 @@
       }
     },
     {
-      "type": "table",
+      "type": "volkovlabs-echarts-panel",
       "title": "Ratings",
-      "description": "Measurements rated good, needs-improvement or poor by the browser (Faro's context_rating), per vital.",
+      "description": "Per vital, the share of page loads Faro rated good, needs improvement or poor over the range, with the number of measurements beside its name. A vital with no measurement is left out.",
       "transparent": true,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
       "targets": [
         {
           "datasource": {
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "label_replace(sum by (context_rating) (count_over_time({service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_lcp!=\"\" [$__range])), \"vital\", \"LCP\", \"\", \"\")",
-          "queryType": "instant",
-          "editorMode": "code",
-          "refId": "LCP"
+          "refId": "LCP",
+          "expr": "sum by (context_rating) (count_over_time({service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_lcp!=\"\" [$__range]))",
+          "queryType": "instant"
         },
         {
           "datasource": {
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "label_replace(sum by (context_rating) (count_over_time({service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_inp!=\"\" [$__range])), \"vital\", \"INP\", \"\", \"\")",
-          "queryType": "instant",
-          "editorMode": "code",
-          "refId": "INP"
+          "refId": "INP",
+          "expr": "sum by (context_rating) (count_over_time({service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_inp!=\"\" [$__range]))",
+          "queryType": "instant"
         },
         {
           "datasource": {
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "label_replace(sum by (context_rating) (count_over_time({service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_cls!=\"\" [$__range])), \"vital\", \"CLS\", \"\", \"\")",
-          "queryType": "instant",
-          "editorMode": "code",
-          "refId": "CLS"
+          "refId": "CLS",
+          "expr": "sum by (context_rating) (count_over_time({service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_cls!=\"\" [$__range]))",
+          "queryType": "instant"
         },
         {
           "datasource": {
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "label_replace(sum by (context_rating) (count_over_time({service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_fcp!=\"\" [$__range])), \"vital\", \"FCP\", \"\", \"\")",
-          "queryType": "instant",
-          "editorMode": "code",
-          "refId": "FCP"
+          "refId": "FCP",
+          "expr": "sum by (context_rating) (count_over_time({service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_fcp!=\"\" [$__range]))",
+          "queryType": "instant"
         },
         {
           "datasource": {
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "label_replace(sum by (context_rating) (count_over_time({service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_ttfb!=\"\" [$__range])), \"vital\", \"TTFB\", \"\", \"\")",
-          "queryType": "instant",
-          "editorMode": "code",
-          "refId": "TTFB"
+          "refId": "TTFB",
+          "expr": "sum by (context_rating) (count_over_time({service_name=~\"$app\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment!=\"probe\" | value_ttfb!=\"\" [$__range]))",
+          "queryType": "instant"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "decimals": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -707,134 +705,40 @@
                 "value": null
               }
             ]
-          },
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "inspect": false,
-            "filterable": false
-          },
-          "noValue": "no visits in range"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "good"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#34D399"
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "needs-improvement"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#FBBF24"
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "poor"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#FB7185"
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
-                }
-              }
-            ]
           }
-        ]
+        },
+        "overrides": []
       },
       "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "footer": {
-          "show": false,
-          "reducer": [
-            "sum"
-          ],
-          "fields": ""
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
         },
-        "sortBy": []
-      },
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "transformations": [
-        {
-          "id": "labelsToFields",
-          "options": {
-            "mode": "columns"
-          }
+        "editor": {
+          "format": "auto"
         },
-        {
-          "id": "merge",
-          "options": {}
+        "editorMode": "code",
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst SANS = 'Inter, sans-serif';\nconst C = { text: '#E7ECF3', text2: '#C9D2DE', label: '#8D99AB', line: '#1F2733', a: '#60A5FA', b: '#F59E0B',\n  ok: '#34D399', warn: '#FBBF24', crit: '#FB7185' };\nconst frames = (context.panel.data && context.panel.data.series) || [];\nconst rv = (s) => { try { return context.grafana.replaceVariables(s); } catch (e) { return ''; } };\nconst unq = (s) => String(s).replace(/^\"(.*)\"$/, '$1');\nconst num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));\n// Labels of a value, wherever the data source put them: field labels, a frame name such as\n// {name=\"GET /\", p=\"0.95\"} (Tempo), or string columns of a table frame (Loki and Prometheus instant).\nconst labelsOf = (f, field) => {\n  const out = {};\n  const parse = (s) => {\n    if (!s) return;\n    const re = /([\\w.:-]+)\\s*=\\s*\"((?:[^\"\\\\]|\\\\.)*)\"/g;\n    let m;\n    while ((m = re.exec(String(s)))) out[m[1]] = unq(m[2]);\n  };\n  parse(f.name);\n  parse(field.config && field.config.displayNameFromDS);\n  Object.keys(field.labels || {}).forEach((k) => { out[k] = unq(field.labels[k]); });\n  return out;\n};\nconst refOf = (f, field) => f.refId || ((/#\\s*(\\w+)$/.exec(field.name || '') || [])[1]) || '';\nconst rows = (() => {\n  const out = [];\n  frames.forEach((f) => {\n    const fs = f.fields || [];\n    const tf = fs.find((x) => x.type === 'time');\n    const strs = fs.filter((x) => x.type === 'string');\n    fs.filter((x) => x.type === 'number').forEach((v) => {\n      const base = labelsOf(f, v);\n      const ref = refOf(f, v);\n      const n = v.values.length;\n      for (let i = 0; i < n; i++) {\n        const lab = Object.assign({}, base);\n        strs.forEach((s) => { const x = s.values[i]; if (x !== null && x !== undefined && x !== '') lab[s.name] = unq(x); });\n        out.push({ labels: lab, value: num(v.values[i]), time: tf ? Number(tf.values[i]) : null, ref: ref });\n      }\n    });\n  });\n  return out;\n})();\nconst hasKey = (lab, rx) => Object.keys(lab).some((k) => rx.test(k));\nconst chart = context.panel.chart;\nconst W = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 600;\nconst H = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 300;\nconst range = (() => {\n  const r = context.panel.data.timeRange;\n  return r ? { from: r.from.valueOf(), to: r.to.valueOf() } : { from: Date.now() - 6 * 3600000, to: Date.now() };\n})();\nconst empty = (msg) => ({ backgroundColor: 'transparent', animation: false,\n  graphic: [{ type: 'text', left: 'center', top: 'middle', silent: true,\n    style: { text: msg, fill: C.label, font: '13px ' + SANS } }] });\n// Per vital, the share of measurements Faro rated good, needs improvement and poor. Loki answers\n// an instant query as a table; its refId names the vital, context_rating the rating.\nconst VITALS = ['LCP', 'INP', 'CLS', 'FCP', 'TTFB'];\nconst RATINGS = [['good', 'good', C.ok], ['needs-improvement', 'needs improvement', C.warn], ['poor', 'poor', C.crit]];\nconst n = {};\nrows.forEach((r) => {\n  const vital = VITALS.indexOf(r.ref) >= 0 ? r.ref : r.labels.vital;\n  const rating = r.labels.context_rating;\n  if (!vital || !rating || r.value === null) return;\n  n[vital] = n[vital] || {};\n  n[vital][rating] = (n[vital][rating] || 0) + r.value;\n});\nconst vitals = VITALS.filter((v) => n[v] && RATINGS.some((x) => n[v][x[0]] > 0)).reverse();\nif (!vitals.length) return empty('No visits in this range');\nconst tot = (v) => RATINGS.reduce((s, x) => s + (n[v][x[0]] || 0), 0);\nconst series = RATINGS.map((x) => ({\n  name: x[1], type: 'bar', stack: 'r', barWidth: 16,\n  itemStyle: { color: x[2] },\n  data: vitals.map((v) => ({ value: (n[v][x[0]] || 0) / tot(v), count: n[v][x[0]] || 0 })),\n  label: { show: true, position: 'inside', color: '#0B0F14', fontSize: 11, fontFamily: MONO,\n    formatter: (p) => (p.value >= 0.12 ? Math.round(p.value * 100) + '%' : '') },\n}));\nreturn {\n  backgroundColor: 'transparent', animation: false,\n  grid: { left: 8, right: 16, top: 8, bottom: 30, containLabel: true },\n  legend: { bottom: 0, left: 0, icon: 'roundRect', itemWidth: 10, itemHeight: 10,\n    textStyle: { color: C.text2, fontSize: 12 } },\n  tooltip: { trigger: 'axis', axisPointer: { type: 'none' },\n    formatter: (ps) => ps[0].name + '<br/>' + ps.map((p) => p.marker + p.seriesName + ': ' + Math.round(p.value * 100) + '% (' + p.data.count + ')').join('<br/>') },\n  xAxis: { type: 'value', min: 0, max: 1, splitNumber: 4,\n    axisLabel: { color: C.label, fontSize: 11, formatter: (v) => Math.round(v * 100) + '%' }, splitLine: { lineStyle: { color: C.line } } },\n  yAxis: { type: 'category', data: vitals, axisTick: { show: false }, axisLine: { show: false },\n    axisLabel: { color: C.text2, fontSize: 12, fontFamily: MONO,\n      formatter: (v) => v + '  ' + Math.round(tot(v)).toLocaleString('en-US') } },\n  series: series,\n};\n",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
         },
-        {
-          "id": "groupingToMatrix",
-          "options": {
-            "columnField": "context_rating",
-            "rowField": "vital",
-            "valueField": "Value",
-            "emptyValue": "zero"
-          }
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
         },
-        {
-          "id": "organize",
-          "options": {
-            "renameByName": {
-              "vital\\context_rating": "vital"
-            },
-            "indexByName": {
-              "vital\\context_rating": 0,
-              "good": 1,
-              "needs-improvement": 2,
-              "poor": 3
-            }
-          }
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
         }
-      ],
+      },
       "id": 9,
       "gridPos": {
         "h": 7,
@@ -1184,7 +1088,7 @@
             ]
           },
           "noValue": "no visits in range",
-          "displayName": "${__field.labels.page}"
+          "min": 0
         },
         "overrides": []
       },
@@ -1216,7 +1120,42 @@
         "w": 10,
         "x": 0,
         "y": 21
-      }
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "Value #A",
+                "desc": true
+              }
+            ]
+          }
+        },
+        {
+          "id": "rowsToFields",
+          "options": {
+            "mappings": [
+              {
+                "fieldName": "page",
+                "handlerKey": "field.name"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "type": "piechart",
@@ -1288,7 +1227,30 @@
         "w": 7,
         "x": 10,
         "y": 21
-      }
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "rowsToFields",
+          "options": {
+            "mappings": [
+              {
+                "fieldName": "browser_name",
+                "handlerKey": "field.name"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "type": "piechart",
@@ -1323,8 +1285,7 @@
               }
             ]
           },
-          "noValue": "no sessions in range",
-          "displayName": "${__field.labels.browser_mobile}"
+          "noValue": "no sessions in range"
         },
         "overrides": [
           {
@@ -1403,17 +1364,24 @@
       },
       "transformations": [
         {
-          "id": "renameByRegex",
+          "id": "labelsToFields",
           "options": {
-            "regex": "^true$",
-            "renamePattern": "mobile"
+            "mode": "columns"
           }
         },
         {
-          "id": "renameByRegex",
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "rowsToFields",
           "options": {
-            "regex": "^false$",
-            "renamePattern": "desktop"
+            "mappings": [
+              {
+                "fieldName": "browser_mobile",
+                "handlerKey": "field.name"
+              }
+            ]
           }
         }
       ]

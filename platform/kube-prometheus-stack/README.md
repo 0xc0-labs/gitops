@@ -118,11 +118,12 @@ One look across every board, a control room (operator, 2026-11-25).
   versions in Roboto Mono, labels small, uppercase and letter-spaced, and
   headings in Space Grotesk where the browser has it. Grafana's own panels
   take no font setting.
-- **Stats.** Each board opens on one strip of cards, 5 rows tall, drawn by
+- **Stats.** Each board opens on one strip of cards, 3 rows tall, drawn by
   Business Charts: the label, the value in Roboto Mono with its unit, coloured
-  by its threshold, and one small line under it (per hour, "of N", a share).
-  No change across the range. A thin line only under a continuous signal
-  (requests), never an area, never under a ratio.
+  by its threshold, and one small line under it (per hour, "of N", a share),
+  short enough for the narrowest card at 1456 px and cut with an ellipsis
+  past it. No change across the range. A thin line only under a continuous
+  signal (requests), never an area, never under a ratio.
 - **Low traffic.** What the estate serves is a few requests an hour, so a
   count is a total over the range (`increase(…[$__range])`) and a chart
   counts per hour, never per second. A percentile needs enough samples in
@@ -169,7 +170,7 @@ One look across every board, a control room (operator, 2026-11-25).
 
 | Plugin | For |
 |---|---|
-| Business Charts, `volkovlabs-echarts-panel` | Every board's strip of cards, the traffic sankey, the memory sunburst and the web vitals gauges |
+| Business Charts, `volkovlabs-echarts-panel` | Every board's strip of cards, the traffic sankey, the memory sunburst, the web vitals gauges, and Apps' release comparison and slowest operations, which group by a label no stock panel can pivot on |
 | Business Text, `marcusolsson-dynamictext-panel` | The estate's health ring, drawn in CSS: its sanitizer strips `<svg>` |
 
 The estate map is Grafana's Canvas: each node's CPU, memory, pods and Ready
