@@ -1,4 +1,4 @@
-# Only the route: ArgoCD itself comes from RKE2's helm-controller
+# The route and the secret of its GitHub sign-in: ArgoCD itself comes from RKE2's helm-controller
 # (infrastructure, the argocd role). WARP only (operator decision, 2026-09-30).
 #
 # Backups: no volumes.
@@ -6,3 +6,4 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - httproute.yaml
+  - vault-secrets.yaml
