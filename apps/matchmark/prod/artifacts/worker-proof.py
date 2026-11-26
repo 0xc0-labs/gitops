@@ -474,6 +474,49 @@ def results(body):
     return body if isinstance(body, list) else body.get("results", [])
 
 
+ENTRY_FIELDS = ("actor", "field", "old_value", "new_value", "old_identifier", "new_identifier", "verb", "created_at", "epoch")
+JSON_TYPES = {type(None): "null", bool: "boolean", int: "number", float: "number", str: "string", list: "array", dict: "object"}
+
+
+def record(step, detail):
+    """A line that reports and never fails the Job: a failed Job holds the Application's later syncs."""
+    print(f"{step}: recorded ({detail})", flush=True)
+
+
+def state_author_proof(workspace, project_id, key, own_id, state_ids):
+    """Whether the tracker tells who moved an item to its state, and when. Prints types, counts and yes or no only."""
+    step = "state change author"
+    try:
+        base = f"/api/v1/workspaces/{workspace}/projects/{project_id}/work-items/"
+        status, body = tracker_call(base + "?order_by=-updated_at&per_page=10", key)
+        items = [item for item in results(body) if item.get("id")][:10]
+        if status != 200 or not items:
+            record(step, f"work items: status {status}, {len(items)} items")
+            return
+        statuses, entries = set(), []
+        for item in items:
+            status, body = tracker_call(f"{base}{item['id']}/activities/?order_by=-created_at&per_page=100", key)
+            statuses.add(status)
+            entries.extend(entry for entry in results(body) if isinstance(entry, dict))
+        record(step, f"activities: status {', '.join(str(code) for code in sorted(statuses))}, {len(items)} items, {len(entries)} entries")
+        changes = [entry for entry in entries if entry.get("field") == "state"]
+        record(step, f"{len(changes)} entries with field state")
+        if not changes:
+            return
+        newest = max(changes, key=lambda entry: str(entry.get("created_at") or ""))
+        record(step, f"newest keys: {', '.join(sorted(newest))}")
+        record(
+            step,
+            "newest types: "
+            + ", ".join(f"{name} {JSON_TYPES.get(type(newest[name]), 'other') if name in newest else 'missing'}" for name in ENTRY_FIELDS),
+        )
+        record(step, f"newest new_identifier is a state of the project: {'yes' if newest.get('new_identifier') in state_ids else 'no'}")
+        others = any(entry.get("actor") and entry.get("actor") != own_id for entry in changes)
+        record(step, f"a state entry by an actor other than the platform's user: {'yes' if others else 'no'}")
+    except Exception as error:  # noqa: BLE001 - this step records; it never fails the Job
+        record(step, f"stopped: {type(error).__name__}")
+
+
 def tracker_proof():
     key_path = os.environ["MATCHMARK_TRACKER_API_KEY_FILE"]
     workspace = os.environ["MATCHMARK_TRACKER_WORKSPACE"]
@@ -495,7 +538,7 @@ def tracker_proof():
     if not reachable:
         return
 
-    status, _ = tracker_call("/api/v1/users/me/", key)
+    status, me = tracker_call("/api/v1/users/me/", key)
     check("Plane answers the key", status == 200, f"status {status}")
     if status != 200:
         return
@@ -508,8 +551,10 @@ def tracker_proof():
 
     status, body = tracker_call(f"/api/v1/workspaces/{workspace}/projects/{project['id']}/states/", key)
     names = {item.get("name") for item in results(body)}
+    state_ids = {item.get("id") for item in results(body)}
     missing = [name for name in STATES if name not in names]
     check(f"project {PROJECT} has every state the mapping uses", status == 200 and not missing, f"status {status}, missing: {', '.join(missing) or 'none'}")
+    state_author_proof(workspace, project["id"], key, me.get("id") if isinstance(me, dict) else None, state_ids)
 
 
 run(sandboxes_proof)
