@@ -40,11 +40,11 @@ root filesystem above 85%, a Deployment or StatefulSet short of replicas, a
 target down, the collectors failing to export, and, as the example of a log
 rule, error lines per namespace in Loki.
 A second group, `cloudflare`, in the same folder, watches the edge's 5xx share
-and the tunnel connectors (`platform/cloudflare-exporter`).
+and the tunnel connectors ([Cloudflare](#cloudflare)).
 
 To add one, copy a rule in `alerting-rules.yaml` with a new `uid`. The file goes
 through Helm's `tpl` and Grafana's own `$` expansion: write no pair of braces
-and no dollar sign in it.
+in it, and a dollar sign only doubled (`$$`), as the Cloudflare rule does.
 
 - `noDataState` is `OK` on every rule: a series that does not exist is not an
   alert. A metric that never arrives (Vault's, cert-manager's, Longhorn's) is
@@ -70,6 +70,7 @@ README, Writing or rotating a secret][vault-write] says:
 | Vault | Keys | Read by |
 |---|---|---|
 | `platform/grafana/admin` | `admin_user`, `admin_password` | Grafana, through the Secret `grafana-admin` |
+| `platform/grafana/cloudflare` | `api_token` | Grafana, through the Secret `cloudflare-api` and the variable `CLOUDFLARE_API_TOKEN`, which the data source `cloudflare` expands (Cloudflare, below) |
 
 Until it is written, Grafana's pod waits for the Secret and the rest runs.
 Vault Secrets Operator restarts Grafana when the secret changes. Dashboards
@@ -215,9 +216,113 @@ One look across every board, a control room (operator, 2026-11-25).
 |---|---|
 | Business Charts, `volkovlabs-echarts-panel` | Every board's strip of cards, the traffic sankey, the memory sunburst, the web vitals gauges, Apps' release comparison and slowest operations, which group by a label no stock panel can pivot on, and every block of Right-sizing |
 | Business Text, `marcusolsson-dynamictext-panel` | The estate's health ring, drawn in CSS: its sanitizer strips `<svg>` |
+| Infinity, `yesoreyeram-infinity-datasource` | The data source `cloudflare` (Cloudflare, below). Maintained by Grafana Labs; 4.1.8 supports Grafana 12.2.5 and later |
 
 The estate map is Grafana's Canvas: each node's CPU, memory, pods and Ready
 are field-bound values, coloured by threshold, since Canvas draws no bar.
+
+## Cloudflare
+
+Cloudflare's edge analytics, and the tunnel connectors' metrics, workspace#305.
+
+### The data source
+
+`cloudflare` (`values.yaml`, `additionalDataSources`) is the Infinity data
+source pointed at Cloudflare's GraphQL API, `https://api.cloudflare.com/client/v4/graphql`,
+with `api.cloudflare.com` as its only allowed host and a bearer token from
+Vault (`platform/grafana/cloudflare`, key `api_token`; the operator writes it,
+as the Grafana section says). The token is read-only: Account Analytics Read
+on all accounts, Zone Read and Analytics Read on all zones. It reaches Grafana
+as an environment variable, expanded into `secureJsonData` when Grafana reads
+its provisioning at start, so it is in no ConfigMap.
+
+It is not an exporter. The lablabs exporter, which this replaced, never
+queries a Free zone (its `FREE_TIER` only skips them), and every zone is Free.
+Asking the API from Grafana needs no Deployment, no scrape and no metrics
+store, and a board reads the dataset it wants. The price is that nothing is
+kept in Prometheus: history is what Cloudflare keeps.
+
+### What the zones expose
+
+| Dataset | Window |
+|---|---|
+| `httpRequestsAdaptiveGroups` (status, country, host, path, cache, …) | 30-day queries, 31 days of history, pages of 10,000 |
+| `firewallEventsAdaptive` | 30-day queries, 31 days of history |
+| `httpRequests1hGroups` | 3 days |
+| `httpRequests1dGroups` | 1 year |
+
+The datasets named Adaptive are sampled. `httpRequestsAdaptiveGroups` needs a
+filter on `datetime_geq` and `datetime_lt`, in ISO 8601: Infinity fills them
+from the dashboard's range with `${__timeFrom:date:iso}` and
+`${__timeTo:date:iso}`. Queries go to `viewer.zones(filter: {zoneTag: …})`.
+
+The zones' tags, which are not secret:
+
+| Zone | Tag |
+|---|---|
+| 0xc0.cc | `068d993d1c3f23e994211457c96476f8` |
+| artistlabco.com | `bf3d282f1920e41701c27cc5be3da43e` |
+| asrtistlabco.com | `60a42fad95616837c4f586ccd932e6ba` |
+| matchmark.dev | `6fd27750f9a3be154e18dba1774ddf00` |
+| offby1.cc | `2e5c4ce565da7cd5ba3e9d3588fe576c` |
+| sergioaten.cloud | `35b6a78fcef59563a54825ff503f0a27` |
+
+### An example query
+
+Requests by status for one zone over the dashboard's range. In a panel: data
+source `cloudflare`, type GraphQL, method POST, parser Backend (JSONata),
+format Table, root selector `data.viewer.zones.httpRequestsAdaptiveGroups`,
+columns `dimensions.edgeResponseStatus` (number) and `count` (number):
+
+```graphql
+query {
+  viewer {
+    zones(filter: {zoneTag: "2e5c4ce565da7cd5ba3e9d3588fe576c"}) {
+      httpRequestsAdaptiveGroups(
+        limit: 100
+        filter: {datetime_geq: "${__timeFrom:date:iso}", datetime_lt: "${__timeTo:date:iso}"}
+      ) {
+        count
+        dimensions { edgeResponseStatus }
+      }
+    }
+  }
+}
+```
+
+### Quota
+
+Cloudflare allows 300 GraphQL queries per 5 minutes per token, and every panel
+query and every rule evaluation counts. A board that uses it refreshes no
+faster than every 5 minutes.
+
+### The edge 5xx alert
+
+`edge-5xx-above-5` is a Grafana-managed rule on a backend query to this data
+source: one GraphQL query for every zone (`zoneTag_in`) that returns the total
+and the 5xx counts over the last 10 minutes, and a JSONata root selector that
+keeps the zones with at least 50 requests and returns each one's 5xx share. A
+threshold above 5% fires per zone. A zone without enough traffic returns no
+row, which is not an alert (`noDataState: OK`).
+
+### Tunnel connectors
+
+Prometheus scrapes the four cloudflared connectors as the job `cloudflared`
+(`ScrapeConfig` in `scrape-configs.yaml`), on port 20241, with the labels
+`tunnel` (`public` or `admin`) and `host`:
+
+| Tunnel | Hosts |
+|---|---|
+| `public` | `vm-lb-01` `10.10.4.11`, `vm-lb-02` `10.10.4.12` |
+| `admin` | `vm-access-01` `10.10.0.10`, `vm-access-02` `10.10.0.20` |
+
+`infrastructure` opens `--metrics` on the connectors and the firewall from
+`platform`. `cloudflared_tunnel_ha_connections`,
+`cloudflared_tunnel_total_requests`, `cloudflared_tunnel_request_errors` and
+`cloudflared_tunnel_active_streams` come from there. A connector holds four
+connections to the edge: the alert `tunnel-short-of-connections` fires below
+four, or when its target is down. `up{job="cloudflared"}` should be 1 for the
+four hosts.
 
 ## Control plane
 
@@ -245,7 +350,7 @@ The namespace denies ingress by default. Grafana takes ingress from Traefik
 alone; Prometheus from Grafana, the operator and the collectors' gateway
 (OTLP). In the
 namespaces that limit ingress and carry a ServiceMonitor (`cert-manager`,
-`cloudflare-exporter`, `crowdsec`, `external-dns`, `longhorn-system`, `traefik`,
+`crowdsec`, `external-dns`, `longhorn-system`, `traefik`,
 `vault`, `vault-secrets-operator`), Prometheus's pods may reach the metrics
 port.
 
