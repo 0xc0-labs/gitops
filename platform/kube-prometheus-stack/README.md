@@ -121,7 +121,13 @@ CPU rate, and the maximum of the memory working set, over the range.
 
 The suggested change: request at p95 × 1.2, memory limit at the maximum ×
 1.5, rounded up to 10m and 16 MiB. The `Based on` card says how much of the
-range Prometheus holds, so a short history is not read as a full week.
+range Prometheus holds, so a short history is not read as a full week, and
+until the history fills the range, each chart of At the edge starts at its
+first sample.
+
+Names drop the namespace beside them and the chart release they repeat:
+`rke2-coredns-rke2-coredns-autoscaler` in `kube-system` reads
+`coredns-autoscaler`. The tooltip gives the full name.
 
 Every query runs once, in the strip of cards; the other blocks read its
 frames through the `-- Dashboard --` data source, and each query carries a
