@@ -1,9 +1,9 @@
 # Grafana-managed alert rules, provisioned from git (workspace#290). Each
 # rule is a query (A), the last value of each series (B) and a threshold (C).
-# Provisioning files go through Helm's tpl and Grafana's own `$` expansion:
-# no pair of braces below, and a dollar sign only doubled. The expressions come
-# from the chart's default rules or the components' metrics, each rule says
-# which.
+# The file goes through Helm's tpl, so no pair of braces below. Grafana does
+# not unescape `$$` in a provisioned rule: a `$` is written once. The
+# expressions come from the chart's default rules or the components' metrics,
+# each rule says which.
 grafana:
   alerting:
     rules.yaml:
@@ -519,9 +519,9 @@ grafana:
             # `cloudflare`, a backend query. The share of 5xx at the edge per
             # zone over the window, only for a zone with 50 requests or more:
             # the JSONata drops the rest. A table of zone and ratio is a numeric
-            # table for the threshold, so there is no reduce step. The window
-            # macros and the JSONata variables carry a second dollar sign, for
-            # Grafana's own expansion. README, Cloudflare.
+            # table for the threshold, so there is no reduce step. The selector
+            # is wrapped in `[ ]`: an empty JSONata result is an error for
+            # Infinity, an empty array is NoData. README, Cloudflare.
             - uid: edge-5xx-above-5
               title: Edge 5xx above 5% of a zone's requests for 10 minutes
               condition: C
@@ -549,15 +549,15 @@ grafana:
                       body_graphql_query: >-
                         query { viewer { zones(filter: {zoneTag_in: ["068d993d1c3f23e994211457c96476f8", "bf3d282f1920e41701c27cc5be3da43e", "60a42fad95616837c4f586ccd932e6ba", "6fd27750f9a3be154e18dba1774ddf00", "2e5c4ce565da7cd5ba3e9d3588fe576c", "35b6a78fcef59563a54825ff503f0a27"]}) {
                         zoneTag
-                        total: httpRequestsAdaptiveGroups(limit: 1, filter: {datetime_geq: "$${__timeFrom:date:iso}", datetime_lt: "$${__timeTo:date:iso}"}) { count }
-                        errors: httpRequestsAdaptiveGroups(limit: 1, filter: {datetime_geq: "$${__timeFrom:date:iso}", datetime_lt: "$${__timeTo:date:iso}", edgeResponseStatus_geq: 500}) { count }
+                        total: httpRequestsAdaptiveGroups(limit: 1, filter: {datetime_geq: "${__timeFrom:date:iso}", datetime_lt: "${__timeTo:date:iso}"}) { count }
+                        errors: httpRequestsAdaptiveGroups(limit: 1, filter: {datetime_geq: "${__timeFrom:date:iso}", datetime_lt: "${__timeTo:date:iso}", edgeResponseStatus_geq: 500}) { count }
                         } } }
                     root_selector: >-
-                      ($$names := {"068d993d1c3f23e994211457c96476f8": "0xc0.cc", "bf3d282f1920e41701c27cc5be3da43e": "artistlabco.com", "60a42fad95616837c4f586ccd932e6ba": "asrtistlabco.com", "6fd27750f9a3be154e18dba1774ddf00": "matchmark.dev", "2e5c4ce565da7cd5ba3e9d3588fe576c": "offby1.cc", "35b6a78fcef59563a54825ff503f0a27": "sergioaten.cloud"};
-                      data.viewer.zones.(
-                      $$t := $$exists(total[0].count) ? total[0].count : 0;
-                      $$e := $$exists(errors[0].count) ? errors[0].count : 0;
-                      $$t >= 50 ? {"zone": $$lookup($$names, zoneTag), "ratio": $$e / $$t}))
+                      ($names := {"068d993d1c3f23e994211457c96476f8": "0xc0.cc", "bf3d282f1920e41701c27cc5be3da43e": "artistlabco.com", "60a42fad95616837c4f586ccd932e6ba": "asrtistlabco.com", "6fd27750f9a3be154e18dba1774ddf00": "matchmark.dev", "2e5c4ce565da7cd5ba3e9d3588fe576c": "offby1.cc", "35b6a78fcef59563a54825ff503f0a27": "sergioaten.cloud"};
+                      [data.viewer.zones.(
+                      $t := $exists(total[0].count) ? total[0].count : 0;
+                      $e := $exists(errors[0].count) ? errors[0].count : 0;
+                      $t >= 50 ? {"zone": $lookup($names, zoneTag), "ratio": $e / $t})])
                     columns:
                       - {selector: zone, text: zone, type: string}
                       - {selector: ratio, text: ratio, type: number}
