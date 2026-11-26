@@ -661,7 +661,7 @@ credential of its own and not the root one.
   policy `matchmark-artifacts` (`artifacts/policy.json`), which allows that
   bucket alone: list it and its multipart uploads, and get, put and delete its
   objects, multipart included. The sandboxes never get these keys.
-- **Setup**: `artifacts-setup-2`, a plain Job in wave 1, the only user of the
+- **Setup**: `artifacts-setup-3`, a plain Job in wave 1, the only user of the
   root credentials. Its init container runs `rc` (RustFS's CLI,
   `rustfs/rc:v0.1.38`, pinned by digest) through `artifacts/rc-setup.sh`: the
   alias, the policy, the user and the policy's attachment; its container,
@@ -671,7 +671,7 @@ credential of its own and not the root one.
   when the user carries it), so a run after a half-finished one needs nothing
   removed by hand. It is not run again by a sync. To run it again (a rotated
   key pair, a changed policy), raise the number in its name.
-- **Proof**: `worker-proof-5`, a plain Job in wave 2, with the worker's
+- **Proof**: `worker-proof-6`, a plain Job in wave 2, with the worker's
   ServiceAccount and labels, so it has the worker's rights and network, and
   the secrets the worker reads (the App's key mounted as a file the same way).
   It prints one line per step and ends `all steps ok`. It prints nothing of
@@ -707,8 +707,8 @@ proof waits for the one `Sandbox` the quota allows, so it can run beside
 `sandbox-proof-N`, which waits for it as well.
 
 ```sh
-kubectl -n matchmark logs job/artifacts-setup-2 -c bucket   # lifecycle rule read back
-kubectl -n matchmark logs job/worker-proof-5                # all steps ok
+kubectl -n matchmark logs job/artifacts-setup-3 -c bucket   # lifecycle rule read back
+kubectl -n matchmark logs job/worker-proof-6                # all steps ok
 ```
 
 ## The tracker
@@ -744,7 +744,7 @@ its item follows the run; no webhook is needed for that.
   Plane's `plane-plane-api` pods on 8000, and `api-from-matchmark`, in
   `apps/plane/prod/network-policy.yaml` (the other Application), admits those
   two to them. Plane reaches nothing new.
-- **Proof**: `worker-proof-5` (Artifacts) ends with the steps `tracker key is
+- **Proof**: `worker-proof-6` (Artifacts) ends with the steps `tracker key is
   a file only its user and group read`, `tracker key is in no variable`,
   `Plane's API accepts a connection` (it waits up to five minutes, as for the
   proxy), `Plane answers the key` (`GET /api/v1/users/me/` is 200), `project
@@ -753,7 +753,7 @@ its item follows the run; no webhook is needed for that.
   `Cancelled`). It prints no key.
 
 ```sh
-kubectl -n matchmark logs job/worker-proof-5 | grep -i -e plane -e tracker  # all ok
+kubectl -n matchmark logs job/worker-proof-6 | grep -i -e plane -e tracker  # all ok
 kubectl -n matchmark logs deploy/factory-worker | grep -i tracker          # its poll, not "not configured"
 ```
 

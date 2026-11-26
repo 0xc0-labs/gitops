@@ -44,6 +44,23 @@ patches:
         path: /spec/template/spec/automountServiceAccountToken
         value: false
   # The chart's schema Job is no hook and a Job's pod template is immutable,
-  # but it needs no `Replace=true` (which fails every sync, #679): a new chart
-  # version names the Job anew (`temporal-schema-<version>-<rev>`), so Argo CD
-  # creates it instead of updating the old one.
+  # but it needs no `Replace=true` (which fails every sync, #679): its template
+  # keeps the pool's placement (next patch), and a new chart version names the
+  # Job anew (`temporal-schema-<version>-<rev>`), so Argo CD creates it instead
+  # of updating the old one.
+  # A Job's pod template is immutable and the chart names this Job, so dropping
+  # the placement would fail the sync; the admission policy accepts a pod that
+  # already selects `apps`.
+  - target: {kind: Job, name: temporal-schema-1-8-0-1}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/nodeSelector
+        value:
+          0xc0.cc/pool: apps
+      - op: add
+        path: /spec/template/spec/tolerations
+        value:
+          - key: 0xc0.cc/pool
+            operator: Equal
+            value: apps
+            effect: NoSchedule

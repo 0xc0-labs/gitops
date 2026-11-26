@@ -283,6 +283,22 @@ patches:
         path: /spec/template/spec/containers/0/env
         value:
           - {name: MC_CONFIG_DIR, value: /tmp/.mc}
+  # A Job's pod template is immutable and the chart names this Job, so dropping
+  # the placement would fail the sync; the admission policy accepts a pod that
+  # already selects `apps`.
+  - target: {kind: Job, name: plane-minio-bucket-1}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/nodeSelector
+        value:
+          0xc0.cc/pool: apps
+      - op: add
+        path: /spec/template/spec/tolerations
+        value:
+          - key: 0xc0.cc/pool
+            operator: Equal
+            value: apps
+            effect: NoSchedule
   - target: {kind: StatefulSet, name: plane-rabbitmq-wl}
     patch: |-
       - op: add
