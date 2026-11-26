@@ -234,6 +234,11 @@ prometheus-node-exporter:
       operator: Equal
       value: sandbox
       effect: NoSchedule
+  # SELinux keeps container_t out of PID 1's mountinfo: the filesystem
+  # collector fails without spc_t (#702).
+  containerSecurityContext:
+    seLinuxOptions:
+      type: spc_t
   resources:
     requests:
       cpu: 10m
