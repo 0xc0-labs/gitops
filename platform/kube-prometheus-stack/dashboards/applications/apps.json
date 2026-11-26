@@ -19,10 +19,10 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "enable": true,
+        "enable": false,
         "hide": false,
         "iconColor": "#7DD3FC",
-        "expr": "sum by (name) (increase(argocd_app_sync_total{phase=\"Succeeded\"}[2m])) > 0",
+        "expr": "sum by (name) (argocd_app_sync_total{phase=\"Succeeded\"}) - sum by (name) (argocd_app_sync_total{phase=\"Succeeded\"} offset 1m) > 0",
         "step": "60s",
         "titleFormat": "sync {{name}}",
         "textFormat": "Argo CD synced {{name}}",
@@ -35,15 +35,15 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "enable": true,
+        "enable": false,
         "hide": false,
         "iconColor": "#34D399",
-        "expr": "label_replace(count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}) unless count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"} offset 10m), \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")",
+        "expr": "label_replace((min_over_time(timestamp(count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}))[15m:1m]) * 1000) and (count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}) unless count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"} offset 10m)), \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")",
         "step": "60s",
         "titleFormat": "{{namespace}} {{version}}",
         "textFormat": "{{image_spec}}",
         "tagKeys": "namespace,version",
-        "useValueForTime": false
+        "useValueForTime": true
       }
     ]
   },
@@ -151,7 +151,7 @@
       },
       "options": {
         "mode": "html",
-        "content": "<div style=\"display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;font-family:Inter,sans-serif\"><div><div style=\"font-family:'Space Grotesk',Inter,sans-serif;font-size:30px;font-weight:600;color:#E7ECF3;line-height:1.1\">$app</div><div style=\"font-family:'Roboto Mono',ui-monospace,monospace;font-size:12px;color:#8D99AB;margin-top:6px;letter-spacing:.04em\">env $env · faro ${faro} · traces ${tsvc}</div></div><div style=\"display:flex;gap:10px;font-size:13px\"><a style=\"color:#7DD3FC;border:1px solid #1F2733;border-radius:10px;padding:6px 12px\" href=\"/d/traces-by-service?var-service=${tsvc}&${__url_time_range}\">Traces</a><a style=\"color:#7DD3FC;border:1px solid #1F2733;border-radius:10px;padding:6px 12px\" href=\"/explore?schemaVersion=1&panes={%22a%22:{%22datasource%22:%22loki%22%2C%22queries%22:%5B{%22refId%22:%22A%22%2C%22expr%22:%22{k8s_namespace_name%3D%5C%22$app%5C%22}%22%2C%22datasource%22:{%22type%22:%22loki%22%2C%22uid%22:%22loki%22}}%5D%2C%22range%22:{%22from%22:%22now-6h%22%2C%22to%22:%22now%22}}}\">Logs</a><a style=\"color:#7DD3FC;border:1px solid #1F2733;border-radius:10px;padding:6px 12px\" href=\"https://argocd.int.0xc0.cc/applications/argocd/$app\" target=\"_blank\">Argo CD</a></div></div>",
+        "content": "<div style=\"display:flex;flex-direction:column;gap:6px;font-family:Inter,sans-serif\"><div style=\"font-family:'Space Grotesk',Inter,sans-serif;font-size:28px;font-weight:600;color:#E7ECF3;line-height:1.1\">$app</div><div style=\"font-family:'Roboto Mono',ui-monospace,monospace;font-size:12px;color:#8D99AB;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis\">env $env · ${about}</div><div style=\"display:flex;gap:8px;font-size:12px;margin-top:4px\"><a style=\"color:#7DD3FC;border:1px solid #1F2733;border-radius:8px;padding:3px 10px;text-decoration:none\" href=\"/d/traces-by-service?var-service=${tsvc}&${__url_time_range}\">Traces</a><a style=\"color:#7DD3FC;border:1px solid #1F2733;border-radius:8px;padding:3px 10px;text-decoration:none\" href=\"/explore?schemaVersion=1&panes={%22a%22:{%22datasource%22:%22loki%22%2C%22queries%22:%5B{%22refId%22:%22A%22%2C%22expr%22:%22{k8s_namespace_name%3D%5C%22$app%5C%22}%22%2C%22datasource%22:{%22type%22:%22loki%22%2C%22uid%22:%22loki%22}}%5D%2C%22range%22:{%22from%22:%22now-6h%22%2C%22to%22:%22now%22}}}\">Logs</a><a style=\"color:#7DD3FC;border:1px solid #1F2733;border-radius:8px;padding:3px 10px;text-decoration:none\" href=\"https://argocd.int.0xc0.cc/applications/argocd/$app\" target=\"_blank\">Argo CD</a></div></div>",
         "code": {
           "language": "plaintext",
           "showLineNumbers": false,
@@ -444,19 +444,19 @@
             "lastNotNull"
           ],
           "fields": "/^node$/",
-          "values": false
+          "values": true
         },
         "colorMode": "value",
         "graphMode": "none",
         "justifyMode": "auto",
         "textMode": "value",
         "wideLayout": true,
-        "orientation": "auto",
+        "orientation": "horizontal",
         "showPercentChange": false,
         "percentChangeColorMode": "standard",
         "text": {
           "titleSize": 11,
-          "valueSize": 16
+          "valueSize": 14
         }
       },
       "datasource": {
@@ -472,84 +472,262 @@
       }
     },
     {
-      "type": "gauge",
-      "title": "Availability · 30 d",
-      "description": "Requests to the app's routes that did not end in a 5xx, over 30 days, at Traefik. SLO 99.9%: amber below it, coral below 99.5%.",
+      "type": "volkovlabs-echarts-panel",
+      "title": "",
+      "description": "At Traefik, every route of the app but its staging and its RUM collector. Totals over the range; p95 needs 20 requests in the range, or it reads —. Availability: the share of requests that were not 5xx over 30 days.",
       "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "1 - (sum(increase(traefik_service_requests_total{exported_service=~\"httproute-$app-.*\", exported_service!~\"httproute-$app-staging-.*|.*otel-gateway.*\", code=~\"5..\"}[30d])) or vector(0)) / sum(increase(traefik_service_requests_total{exported_service=~\"httproute-$app-.*\", exported_service!~\"httproute-$app-staging-.*|.*otel-gateway.*\"}[30d]))",
-          "legendFormat": "__auto",
-          "range": false,
-          "instant": true,
-          "editorMode": "code",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percentunit",
-          "decimals": 3,
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#FB7185",
-                "value": null
-              },
-              {
-                "color": "#FBBF24",
-                "value": 0.995
-              },
-              {
-                "color": "#34D399",
-                "value": 0.999
-              }
-            ]
-          },
-          "noValue": "no requests through Traefik",
-          "min": 0.99,
-          "max": 1
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdMarkers": true,
-        "showThresholdLabels": false,
-        "minVizHeight": 75,
-        "minVizWidth": 75,
-        "sizing": "auto"
+      "id": 6,
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 4
       },
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "id": 6,
-      "gridPos": {
-        "h": 6,
-        "w": 5,
-        "x": 0,
-        "y": 4
+      "maxDataPoints": 48,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "A",
+          "expr": "1 - (sum(increase(traefik_service_requests_total{exported_service=~\"httproute-$app-.*\", exported_service!~\"httproute-$app-staging-.*|.*otel-gateway.*\", code=~\"5..\"}[30d])) or vector(0)) / sum(increase(traefik_service_requests_total{exported_service=~\"httproute-$app-.*\", exported_service!~\"httproute-$app-staging-.*|.*otel-gateway.*\"}[30d]))",
+          "editorMode": "code",
+          "range": false,
+          "instant": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "B",
+          "expr": "sum(increase(traefik_service_requests_total{exported_service=~\"httproute-$app-.*\", exported_service!~\"httproute-$app-staging-.*|.*otel-gateway.*\"}[$__range]))",
+          "editorMode": "code",
+          "range": false,
+          "instant": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "C",
+          "expr": "sum(increase(traefik_service_requests_total{exported_service=~\"httproute-$app-.*\", exported_service!~\"httproute-$app-staging-.*|.*otel-gateway.*\"}[$__interval]))",
+          "editorMode": "code",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "D",
+          "expr": "histogram_quantile(0.95, sum by (le) (increase(traefik_service_request_duration_seconds_bucket{exported_service=~\"httproute-$app-.*\", exported_service!~\"httproute-$app-staging-.*|.*otel-gateway.*\"}[$__range]))) and on () (sum(increase(traefik_service_request_duration_seconds_count{exported_service=~\"httproute-$app-.*\", exported_service!~\"httproute-$app-staging-.*|.*otel-gateway.*\"}[$__range])) >= 20)",
+          "editorMode": "code",
+          "range": false,
+          "instant": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "E",
+          "expr": "sum(increase(traefik_service_requests_total{exported_service=~\"httproute-$app-.*\", exported_service!~\"httproute-$app-staging-.*|.*otel-gateway.*\", code=~\"5..\"}[$__range])) or vector(0)",
+          "editorMode": "code",
+          "range": false,
+          "instant": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "F",
+          "expr": "sum(increase(traefik_service_requests_total{exported_service=~\"httproute-$app-.*\", exported_service!~\"httproute-$app-staging-.*|.*otel-gateway.*\", code=~\"4..\"}[$__range])) or vector(0)",
+          "editorMode": "code",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst cards = [\n{ label: 'Availability · 30 d', fmt: 'pct', value: () => last('A'),\n    sub: (v) => (v === null ? 'no requests in 30 d' : 'SLO 99.9 %'),\n    colour: (v) => (v < 0.99 ? '#FB7185' : v < 0.999 ? '#FBBF24' : '#34D399') },\n  { label: 'Requests', fmt: 'count', value: () => last('B'), spark: 'C', sparkColour: '#60A5FA',\n    sub: (v) => (v === null ? 'none · ' + span : Math.round(v / hours).toLocaleString('en-US') + ' per hour · ' + span) },\n  { label: 'p95', fmt: 'dur', value: () => last('D'),\n    sub: (v) => (v === null ? 'fewer than 20 requests' : 'over ' + Math.round(last('B') || 0).toLocaleString('en-US') + ' requests'),\n    colour: (v) => (v >= 1 ? '#FB7185' : v >= 0.5 ? '#FBBF24' : '#E7ECF3') },\n  { label: '5xx share', fmt: 'pct', value: () => { const b = last('B'); return b ? (last('E') || 0) / b : null; },\n    sub: (v) => (v === null ? 'no requests' : Math.round(last('E') || 0).toLocaleString('en-US') + ' of '\n      + Math.round(last('B')).toLocaleString('en-US')),\n    colour: (v) => (v >= 0.05 ? '#FB7185' : v >= 0.01 ? '#FBBF24' : '#E7ECF3') },\n  { label: '4xx share', fmt: 'pct', value: () => { const b = last('B'); return b ? (last('F') || 0) / b : null; },\n    sub: (v) => (v === null ? 'no requests' : Math.round(last('F') || 0).toLocaleString('en-US') + ' of '\n      + Math.round(last('B')).toLocaleString('en-US')),\n    colour: (v) => (v >= 0.2 ? '#FBBF24' : '#E7ECF3') },\n];\nconst frames = context.panel.data.series;\nconst byRef = (id) => frames.filter((f) => f.refId === id);\nconst num = (x) => (x === null || x === undefined || !Number.isFinite(Number(x)) ? null : Number(x));\nconst last = (id) => {\n  for (const f of byRef(id)) {\n    const v = f.fields.find((x) => x.type === 'number');\n    if (!v) continue;\n    for (let i = v.values.length - 1; i >= 0; i--) { const n = num(v.values[i]); if (n !== null) return n; }\n  }\n  return null;\n};\nconst points = (id) => {\n  const f = byRef(id)[0];\n  if (!f) return [];\n  const t = f.fields.find((x) => x.type === 'time');\n  const v = f.fields.find((x) => x.type === 'number');\n  if (!t || !v) return [];\n  return t.values.map((x, i) => [x, num(v.values[i])]);\n};\nconst span = (() => {\n  const r = context.panel.data.timeRange;\n  if (!r) return '';\n  const m = (r.to.valueOf() - r.from.valueOf()) / 60000;\n  if (m < 90) return Math.round(m) + ' min';\n  if (m < 48 * 60) return Math.round(m / 60) + ' h';\n  return Math.round(m / 1440) + ' d';\n})();\nconst hours = (() => {\n  const r = context.panel.data.timeRange;\n  return r ? (r.to.valueOf() - r.from.valueOf()) / 3600000 : 1;\n})();\nconst fmt = {\n  count: (v) => [Math.round(v).toLocaleString('en-US'), ''],\n  pct: (v) => [(v * 100).toFixed(v * 100 >= 99.95 || v === 0 ? 2 : v * 100 < 10 ? 2 : 1), '%'],\n  dur: (v) => (v < 1 ? [String(Math.round(v * 1000)), 'ms'] : [v.toFixed(v < 10 ? 2 : 1), 's']),\n  num2: (v) => [v.toFixed(2), ''],\n  ms: (v) => (v < 1000 ? [String(Math.round(v)), 'ms'] : [(v / 1000).toFixed(2), 's']),\n  bytes: (v) => {\n    const u = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];\n    let i = 0;\n    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }\n    return [v.toFixed(v < 10 ? 2 : 1), u[i]];\n  },\n};\nconst n = cards.length;\nconst chart = context.panel.chart;\nconst W = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst H = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\nconst gap = 12;\nconst cw = W ? (W - gap * (n - 1)) / n : 0;\nconst graphic = [];\nconst grid = [];\nconst xAxis = [];\nconst yAxis = [];\nconst series = [];\ncards.forEach((c, i) => {\n  const x = W ? i * (cw + gap) : 0;\n  const at = (dx) => (W ? x + dx : (i * 100) / n + 1.2 + '%');\n  const v = c.value();\n  const shown = v === null ? ['—', ''] : c.show ? c.show(v) : fmt[c.fmt](v);\n  const unit = v === null ? '' : c.unit !== undefined ? c.unit : shown[1];\n  const colour = v === null ? '#8D99AB' : c.colour ? c.colour(v) : '#E7ECF3';\n  if (W && H) graphic.push({ type: 'rect', left: x, top: 0, z: -1, silent: true,\n    shape: { width: cw, height: H - 1, r: 14 }, style: { fill: '#10151C', stroke: '#1F2733', lineWidth: 1 } });\n  const fit = W ? { width: cw - 32, overflow: 'truncate', ellipsis: '…' } : {};\n  graphic.push({ type: 'text', left: at(16), top: 12, silent: true,\n    style: Object.assign({ text: c.label.toUpperCase(), fill: '#8D99AB', font: '600 11px Inter, sans-serif' }, fit) });\n  graphic.push({ type: 'text', left: at(16), top: 28, silent: true,\n    style: { text: '{v|' + shown[0] + '}' + (unit ? '{u| ' + unit + '}' : ''),\n      rich: { v: { fill: colour, font: '600 30px ' + MONO },\n        u: { fill: '#8D99AB', font: '13px ' + MONO, padding: [12, 0, 0, 4] } } } });\n  const sub = c.sub ? c.sub(v) : '';\n  if (sub) graphic.push({ type: 'text', left: at(16), top: 68, silent: true,\n    style: Object.assign({ text: sub, fill: '#8D99AB', font: '12px ' + MONO }, fit) });\n  if (c.spark) {\n    const data = points(c.spark);\n    if (data.some((p) => p[1] !== null)) {\n      const g = grid.length;\n      const sh = H ? Math.max(14, H - 94) : 20;\n      grid.push(W ? { left: x + 12, width: cw - 24, bottom: 6, height: sh }\n        : { left: (i * 100) / n + 1.2 + '%', width: 100 / n - 2.4 + '%', bottom: 6, height: sh });\n      xAxis.push({ type: 'time', gridIndex: g, show: false });\n      yAxis.push({ type: 'value', gridIndex: g, show: false, scale: false, min: 0 });\n      series.push({ type: 'line', xAxisIndex: g, yAxisIndex: g, data, showSymbol: false, silent: true,\n        connectNulls: false, lineStyle: { width: 1.5, color: c.sparkColour || '#60A5FA' } });\n    }\n  }\n});\nreturn { backgroundColor: 'transparent', animation: false, graphic, grid, xAxis, yAxis, series };",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        }
       }
     },
     {
-      "type": "stat",
-      "title": "Requests / s",
-      "description": "Requests to the app's routes at Traefik.",
+      "type": "volkovlabs-echarts-panel",
+      "id": 12,
+      "title": "Web vitals",
+      "transparent": true,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "75th percentile over the range of what real browsers measured (Faro), the probes' visits aside. Bands from web.dev: LCP 2.5 / 4 s, INP 200 / 500 ms, CLS 0.1 / 0.25, FCP 1.8 / 3 s, TTFB 0.8 / 1.8 s.",
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "expr": "quantile_over_time(0.75, {service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | value_lcp!=\"\" | unwrap value_lcp | __error__=\"\" [$__range]) by ()",
+          "editorMode": "code",
+          "queryType": "instant"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "B",
+          "expr": "quantile_over_time(0.75, {service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | value_inp!=\"\" | unwrap value_inp | __error__=\"\" [$__range]) by ()",
+          "editorMode": "code",
+          "queryType": "instant"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "C",
+          "expr": "quantile_over_time(0.75, {service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | value_cls!=\"\" | unwrap value_cls | __error__=\"\" [$__range]) by ()",
+          "editorMode": "code",
+          "queryType": "instant"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "D",
+          "expr": "quantile_over_time(0.75, {service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | value_fcp!=\"\" | unwrap value_fcp | __error__=\"\" [$__range]) by ()",
+          "editorMode": "code",
+          "queryType": "instant"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "E",
+          "expr": "quantile_over_time(0.75, {service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | value_ttfb!=\"\" | unwrap value_ttfb | __error__=\"\" [$__range]) by ()",
+          "editorMode": "code",
+          "queryType": "instant"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "F",
+          "expr": "sum(count_over_time({service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | value_ttfb!=\"\" [$__range]))",
+          "editorMode": "code",
+          "queryType": "instant"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "getOption": "const VITALS = [\n  { ref: 'A', name: 'LCP', good: 2500, poor: 4000, unit: 'ms' },\n  { ref: 'B', name: 'INP', good: 200, poor: 500, unit: 'ms' },\n  { ref: 'C', name: 'CLS', good: 0.1, poor: 0.25, unit: '' },\n  { ref: 'D', name: 'FCP', good: 1800, poor: 3000, unit: 'ms' },\n  { ref: 'E', name: 'TTFB', good: 800, poor: 1800, unit: 'ms' },\n];\n\nconst frames = context.panel.data.series;\nconst last = (id) => {\n  for (const f of frames.filter((x) => x.refId === id)) {\n    const v = f.fields.find((x) => x.type === 'number');\n    if (!v) continue;\n    for (let i = v.values.length - 1; i >= 0; i--) if (Number.isFinite(v.values[i])) return v.values[i];\n  }\n  return null;\n};\nconst MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst show = (x, unit) => (unit === 'ms' ? (x < 1000 ? Math.round(x) + ' ms' : (x / 1000).toFixed(x < 10000 ? 2 : 1) + ' s') : x.toFixed(2));\nconst chart = context.panel.chart;\nconst W = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 1000;\nconst H = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 200;\nconst loads = last('F');\nconst n = VITALS.length;\nconst gap = 12;\nconst top = 24;\nconst cw = (W - gap * (n - 1)) / n;\nconst ch = H - top - 1;\nconst r = Math.max(30, Math.min(cw / 2 - 24, ch - 66));\nconst graphic = [{ type: 'text', left: 0, top: 2, silent: true, style: {\n  text: '75th percentile of real visits · ' + (loads ? Math.round(loads).toLocaleString('en-US') + ' page loads' : 'no page loads')\n    + ' in the range · bands from web.dev', fill: '#8D99AB', font: '12px Inter, sans-serif' } }];\nconst series = [];\nVITALS.forEach((g, i) => {\n  const x = i * (cw + gap);\n  const cx = x + cw / 2;\n  const cy = top + 14 + r;\n  const max = g.poor * 1.5;\n  const v = last(g.ref);\n  const rating = v === null ? ['no visits', '#8D99AB'] : v <= g.good ? ['good', '#34D399'] : v <= g.poor ? ['needs work', '#FBBF24'] : ['poor', '#FB7185'];\n  graphic.push({ type: 'rect', left: x, top, z: -1, silent: true, shape: { width: cw, height: ch, r: 14 },\n    style: { fill: '#0D1218', stroke: '#1C2530', lineWidth: 1 } });\n  graphic.push({ type: 'text', left: cx, top: cy + 8, silent: true, style: { text: v === null ? '—' : show(v, g.unit),\n    fill: v === null ? '#8D99AB' : '#E7ECF3', font: '600 24px ' + MONO, align: 'center' } });\n  graphic.push({ type: 'text', left: cx, top: cy + 40, silent: true, style: {\n    text: '{n|' + g.name + '}  {r|' + rating[0] + '}', align: 'center',\n    rich: { n: { fill: '#8D99AB', font: '600 11px Inter, sans-serif' }, r: { fill: rating[1], font: '12px Inter, sans-serif' } } } });\n  series.push({\n    type: 'gauge', center: [cx, cy], radius: r, startAngle: 180, endAngle: 0, min: 0, max,\n    axisLine: { lineStyle: { width: Math.max(10, r * 0.26), color: [\n      [g.good / max, 'rgba(52,211,153,.85)'], [g.poor / max, 'rgba(251,191,36,.85)'], [1, 'rgba(251,113,133,.85)']] } },\n    pointer: { show: v !== null, length: '72%', width: 3, itemStyle: { color: '#E7ECF3' } },\n    anchor: { show: true, size: 10, itemStyle: { color: v === null ? '#3A4556' : '#E7ECF3' } },\n    axisTick: { show: false }, splitLine: { show: false }, axisLabel: { show: false },\n    title: { show: false }, detail: { show: false },\n    data: [{ value: v === null ? 0 : Math.min(v, max), name: g.name }],\n  });\n});\nreturn { backgroundColor: 'transparent', animation: false, graphic, series };",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Traffic and latency",
+      "description": "Requests per hour (bars) and p95 per interval (line, right axis; only where 10 requests or more fell in it), at Traefik.",
       "transparent": true,
       "targets": [
         {
@@ -557,18 +735,30 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(traefik_service_requests_total{exported_service=~\"httproute-$app-.*\", exported_service!~\"httproute-$app-staging-.*|.*otel-gateway.*\"}[$__rate_interval]))",
-          "legendFormat": "__auto",
+          "refId": "A",
+          "expr": "sum(rate(traefik_service_requests_total{exported_service=~\"httproute-$app-.*\", exported_service!~\"httproute-$app-staging-.*|.*otel-gateway.*\"}[$__interval])) * 3600",
+          "editorMode": "code",
           "range": true,
           "instant": false,
+          "legendFormat": "requests per hour"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "B",
+          "expr": "histogram_quantile(0.95, sum by (le) (increase(traefik_service_request_duration_seconds_bucket{exported_service=~\"httproute-$app-.*\", exported_service!~\"httproute-$app-staging-.*|.*otel-gateway.*\"}[$__interval]))) and on () (sum(increase(traefik_service_request_duration_seconds_count{exported_service=~\"httproute-$app-.*\", exported_service!~\"httproute-$app-staging-.*|.*otel-gateway.*\"}[$__interval])) >= 10)",
           "editorMode": "code",
-          "refId": "A"
+          "range": true,
+          "instant": false,
+          "legendFormat": "p95"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "reqps",
-          "decimals": 3,
+          "unit": "short",
+          "decimals": 0,
           "color": {
             "mode": "fixed",
             "fixedColor": "#60A5FA"
@@ -582,725 +772,16 @@
               }
             ]
           },
-          "noValue": "0"
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "orientation": "auto",
-        "showPercentChange": true,
-        "percentChangeColorMode": "standard",
-        "text": {
-          "titleSize": 11,
-          "valueSize": 34
-        }
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "id": 7,
-      "gridPos": {
-        "h": 6,
-        "w": 5,
-        "x": 5,
-        "y": 4
-      }
-    },
-    {
-      "type": "stat",
-      "title": "p95",
-      "description": "95th percentile of the app's answer time at Traefik.",
-      "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(traefik_service_request_duration_seconds_bucket{exported_service=~\"httproute-$app-.*\", exported_service!~\"httproute-$app-staging-.*|.*otel-gateway.*\"}[$__rate_interval])))",
-          "legendFormat": "__auto",
-          "range": true,
-          "instant": false,
-          "editorMode": "code",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "decimals": 3,
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#F59E0B",
-                "value": null
-              },
-              {
-                "color": "#FBBF24",
-                "value": 0.5
-              },
-              {
-                "color": "#FB7185",
-                "value": 1
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "orientation": "auto",
-        "showPercentChange": true,
-        "percentChangeColorMode": "inverted",
-        "text": {
-          "titleSize": 11,
-          "valueSize": 34
-        }
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "id": 8,
-      "gridPos": {
-        "h": 6,
-        "w": 5,
-        "x": 10,
-        "y": 4
-      }
-    },
-    {
-      "type": "stat",
-      "title": "5xx share",
-      "description": "5xx responses as a share of the app's requests.",
-      "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "(sum(rate(traefik_service_requests_total{exported_service=~\"httproute-$app-.*\", exported_service!~\"httproute-$app-staging-.*|.*otel-gateway.*\", code=~\"5..\"}[$__rate_interval])) or vector(0)) / sum(rate(traefik_service_requests_total{exported_service=~\"httproute-$app-.*\", exported_service!~\"httproute-$app-staging-.*|.*otel-gateway.*\"}[$__rate_interval]))",
-          "legendFormat": "__auto",
-          "range": true,
-          "instant": false,
-          "editorMode": "code",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percentunit",
-          "decimals": 2,
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#34D399",
-                "value": null
-              },
-              {
-                "color": "#FBBF24",
-                "value": 0.01
-              },
-              {
-                "color": "#FB7185",
-                "value": 0.05
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "orientation": "auto",
-        "showPercentChange": true,
-        "percentChangeColorMode": "inverted",
-        "text": {
-          "titleSize": 11,
-          "valueSize": 34
-        }
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "id": 9,
-      "gridPos": {
-        "h": 6,
-        "w": 5,
-        "x": 15,
-        "y": 4
-      }
-    },
-    {
-      "type": "stat",
-      "title": "4xx share",
-      "description": "4xx responses as a share of the app's requests.",
-      "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "(sum(rate(traefik_service_requests_total{exported_service=~\"httproute-$app-.*\", exported_service!~\"httproute-$app-staging-.*|.*otel-gateway.*\", code=~\"4..\"}[$__rate_interval])) or vector(0)) / sum(rate(traefik_service_requests_total{exported_service=~\"httproute-$app-.*\", exported_service!~\"httproute-$app-staging-.*|.*otel-gateway.*\"}[$__rate_interval]))",
-          "legendFormat": "__auto",
-          "range": true,
-          "instant": false,
-          "editorMode": "code",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percentunit",
-          "decimals": 2,
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#34D399",
-                "value": null
-              },
-              {
-                "color": "#FBBF24",
-                "value": 0.05
-              },
-              {
-                "color": "#FB7185",
-                "value": 0.2
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "orientation": "auto",
-        "showPercentChange": true,
-        "percentChangeColorMode": "inverted",
-        "text": {
-          "titleSize": 11,
-          "valueSize": 34
-        }
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "id": 10,
-      "gridPos": {
-        "h": 6,
-        "w": 4,
-        "x": 20,
-        "y": 4
-      }
-    },
-    {
-      "type": "row",
-      "title": "Web vitals · p75 of real visits",
-      "collapsed": false,
-      "panels": [],
-      "id": 11,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 10
-      }
-    },
-    {
-      "type": "gauge",
-      "title": "LCP",
-      "description": "75th percentile of LCP from Faro (Loki, kind=measurement), good under 2500, poor from 4000 (web.dev). An app without a frontend has none.",
-      "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "quantile_over_time(0.75, {service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | value_lcp!=\"\" | unwrap value_lcp | __error__=\"\" [$__range]) by ()",
-          "queryType": "instant",
-          "editorMode": "code",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ms",
-          "decimals": 0,
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#34D399",
-                "value": null
-              },
-              {
-                "color": "#FBBF24",
-                "value": 2500
-              },
-              {
-                "color": "#FB7185",
-                "value": 4000
-              }
-            ]
-          },
-          "noValue": "no visits in range",
-          "min": 0,
-          "max": 6000.0
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdMarkers": true,
-        "showThresholdLabels": false,
-        "minVizHeight": 75,
-        "minVizWidth": 75,
-        "sizing": "auto"
-      },
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "id": 12,
-      "gridPos": {
-        "h": 6,
-        "w": 5,
-        "x": 0,
-        "y": 11
-      }
-    },
-    {
-      "type": "gauge",
-      "title": "INP",
-      "description": "75th percentile of INP from Faro (Loki, kind=measurement), good under 200, poor from 500 (web.dev). An app without a frontend has none.",
-      "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "quantile_over_time(0.75, {service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | value_inp!=\"\" | unwrap value_inp | __error__=\"\" [$__range]) by ()",
-          "queryType": "instant",
-          "editorMode": "code",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ms",
-          "decimals": 0,
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#34D399",
-                "value": null
-              },
-              {
-                "color": "#FBBF24",
-                "value": 200
-              },
-              {
-                "color": "#FB7185",
-                "value": 500
-              }
-            ]
-          },
-          "noValue": "no visits in range",
-          "min": 0,
-          "max": 750.0
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdMarkers": true,
-        "showThresholdLabels": false,
-        "minVizHeight": 75,
-        "minVizWidth": 75,
-        "sizing": "auto"
-      },
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "id": 13,
-      "gridPos": {
-        "h": 6,
-        "w": 5,
-        "x": 5,
-        "y": 11
-      }
-    },
-    {
-      "type": "gauge",
-      "title": "CLS",
-      "description": "75th percentile of CLS from Faro (Loki, kind=measurement), good under 0.1, poor from 0.25 (web.dev). An app without a frontend has none.",
-      "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "quantile_over_time(0.75, {service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | value_cls!=\"\" | unwrap value_cls | __error__=\"\" [$__range]) by ()",
-          "queryType": "instant",
-          "editorMode": "code",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "decimals": 3,
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#34D399",
-                "value": null
-              },
-              {
-                "color": "#FBBF24",
-                "value": 0.1
-              },
-              {
-                "color": "#FB7185",
-                "value": 0.25
-              }
-            ]
-          },
-          "noValue": "no visits in range",
-          "min": 0,
-          "max": 0.375
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdMarkers": true,
-        "showThresholdLabels": false,
-        "minVizHeight": 75,
-        "minVizWidth": 75,
-        "sizing": "auto"
-      },
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "id": 14,
-      "gridPos": {
-        "h": 6,
-        "w": 5,
-        "x": 10,
-        "y": 11
-      }
-    },
-    {
-      "type": "gauge",
-      "title": "FCP",
-      "description": "75th percentile of FCP from Faro (Loki, kind=measurement), good under 1800, poor from 3000 (web.dev). An app without a frontend has none.",
-      "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "quantile_over_time(0.75, {service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | value_fcp!=\"\" | unwrap value_fcp | __error__=\"\" [$__range]) by ()",
-          "queryType": "instant",
-          "editorMode": "code",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ms",
-          "decimals": 0,
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#34D399",
-                "value": null
-              },
-              {
-                "color": "#FBBF24",
-                "value": 1800
-              },
-              {
-                "color": "#FB7185",
-                "value": 3000
-              }
-            ]
-          },
-          "noValue": "no visits in range",
-          "min": 0,
-          "max": 4500.0
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdMarkers": true,
-        "showThresholdLabels": false,
-        "minVizHeight": 75,
-        "minVizWidth": 75,
-        "sizing": "auto"
-      },
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "id": 15,
-      "gridPos": {
-        "h": 6,
-        "w": 5,
-        "x": 15,
-        "y": 11
-      }
-    },
-    {
-      "type": "gauge",
-      "title": "TTFB",
-      "description": "75th percentile of TTFB from Faro (Loki, kind=measurement), good under 800, poor from 1800 (web.dev). An app without a frontend has none.",
-      "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "quantile_over_time(0.75, {service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | value_ttfb!=\"\" | unwrap value_ttfb | __error__=\"\" [$__range]) by ()",
-          "queryType": "instant",
-          "editorMode": "code",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ms",
-          "decimals": 0,
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#34D399",
-                "value": null
-              },
-              {
-                "color": "#FBBF24",
-                "value": 800
-              },
-              {
-                "color": "#FB7185",
-                "value": 1800
-              }
-            ]
-          },
-          "noValue": "no visits in range",
-          "min": 0,
-          "max": 2700.0
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdMarkers": true,
-        "showThresholdLabels": false,
-        "minVizHeight": 75,
-        "minVizWidth": 75,
-        "sizing": "auto"
-      },
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "id": 16,
-      "gridPos": {
-        "h": 6,
-        "w": 4,
-        "x": 20,
-        "y": 11
-      }
-    },
-    {
-      "type": "row",
-      "title": "Traffic and pages",
-      "collapsed": false,
-      "panels": [],
-      "id": 17,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 17
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Traffic and latency",
-      "description": "Requests per second (area) and p95 (line, right axis) at Traefik; releases and syncs marked.",
-      "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum(rate(traefik_service_requests_total{exported_service=~\"httproute-$app-.*\", exported_service!~\"httproute-$app-staging-.*|.*otel-gateway.*\"}[$__rate_interval]))",
-          "legendFormat": "req/s",
-          "range": true,
-          "instant": false,
-          "editorMode": "code",
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(traefik_service_request_duration_seconds_bucket{exported_service=~\"httproute-$app-.*\", exported_service!~\"httproute-$app-staging-.*|.*otel-gateway.*\"}[$__rate_interval])))",
-          "legendFormat": "p95",
-          "range": true,
-          "instant": false,
-          "editorMode": "code",
-          "refId": "B"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps",
-          "color": {
-            "mode": "palette-classic"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#E7ECF3",
-                "value": null
-              }
-            ]
-          },
+          "noValue": "no requests in range",
           "custom": {
-            "drawStyle": "line",
+            "drawStyle": "bars",
             "lineWidth": 2,
-            "fillOpacity": 18,
-            "gradientMode": "opacity",
+            "fillOpacity": 70,
+            "gradientMode": "none",
             "showPoints": "never",
-            "spanNulls": true,
-            "lineInterpolation": "smooth",
+            "pointSize": 4,
+            "spanNulls": false,
+            "lineInterpolation": "linear",
             "axisBorderShow": false,
             "axisLabel": "",
             "axisPlacement": "auto",
@@ -1310,26 +791,12 @@
             },
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "barAlignment": 0
           },
-          "noValue": "no requests in range"
+          "min": 0
         },
         "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "req/s"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#60A5FA"
-                }
-              }
-            ]
-          },
           {
             "matcher": {
               "id": "byName",
@@ -1348,12 +815,24 @@
                 "value": "s"
               },
               {
+                "id": "decimals",
+                "value": 2
+              },
+              {
                 "id": "custom.axisPlacement",
                 "value": "right"
               },
               {
+                "id": "custom.drawStyle",
+                "value": "line"
+              },
+              {
                 "id": "custom.fillOpacity",
                 "value": 0
+              },
+              {
+                "id": "custom.showPoints",
+                "value": "always"
               }
             ]
           }
@@ -1368,7 +847,7 @@
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "desc"
+          "sort": "none"
         }
       },
       "datasource": {
@@ -1380,13 +859,15 @@
         "h": 9,
         "w": 14,
         "x": 0,
-        "y": 18
-      }
+        "y": 14
+      },
+      "interval": "1h",
+      "maxDataPoints": 200
     },
     {
-      "type": "bargauge",
+      "type": "volkovlabs-echarts-panel",
       "title": "Top pages",
-      "description": "Page loads by URL (one TTFB measurement per navigation), from Faro.",
+      "description": "Page loads per path over the range: one TTFB measurement per navigation, from Faro.",
       "transparent": true,
       "targets": [
         {
@@ -1394,21 +875,14 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "topk(10, sum by (page_url) (count_over_time({service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | value_ttfb!=\"\" [$__range])))",
-          "queryType": "instant",
+          "refId": "A",
+          "expr": "topk(10, sum by (path) (count_over_time({service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | value_ttfb!=\"\" | label_format path=`{{ regexReplaceAll \"^https?://[^/]+\" .page_url \"\" }}` [$__range])))",
           "editorMode": "code",
-          "legendFormat": "{{page_url}}",
-          "refId": "A"
+          "queryType": "instant"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#60A5FA"
-          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1417,28 +891,39 @@
                 "value": null
               }
             ]
-          },
-          "noValue": "no visits in range"
+          }
         },
         "overrides": []
       },
       "options": {
-        "displayMode": "basic",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
         },
-        "showUnfilled": true,
-        "valueMode": "color",
-        "namePlacement": "top",
-        "sizing": "auto",
-        "minVizHeight": 16,
-        "minVizWidth": 8,
-        "maxVizHeight": 24
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        },
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst SANS = 'Inter, sans-serif';\nconst C = { text: '#E7ECF3', text2: '#C9D2DE', label: '#8D99AB', line: '#1F2733', a: '#60A5FA', b: '#F59E0B',\n  ok: '#34D399', warn: '#FBBF24', crit: '#FB7185' };\nconst frames = (context.panel.data && context.panel.data.series) || [];\nconst rv = (s) => { try { return context.grafana.replaceVariables(s); } catch (e) { return ''; } };\nconst unq = (s) => String(s).replace(/^\"(.*)\"$/, '$1');\nconst num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));\n// Labels of a value, wherever the data source put them: field labels, a frame name such as\n// {name=\"GET /\", p=\"0.95\"} (Tempo), or string columns of a table frame (Loki and Prometheus instant).\nconst labelsOf = (f, field) => {\n  const out = {};\n  const parse = (s) => {\n    if (!s) return;\n    const re = /([\\w.:-]+)\\s*=\\s*\"((?:[^\"\\\\]|\\\\.)*)\"/g;\n    let m;\n    while ((m = re.exec(String(s)))) out[m[1]] = unq(m[2]);\n  };\n  parse(f.name);\n  parse(field.config && field.config.displayNameFromDS);\n  Object.keys(field.labels || {}).forEach((k) => { out[k] = unq(field.labels[k]); });\n  return out;\n};\nconst refOf = (f, field) => f.refId || ((/#\\s*(\\w+)$/.exec(field.name || '') || [])[1]) || '';\nconst rows = (() => {\n  const out = [];\n  frames.forEach((f) => {\n    const fs = f.fields || [];\n    const tf = fs.find((x) => x.type === 'time');\n    const strs = fs.filter((x) => x.type === 'string');\n    fs.filter((x) => x.type === 'number').forEach((v) => {\n      const base = labelsOf(f, v);\n      const ref = refOf(f, v);\n      const n = v.values.length;\n      for (let i = 0; i < n; i++) {\n        const lab = Object.assign({}, base);\n        strs.forEach((s) => { const x = s.values[i]; if (x !== null && x !== undefined && x !== '') lab[s.name] = unq(x); });\n        out.push({ labels: lab, value: num(v.values[i]), time: tf ? Number(tf.values[i]) : null, ref: ref });\n      }\n    });\n  });\n  return out;\n})();\nconst hasKey = (lab, rx) => Object.keys(lab).some((k) => rx.test(k));\nconst chart = context.panel.chart;\nconst W = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 600;\nconst H = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 300;\nconst range = (() => {\n  const r = context.panel.data.timeRange;\n  return r ? { from: r.from.valueOf(), to: r.to.valueOf() } : { from: Date.now() - 6 * 3600000, to: Date.now() };\n})();\nconst empty = (msg) => ({ backgroundColor: 'transparent', animation: false,\n  graphic: [{ type: 'text', left: 'center', top: 'middle', silent: true,\n    style: { text: msg, fill: C.label, font: '13px ' + SANS } }] });\n// One bar per path, its count over the range, largest first, with its name and count beside it.\nconst KEY = \"path\";\nconst ORDER = [];\nconst RENAME = {};\nconst rank = (k) => (ORDER.indexOf(k) >= 0 ? ORDER.indexOf(k) : ORDER.length);\nconst totals = new Map(ORDER.map((k) => [k, 0]));\nrows.forEach((r) => {\n  const k = r.labels[KEY];\n  if (k === undefined || r.value === null) return;\n  const name = RENAME[k] || k;\n  totals.set(name, (totals.get(name) || 0) + r.value);\n});\nconst list = [...totals.entries()]\n  .filter((x) => ORDER.indexOf(x[0]) >= 0 || x[1] > 0)\n  .sort((a, b) => rank(a[0]) - rank(b[0]) || b[1] - a[1])\n  .slice(0, 10);\nif (!list.some((x) => x[1] > 0)) return empty(\"No page loads in this range\");\nconst count = (x) => Math.round(x).toLocaleString('en-US');\nconst rowH = Math.max(18, Math.min(30, (H - 8) / list.length));\nreturn {\n  backgroundColor: 'transparent', animation: false,\n  grid: { left: 4, right: 64, top: 4, height: rowH * list.length, containLabel: true },\n  tooltip: { trigger: 'item', formatter: (p) => p.name + ': ' + count(p.value) },\n  xAxis: { type: 'value', min: 0, show: false },\n  yAxis: { type: 'category', inverse: true, data: list.map((x) => x[0]), axisTick: { show: false }, axisLine: { show: false },\n    axisLabel: { color: C.text2, fontSize: 12, fontFamily: MONO, width: Math.max(90, W * 0.5), overflow: 'truncate', ellipsis: '…' } },\n  series: [{ type: 'bar', barWidth: Math.min(14, rowH - 6), data: list.map((x) => x[1]),\n    itemStyle: { color: \"#60A5FA\", borderRadius: 3 },\n    showBackground: true, backgroundStyle: { color: C.line, borderRadius: 3 },\n    label: { show: true, position: 'right', distance: 8, color: C.text, fontFamily: MONO, fontSize: 12,\n      formatter: (p) => count(p.value) } }],\n};\n"
       },
       "datasource": {
         "type": "loki",
@@ -1449,13 +934,14 @@
         "h": 9,
         "w": 6,
         "x": 14,
-        "y": 18
-      }
+        "y": 14
+      },
+      "transformations": null
     },
     {
-      "type": "piechart",
+      "type": "volkovlabs-echarts-panel",
       "title": "Devices",
-      "description": "Sessions started, mobile or desktop, from Faro's session_start events.",
+      "description": "Page loads over the range on a mobile or a desktop browser, from Faro's browser_mobile.",
       "transparent": true,
       "targets": [
         {
@@ -1463,19 +949,14 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "sum by (browser_mobile) (count_over_time({service_name=~\"${faro:raw}\"} | kind=\"event\" | logfmt | event_name=\"session_start\" | app_environment=\"$env\" [$__range]))",
-          "queryType": "instant",
+          "refId": "A",
+          "expr": "sum by (device) (count_over_time({service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | value_ttfb!=\"\" | label_format device=`{{ if eq .browser_mobile \"true\" }}mobile{{ else if eq .browser_mobile \"false\" }}desktop{{ else }}unknown{{ end }}` [$__range]))",
           "editorMode": "code",
-          "legendFormat": "{{browser_mobile}}",
-          "refId": "A"
+          "queryType": "instant"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
-          "color": {
-            "mode": "palette-classic"
-          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1484,72 +965,39 @@
                 "value": null
               }
             ]
-          },
-          "noValue": "no sessions in range"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "true"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "mobile"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#F59E0B"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "false"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "desktop"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#60A5FA"
-                }
-              }
-            ]
           }
-        ]
+        },
+        "overrides": []
       },
       "options": {
-        "pieType": "donut",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
         },
-        "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true,
-          "values": [
-            "value",
-            "percent"
-          ]
+        "editor": {
+          "format": "auto"
         },
-        "displayLabels": [],
-        "tooltip": {
-          "mode": "single"
-        }
+        "editorMode": "code",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        },
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst SANS = 'Inter, sans-serif';\nconst C = { text: '#E7ECF3', text2: '#C9D2DE', label: '#8D99AB', line: '#1F2733', a: '#60A5FA', b: '#F59E0B',\n  ok: '#34D399', warn: '#FBBF24', crit: '#FB7185' };\nconst frames = (context.panel.data && context.panel.data.series) || [];\nconst rv = (s) => { try { return context.grafana.replaceVariables(s); } catch (e) { return ''; } };\nconst unq = (s) => String(s).replace(/^\"(.*)\"$/, '$1');\nconst num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));\n// Labels of a value, wherever the data source put them: field labels, a frame name such as\n// {name=\"GET /\", p=\"0.95\"} (Tempo), or string columns of a table frame (Loki and Prometheus instant).\nconst labelsOf = (f, field) => {\n  const out = {};\n  const parse = (s) => {\n    if (!s) return;\n    const re = /([\\w.:-]+)\\s*=\\s*\"((?:[^\"\\\\]|\\\\.)*)\"/g;\n    let m;\n    while ((m = re.exec(String(s)))) out[m[1]] = unq(m[2]);\n  };\n  parse(f.name);\n  parse(field.config && field.config.displayNameFromDS);\n  Object.keys(field.labels || {}).forEach((k) => { out[k] = unq(field.labels[k]); });\n  return out;\n};\nconst refOf = (f, field) => f.refId || ((/#\\s*(\\w+)$/.exec(field.name || '') || [])[1]) || '';\nconst rows = (() => {\n  const out = [];\n  frames.forEach((f) => {\n    const fs = f.fields || [];\n    const tf = fs.find((x) => x.type === 'time');\n    const strs = fs.filter((x) => x.type === 'string');\n    fs.filter((x) => x.type === 'number').forEach((v) => {\n      const base = labelsOf(f, v);\n      const ref = refOf(f, v);\n      const n = v.values.length;\n      for (let i = 0; i < n; i++) {\n        const lab = Object.assign({}, base);\n        strs.forEach((s) => { const x = s.values[i]; if (x !== null && x !== undefined && x !== '') lab[s.name] = unq(x); });\n        out.push({ labels: lab, value: num(v.values[i]), time: tf ? Number(tf.values[i]) : null, ref: ref });\n      }\n    });\n  });\n  return out;\n})();\nconst hasKey = (lab, rx) => Object.keys(lab).some((k) => rx.test(k));\nconst chart = context.panel.chart;\nconst W = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 600;\nconst H = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 300;\nconst range = (() => {\n  const r = context.panel.data.timeRange;\n  return r ? { from: r.from.valueOf(), to: r.to.valueOf() } : { from: Date.now() - 6 * 3600000, to: Date.now() };\n})();\nconst empty = (msg) => ({ backgroundColor: 'transparent', animation: false,\n  graphic: [{ type: 'text', left: 'center', top: 'middle', silent: true,\n    style: { text: msg, fill: C.label, font: '13px ' + SANS } }] });\n// A donut of device: one slice per value, the 6 largest and the rest as \"other\".\nconst KEY = \"device\";\nconst RENAME = {};\nconst COLOURS = {\"mobile\": \"#F59E0B\", \"desktop\": \"#60A5FA\", \"unknown\": \"#475569\"};\nconst PALETTE = [C.a, C.b, '#C4B5FD', '#7DD3FC', C.ok, '#F472B6'];\nconst totals = new Map();\nrows.forEach((r) => {\n  const k = r.labels[KEY];\n  if (k === undefined || r.value === null || r.value <= 0) return;\n  const name = RENAME[k] || k;\n  totals.set(name, (totals.get(name) || 0) + r.value);\n});\nlet list = [...totals.entries()].sort((a, b) => b[1] - a[1]);\nif (list.length > 6) list = list.slice(0, 5).concat([['other', list.slice(5).reduce((s, x) => s + x[1], 0)]]);\nif (!list.length) return empty(\"No page loads in this range\");\nconst count = (x) => Math.round(x).toLocaleString('en-US');\nconst sum = list.reduce((s, x) => s + x[1], 0);\nconst share = (v) => Math.round((100 * v) / sum) + '%';\nconst value = Object.fromEntries(list);\nconst legendH = 20 * list.length;\nconst size = Math.max(60, Math.min(W - 16, H - legendH - 16));\nconst cy = 4 + size / 2;\nreturn {\n  backgroundColor: 'transparent', animation: false,\n  tooltip: { trigger: 'item', formatter: (p) => p.name + ': ' + count(p.value) + ' (' + share(p.value) + ')' },\n  legend: { bottom: 0, left: 'center', orient: 'vertical', icon: 'roundRect', itemWidth: 10, itemHeight: 10, itemGap: 8,\n    textStyle: { color: C.text2, fontSize: 12, rich: { v: { color: C.text, fontFamily: MONO, fontSize: 12 } } },\n    formatter: (n) => n + '  {v|' + count(value[n]) + ' · ' + share(value[n]) + '}' },\n  graphic: [{ type: 'text', left: 'center', top: cy - 16, silent: true,\n    style: { text: count(sum), fill: C.text, font: '600 18px ' + MONO, align: 'center' } },\n    { type: 'text', left: 'center', top: cy + 6, silent: true,\n    style: { text: \"page loads\", fill: C.label, font: '11px ' + SANS, align: 'center' } }],\n  series: [{ type: 'pie', radius: [size * 0.34, size * 0.5], center: ['50%', cy], label: { show: false },\n    itemStyle: { borderColor: '#111217', borderWidth: 2 },\n    data: list.map((x, i) => ({ name: x[0], value: x[1],\n      itemStyle: { color: COLOURS[x[0]] || (x[0] === 'other' ? '#475569' : PALETTE[i % PALETTE.length]) } })) }],\n};\n"
       },
       "datasource": {
         "type": "loki",
@@ -1560,12 +1008,13 @@
         "h": 9,
         "w": 4,
         "x": 20,
-        "y": 18
-      }
+        "y": 14
+      },
+      "transformations": null
     },
     {
       "type": "row",
-      "title": "Release comparison · $va (A) vs $vb (B)",
+      "title": "Release comparison · ${va:text} → ${vb:text}",
       "collapsed": false,
       "panels": [],
       "id": 21,
@@ -1573,167 +1022,383 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 27
+        "y": 23
       }
     },
     {
-      "type": "table",
+      "type": "volkovlabs-echarts-panel",
       "title": "Signals by release",
-      "description": "Each release on its own traffic, over the range: web vitals and JS errors from Faro (app_version), memory and CPU per pod from the pods running its image tag. Lower is better on every row: the change is green when A is lower than B, coral when higher. p95 and errors by release are beside it, from Tempo.",
+      "description": "Each release on its own traffic over the range: A, the release before, against B, the one running. p95 and error rate from the app's server spans (Tempo, service.version; a p95 needs 20 spans), the web vitals at p75 and JS errors from Faro (app_version), memory and CPU per pod by image tag. Lower is better on every row; the change is B against A, green when lower, coral when higher. A row with no data for either release is left out.",
       "transparent": true,
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Mixed --"
+      },
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "tempo",
+            "uid": "tempo"
           },
-          "expr": "label_replace(label_replace(quantile_over_time(0.75, {service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | app_version=\"$va\" | value_lcp!=\"\" | unwrap value_lcp | __error__=\"\" [$__range]) by (), \"signal\", \"LCP p75 (ms)\", \"\", \"\"), \"slot\", \"A\", \"\", \"\")",
-          "queryType": "instant",
-          "editorMode": "code",
-          "refId": "A"
+          "refId": "P95",
+          "queryType": "traceql",
+          "query": "{resource.service.name=~\"${tsvc:raw}\" && kind=server && resource.service.version=~\"v?($va|$vb)\"} | quantile_over_time(duration, .95) by (resource.service.version)",
+          "metricsQueryType": "instant"
+        },
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "refId": "SPANS",
+          "queryType": "traceql",
+          "query": "{resource.service.name=~\"${tsvc:raw}\" && kind=server && resource.service.version=~\"v?($va|$vb)\"} | count_over_time() by (resource.service.version)",
+          "metricsQueryType": "instant"
+        },
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "refId": "ERRORS",
+          "queryType": "traceql",
+          "query": "{resource.service.name=~\"${tsvc:raw}\" && kind=server && status=error && resource.service.version=~\"v?($va|$vb)\"} | count_over_time() by (resource.service.version, resource.service.name)",
+          "metricsQueryType": "instant"
         },
         {
           "datasource": {
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "label_replace(label_replace(quantile_over_time(0.75, {service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | app_version=\"$va\" | value_inp!=\"\" | unwrap value_inp | __error__=\"\" [$__range]) by (), \"signal\", \"INP p75 (ms)\", \"\", \"\"), \"slot\", \"A\", \"\", \"\")",
-          "queryType": "instant",
-          "editorMode": "code",
-          "refId": "B"
+          "refId": "LCP",
+          "expr": "quantile_over_time(0.75, {service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | app_version=~\"v?($va|$vb)\" | value_lcp!=\"\" | unwrap value_lcp | __error__=\"\" [$__range]) by (app_version)",
+          "queryType": "instant"
         },
         {
           "datasource": {
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "label_replace(label_replace(quantile_over_time(0.75, {service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | app_version=\"$va\" | value_cls!=\"\" | unwrap value_cls | __error__=\"\" [$__range]) by (), \"signal\", \"CLS p75\", \"\", \"\"), \"slot\", \"A\", \"\", \"\")",
-          "queryType": "instant",
-          "editorMode": "code",
-          "refId": "C"
+          "refId": "INP",
+          "expr": "quantile_over_time(0.75, {service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | app_version=~\"v?($va|$vb)\" | value_inp!=\"\" | unwrap value_inp | __error__=\"\" [$__range]) by (app_version)",
+          "queryType": "instant"
         },
         {
           "datasource": {
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "label_replace(label_replace(quantile_over_time(0.75, {service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | app_version=\"$va\" | value_ttfb!=\"\" | unwrap value_ttfb | __error__=\"\" [$__range]) by (), \"signal\", \"TTFB p75 (ms)\", \"\", \"\"), \"slot\", \"A\", \"\", \"\")",
-          "queryType": "instant",
-          "editorMode": "code",
-          "refId": "D"
+          "refId": "CLS",
+          "expr": "quantile_over_time(0.75, {service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | app_version=~\"v?($va|$vb)\" | value_cls!=\"\" | unwrap value_cls | __error__=\"\" [$__range]) by (app_version)",
+          "queryType": "instant"
         },
         {
           "datasource": {
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "label_replace(label_replace(1000 * (sum(count_over_time({service_name=~\"${faro:raw}\"} | kind=\"exception\" | logfmt | app_environment=\"$env\" | app_version=\"$va\" [$__range])) or vector(0)) / sum(count_over_time({service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | app_version=\"$va\" | value_ttfb!=\"\" [$__range])), \"signal\", \"JS errors / 1,000 loads\", \"\", \"\"), \"slot\", \"A\", \"\", \"\")",
-          "queryType": "instant",
-          "editorMode": "code",
-          "refId": "E"
+          "refId": "TTFB",
+          "expr": "quantile_over_time(0.75, {service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | app_version=~\"v?($va|$vb)\" | value_ttfb!=\"\" | unwrap value_ttfb | __error__=\"\" [$__range]) by (app_version)",
+          "queryType": "instant"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "EX",
+          "expr": "sum by (app_version) (count_over_time({service_name=~\"${faro:raw}\"} | kind=\"exception\" | logfmt | app_environment=\"$env\" | app_version=~\"v?($va|$vb)\" [$__range]))",
+          "queryType": "instant"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "LOADS",
+          "expr": "sum by (app_version) (count_over_time({service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | app_version=~\"v?($va|$vb)\" | value_ttfb!=\"\" [$__range]))",
+          "queryType": "instant"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "label_replace(label_replace(avg_over_time((avg(sum by (pod) (container_memory_working_set_bytes{namespace=\"$app\", container!=\"\"}) * on (pod) group_left () max by (pod) (kube_pod_container_info{namespace=\"$app\", image_spec=~\".*:$va(@.*)?\"})))[$__range:5m]) / 2^20, \"signal\", \"memory / pod (MiB)\", \"\", \"\"), \"slot\", \"A\", \"\", \"\")",
-          "legendFormat": "__auto",
-          "range": false,
-          "instant": true,
+          "refId": "MEM",
+          "expr": "avg_over_time((avg by (version) (label_replace(sum by (pod) (container_memory_working_set_bytes{namespace=\"$app\", container!=\"\"}) * on (pod) group_left (image_spec) topk by (pod) (1, max by (pod, image_spec) (kube_pod_container_info{namespace=\"$app\", image_spec=~\"ghcr.io/0xc0-labs/.*:v?($va|$vb)(@.*)?\", image_spec!~\".*-cms:.*\"})), \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")))[$__range:5m]) / 2^20",
           "editorMode": "code",
-          "refId": "F"
+          "range": false,
+          "instant": true
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "label_replace(label_replace(avg_over_time((avg(sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"$app\", container!=\"\"}[5m])) * on (pod) group_left () max by (pod) (kube_pod_container_info{namespace=\"$app\", image_spec=~\".*:$va(@.*)?\"})))[$__range:5m]) * 1000, \"signal\", \"CPU / pod (millicores)\", \"\", \"\"), \"slot\", \"A\", \"\", \"\")",
-          "legendFormat": "__auto",
+          "refId": "CPU",
+          "expr": "avg_over_time((avg by (version) (label_replace(sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"$app\", container!=\"\"}[5m])) * on (pod) group_left (image_spec) topk by (pod) (1, max by (pod, image_spec) (kube_pod_container_info{namespace=\"$app\", image_spec=~\"ghcr.io/0xc0-labs/.*:v?($va|$vb)(@.*)?\", image_spec!~\".*-cms:.*\"})), \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")))[$__range:5m]) * 1000",
+          "editorMode": "code",
           "range": false,
-          "instant": true,
-          "editorMode": "code",
-          "refId": "G"
-        },
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "label_replace(label_replace(quantile_over_time(0.75, {service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | app_version=\"$vb\" | value_lcp!=\"\" | unwrap value_lcp | __error__=\"\" [$__range]) by (), \"signal\", \"LCP p75 (ms)\", \"\", \"\"), \"slot\", \"B\", \"\", \"\")",
-          "queryType": "instant",
-          "editorMode": "code",
-          "refId": "H"
-        },
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "label_replace(label_replace(quantile_over_time(0.75, {service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | app_version=\"$vb\" | value_inp!=\"\" | unwrap value_inp | __error__=\"\" [$__range]) by (), \"signal\", \"INP p75 (ms)\", \"\", \"\"), \"slot\", \"B\", \"\", \"\")",
-          "queryType": "instant",
-          "editorMode": "code",
-          "refId": "I"
-        },
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "label_replace(label_replace(quantile_over_time(0.75, {service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | app_version=\"$vb\" | value_cls!=\"\" | unwrap value_cls | __error__=\"\" [$__range]) by (), \"signal\", \"CLS p75\", \"\", \"\"), \"slot\", \"B\", \"\", \"\")",
-          "queryType": "instant",
-          "editorMode": "code",
-          "refId": "J"
-        },
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "label_replace(label_replace(quantile_over_time(0.75, {service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | app_version=\"$vb\" | value_ttfb!=\"\" | unwrap value_ttfb | __error__=\"\" [$__range]) by (), \"signal\", \"TTFB p75 (ms)\", \"\", \"\"), \"slot\", \"B\", \"\", \"\")",
-          "queryType": "instant",
-          "editorMode": "code",
-          "refId": "K"
-        },
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "label_replace(label_replace(1000 * (sum(count_over_time({service_name=~\"${faro:raw}\"} | kind=\"exception\" | logfmt | app_environment=\"$env\" | app_version=\"$vb\" [$__range])) or vector(0)) / sum(count_over_time({service_name=~\"${faro:raw}\"} | kind=\"measurement\" | logfmt | type=\"web-vitals\" | app_environment=\"$env\" | app_version=\"$vb\" | value_ttfb!=\"\" [$__range])), \"signal\", \"JS errors / 1,000 loads\", \"\", \"\"), \"slot\", \"B\", \"\", \"\")",
-          "queryType": "instant",
-          "editorMode": "code",
-          "refId": "L"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "label_replace(label_replace(avg_over_time((avg(sum by (pod) (container_memory_working_set_bytes{namespace=\"$app\", container!=\"\"}) * on (pod) group_left () max by (pod) (kube_pod_container_info{namespace=\"$app\", image_spec=~\".*:$vb(@.*)?\"})))[$__range:5m]) / 2^20, \"signal\", \"memory / pod (MiB)\", \"\", \"\"), \"slot\", \"B\", \"\", \"\")",
-          "legendFormat": "__auto",
-          "range": false,
-          "instant": true,
-          "editorMode": "code",
-          "refId": "M"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "label_replace(label_replace(avg_over_time((avg(sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"$app\", container!=\"\"}[5m])) * on (pod) group_left () max by (pod) (kube_pod_container_info{namespace=\"$app\", image_spec=~\".*:$vb(@.*)?\"})))[$__range:5m]) * 1000, \"signal\", \"CPU / pod (millicores)\", \"\", \"\"), \"slot\", \"B\", \"\", \"\")",
-          "legendFormat": "__auto",
-          "range": false,
-          "instant": true,
-          "editorMode": "code",
-          "refId": "N"
+          "instant": true
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst SANS = 'Inter, sans-serif';\nconst C = { text: '#E7ECF3', text2: '#C9D2DE', label: '#8D99AB', line: '#1F2733', a: '#60A5FA', b: '#F59E0B',\n  ok: '#34D399', warn: '#FBBF24', crit: '#FB7185' };\nconst frames = (context.panel.data && context.panel.data.series) || [];\nconst rv = (s) => { try { return context.grafana.replaceVariables(s); } catch (e) { return ''; } };\nconst unq = (s) => String(s).replace(/^\"(.*)\"$/, '$1');\nconst num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));\n// Labels of a value, wherever the data source put them: field labels, a frame name such as\n// {name=\"GET /\", p=\"0.95\"} (Tempo), or string columns of a table frame (Loki and Prometheus instant).\nconst labelsOf = (f, field) => {\n  const out = {};\n  const parse = (s) => {\n    if (!s) return;\n    const re = /([\\w.:-]+)\\s*=\\s*\"((?:[^\"\\\\]|\\\\.)*)\"/g;\n    let m;\n    while ((m = re.exec(String(s)))) out[m[1]] = unq(m[2]);\n  };\n  parse(f.name);\n  parse(field.config && field.config.displayNameFromDS);\n  Object.keys(field.labels || {}).forEach((k) => { out[k] = unq(field.labels[k]); });\n  return out;\n};\nconst refOf = (f, field) => f.refId || ((/#\\s*(\\w+)$/.exec(field.name || '') || [])[1]) || '';\nconst rows = (() => {\n  const out = [];\n  frames.forEach((f) => {\n    const fs = f.fields || [];\n    const tf = fs.find((x) => x.type === 'time');\n    const strs = fs.filter((x) => x.type === 'string');\n    fs.filter((x) => x.type === 'number').forEach((v) => {\n      const base = labelsOf(f, v);\n      const ref = refOf(f, v);\n      const n = v.values.length;\n      for (let i = 0; i < n; i++) {\n        const lab = Object.assign({}, base);\n        strs.forEach((s) => { const x = s.values[i]; if (x !== null && x !== undefined && x !== '') lab[s.name] = unq(x); });\n        out.push({ labels: lab, value: num(v.values[i]), time: tf ? Number(tf.values[i]) : null, ref: ref });\n      }\n    });\n  });\n  return out;\n})();\nconst hasKey = (lab, rx) => Object.keys(lab).some((k) => rx.test(k));\nconst chart = context.panel.chart;\nconst W = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 600;\nconst H = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 300;\nconst range = (() => {\n  const r = context.panel.data.timeRange;\n  return r ? { from: r.from.valueOf(), to: r.to.valueOf() } : { from: Date.now() - 6 * 3600000, to: Date.now() };\n})();\nconst empty = (msg) => ({ backgroundColor: 'transparent', animation: false,\n  graphic: [{ type: 'text', left: 'center', top: 'middle', silent: true,\n    style: { text: msg, fill: C.label, font: '13px ' + SANS } }] });\nconst bare = (s) => String(s || '').replace(/^v/, '');\nconst VER = /^v?\\d+\\.\\d+\\.\\d+\\S*$/;\nconst verOf = (lab) => { for (const k of Object.keys(lab)) { if (VER.test(lab[k])) return bare(lab[k]); } return null; };\nconst va = bare(rv('${va}'));\nconst vb = bare(rv('${vb}'));\nconst nameA = va ? 'v' + va : 'A';\nconst nameB = vb ? 'v' + vb : 'B';\n// A is the release before, B the one running; a value for neither is no release of this comparison.\nconst slotOf = (lab) => { const v = verOf(lab); return v === null ? null : v === vb ? 'B' : v === va ? 'A' : null; };\n// One value per release and signal. Tempo's rows carry the version and are told apart by their\n// labels (p on a quantile, the service name on the error count), since its frames come without\n// the query's refId; Loki's and Prometheus's rows carry the version too, and their refId names the signal.\nconst val = { A: {}, B: {} };\nconst put = (slot, key, v) => { if (slot && v !== null) val[slot][key] = (val[slot][key] || 0) + v; };\nconst setv = (slot, key, v) => { if (slot && v !== null) val[slot][key] = v; };\nrows.forEach((r) => {\n  const slot = slotOf(r.labels);\n  if (!slot) return;\n  const tempo = hasKey(r.labels, /service\\.version/);\n  if (tempo) {\n    if ('p' in r.labels) setv(slot, 'p95', r.value);\n    else if (hasKey(r.labels, /service\\.name/)) put(slot, 'errors', r.value);\n    else put(slot, 'spans', r.value);\n    return;\n  }\n  const key = { LCP: 'lcp', INP: 'inp', CLS: 'cls', TTFB: 'ttfb', EX: 'ex', LOADS: 'loads', MEM: 'mem', CPU: 'cpu' }[r.ref];\n  if (!key) return;\n  if (key === 'ex' || key === 'loads') put(slot, key, r.value);\n  else setv(slot, key, r.value);\n});\nconst MIN = 20;\nconst signal = (s) => {\n  const v = val[s];\n  return {\n    p95: v.spans >= MIN && v.p95 !== undefined ? v.p95 * 1000 : null,\n    err: v.spans ? (v.errors || 0) / v.spans : null,\n    lcp: v.lcp, inp: v.inp, cls: v.cls, ttfb: v.ttfb,\n    js: v.loads ? (1000 * (v.ex || 0)) / v.loads : null,\n    mem: v.mem, cpu: v.cpu,\n  };\n};\nconst A = signal('A');\nconst B = signal('B');\nconst ms = (x) => (x < 1000 ? Math.round(x) + ' ms' : (x / 1000).toFixed(2) + ' s');\nconst defs = [\n  ['p95 latency', 'p95', ms],\n  ['Error rate', 'err', (x) => (x * 100).toFixed(2) + ' %'],\n  ['LCP p75', 'lcp', ms],\n  ['INP p75', 'inp', ms],\n  ['CLS p75', 'cls', (x) => x.toFixed(2)],\n  ['TTFB p75', 'ttfb', ms],\n  ['JS errors per 1k loads', 'js', (x) => x.toFixed(1)],\n  ['Memory per pod', 'mem', (x) => Math.round(x) + ' MiB'],\n  ['CPU per pod', 'cpu', (x) => Math.round(x) + ' m'],\n];\nconst ok = (x) => x !== null && x !== undefined && Number.isFinite(x);\nconst list = defs.filter((d) => ok(A[d[1]]) || ok(B[d[1]]));\nif (!list.length) return empty('No signal for ' + nameA + ' or ' + nameB + ' in this range');\nconst x0 = 4;\nconst xA = Math.round(W * 0.42);\nconst xB = Math.round(W * 0.6);\nconst xC = Math.round(W * 0.78);\nconst rh = Math.max(24, Math.min(32, Math.floor((H - 30) / list.length)));\nconst graphic = [];\nconst head = (x, text, fill) => graphic.push({ type: 'text', left: x, top: 6, silent: true,\n  style: { text: text, fill: fill, font: '600 11px ' + SANS } });\nhead(x0, 'SIGNAL', C.label);\nhead(xA, nameA, C.a);\nhead(xB, nameB, C.b);\nhead(xC, 'CHANGE', C.label);\nlist.forEach((d, i) => {\n  const y = 28 + i * rh;\n  graphic.push({ type: 'rect', left: 0, top: y, silent: true, shape: { width: W, height: 1 }, style: { fill: C.line } });\n  const ty = y + Math.round((rh - 14) / 2);\n  const a = A[d[1]];\n  const b = B[d[1]];\n  graphic.push({ type: 'text', left: x0, top: ty, silent: true, style: { text: d[0], fill: C.text2, font: '13px ' + SANS } });\n  graphic.push({ type: 'text', left: xA, top: ty, silent: true, style: { text: ok(a) ? d[2](a) : '—', fill: ok(a) ? C.text : C.label, font: '13px ' + MONO } });\n  graphic.push({ type: 'text', left: xB, top: ty, silent: true, style: { text: ok(b) ? d[2](b) : '—', fill: ok(b) ? C.text : C.label, font: '13px ' + MONO } });\n  let txt = '—';\n  let col = C.label;\n  let bg = 'rgba(141,153,171,.10)';\n  if (ok(a) && ok(b)) {\n    if (a === b) txt = '= 0 %';\n    else if (a !== 0) {\n      const ch = (b - a) / Math.abs(a);\n      txt = (ch < 0 ? '▼ ' : '▲ ') + Math.abs(ch * 100).toFixed(Math.abs(ch) < 0.1 ? 1 : 0) + ' %';\n      // Lower is better on every row.\n      if (Math.abs(ch) >= 0.05) { col = ch < 0 ? C.ok : C.crit; bg = ch < 0 ? 'rgba(52,211,153,.12)' : 'rgba(251,113,133,.12)'; }\n    } else { txt = '▲ from 0'; col = C.crit; bg = 'rgba(251,113,133,.12)'; }\n  }\n  graphic.push({ type: 'rect', left: xC - 2, top: ty - 4, silent: true,\n    shape: { width: Math.min(W - xC, 8 * txt.length + 16), height: 22, r: 11 }, style: { fill: bg } });\n  graphic.push({ type: 'text', left: xC + 6, top: ty, silent: true, style: { text: txt, fill: col, font: '12px ' + MONO } });\n});\nreturn { backgroundColor: 'transparent', animation: false, graphic: graphic };\n",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        }
+      },
+      "id": 22,
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      }
+    },
+    {
+      "type": "volkovlabs-echarts-panel",
+      "title": "p95 by release",
+      "description": "95th percentile of the app's server spans per hour, A in blue and B in amber (Tempo, service.version). An hour with fewer than 5 spans of a release is a gap.",
+      "transparent": true,
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "refId": "P95",
+          "queryType": "traceql",
+          "query": "{resource.service.name=~\"${tsvc:raw}\" && kind=server && resource.service.version=~\"v?($va|$vb)\"} | quantile_over_time(duration, .95) by (resource.service.version)",
+          "metricsQueryType": "range",
+          "step": "1h"
+        },
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "refId": "SPANS",
+          "queryType": "traceql",
+          "query": "{resource.service.name=~\"${tsvc:raw}\" && kind=server && resource.service.version=~\"v?($va|$vb)\"} | count_over_time() by (resource.service.version)",
+          "metricsQueryType": "range",
+          "step": "1h"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "getOption": "const MODE = \"p95\";\nconst MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst SANS = 'Inter, sans-serif';\nconst C = { text: '#E7ECF3', text2: '#C9D2DE', label: '#8D99AB', line: '#1F2733', a: '#60A5FA', b: '#F59E0B',\n  ok: '#34D399', warn: '#FBBF24', crit: '#FB7185' };\nconst frames = (context.panel.data && context.panel.data.series) || [];\nconst rv = (s) => { try { return context.grafana.replaceVariables(s); } catch (e) { return ''; } };\nconst unq = (s) => String(s).replace(/^\"(.*)\"$/, '$1');\nconst num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));\n// Labels of a value, wherever the data source put them: field labels, a frame name such as\n// {name=\"GET /\", p=\"0.95\"} (Tempo), or string columns of a table frame (Loki and Prometheus instant).\nconst labelsOf = (f, field) => {\n  const out = {};\n  const parse = (s) => {\n    if (!s) return;\n    const re = /([\\w.:-]+)\\s*=\\s*\"((?:[^\"\\\\]|\\\\.)*)\"/g;\n    let m;\n    while ((m = re.exec(String(s)))) out[m[1]] = unq(m[2]);\n  };\n  parse(f.name);\n  parse(field.config && field.config.displayNameFromDS);\n  Object.keys(field.labels || {}).forEach((k) => { out[k] = unq(field.labels[k]); });\n  return out;\n};\nconst refOf = (f, field) => f.refId || ((/#\\s*(\\w+)$/.exec(field.name || '') || [])[1]) || '';\nconst rows = (() => {\n  const out = [];\n  frames.forEach((f) => {\n    const fs = f.fields || [];\n    const tf = fs.find((x) => x.type === 'time');\n    const strs = fs.filter((x) => x.type === 'string');\n    fs.filter((x) => x.type === 'number').forEach((v) => {\n      const base = labelsOf(f, v);\n      const ref = refOf(f, v);\n      const n = v.values.length;\n      for (let i = 0; i < n; i++) {\n        const lab = Object.assign({}, base);\n        strs.forEach((s) => { const x = s.values[i]; if (x !== null && x !== undefined && x !== '') lab[s.name] = unq(x); });\n        out.push({ labels: lab, value: num(v.values[i]), time: tf ? Number(tf.values[i]) : null, ref: ref });\n      }\n    });\n  });\n  return out;\n})();\nconst hasKey = (lab, rx) => Object.keys(lab).some((k) => rx.test(k));\nconst chart = context.panel.chart;\nconst W = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 600;\nconst H = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 300;\nconst range = (() => {\n  const r = context.panel.data.timeRange;\n  return r ? { from: r.from.valueOf(), to: r.to.valueOf() } : { from: Date.now() - 6 * 3600000, to: Date.now() };\n})();\nconst empty = (msg) => ({ backgroundColor: 'transparent', animation: false,\n  graphic: [{ type: 'text', left: 'center', top: 'middle', silent: true,\n    style: { text: msg, fill: C.label, font: '13px ' + SANS } }] });\nconst bare = (s) => String(s || '').replace(/^v/, '');\nconst VER = /^v?\\d+\\.\\d+\\.\\d+\\S*$/;\nconst verOf = (lab) => { for (const k of Object.keys(lab)) { if (VER.test(lab[k])) return bare(lab[k]); } return null; };\nconst va = bare(rv('${va}'));\nconst vb = bare(rv('${vb}'));\nconst nameA = va ? 'v' + va : 'A';\nconst nameB = vb ? 'v' + vb : 'B';\n// A is the release before, B the one running; a value for neither is no release of this comparison.\nconst slotOf = (lab) => { const v = verOf(lab); return v === null ? null : v === vb ? 'B' : v === va ? 'A' : null; };\n// Per hour and per release, from Tempo series grouped by resource.service.version: the\n// version names the series, since Tempo's frames come without the query's refId.\nconst MIN = 5;\nconst pts = { A: new Map(), B: new Map() };\nconst cnt = { A: new Map(), B: new Map() };\nrows.forEach((r) => {\n  const slot = slotOf(r.labels);\n  if (!slot || r.time === null || r.value === null) return;\n  if (MODE === 'p95' && !('p' in r.labels)) cnt[slot].set(r.time, (cnt[slot].get(r.time) || 0) + r.value);\n  else pts[slot].set(r.time, (pts[slot].get(r.time) || 0) + r.value);\n});\nconst series = [];\n[['A', nameA, C.a], ['B', nameB, C.b]].forEach((s) => {\n  const m = pts[s[0]];\n  if (!m.size) return;\n  // A p95 over fewer than MIN spans in its hour is left out: a gap, not a bucket edge.\n  const data = Array.from(m.keys()).sort((x, y) => x - y)\n    .map((t) => [t, MODE === 'p95' ? ((cnt[s[0]].get(t) || 0) >= MIN ? m.get(t) * 1000 : null) : m.get(t)]);\n  if (!data.some((p) => p[1] !== null)) return;\n  series.push(MODE === 'p95'\n    ? { name: s[1], type: 'line', data: data, connectNulls: false, showSymbol: true, symbolSize: 4,\n      lineStyle: { width: 2, color: s[2] }, itemStyle: { color: s[2] } }\n    : { name: s[1], type: 'bar', data: data, barMaxWidth: 10, itemStyle: { color: s[2], borderRadius: [2, 2, 0, 0] } });\n});\nif (!series.length) return empty(MODE === 'p95' ? 'Too few spans for ' + nameA + ' or ' + nameB : 'No errors for ' + nameA + ' or ' + nameB);\nconst fmtY = MODE === 'p95' ? (v) => (v < 1000 ? Math.round(v) + ' ms' : (v / 1000).toFixed(1) + ' s') : (v) => String(Math.round(v));\nreturn {\n  backgroundColor: 'transparent', animation: false,\n  grid: { left: 8, right: 12, top: 10, bottom: 28, containLabel: true },\n  legend: { bottom: 0, left: 0, icon: 'roundRect', itemWidth: 12, itemHeight: 3, data: series.map((s) => s.name),\n    textStyle: { color: C.text2, fontSize: 12, fontFamily: MONO } },\n  tooltip: { trigger: 'axis', valueFormatter: (v) => (v === null || v === undefined ? '—' : fmtY(v)) },\n  xAxis: { type: 'time', min: range.from, max: range.to, axisLine: { lineStyle: { color: C.line } },\n    axisLabel: { color: C.label, fontSize: 11, hideOverlap: true }, splitLine: { show: false } },\n  yAxis: { type: 'value', min: 0, minInterval: MODE === 'p95' ? 0 : 1, splitNumber: 3,\n    axisLabel: { color: C.label, fontSize: 11, formatter: fmtY }, splitLine: { lineStyle: { color: C.line } } },\n  series: series,\n};\n",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        }
+      },
+      "id": 23,
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 24
+      }
+    },
+    {
+      "type": "volkovlabs-echarts-panel",
+      "title": "Errors by release",
+      "description": "Server spans with an error status per hour, A in blue and B in amber (Tempo, service.version).",
+      "transparent": true,
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "refId": "ERRORS",
+          "queryType": "traceql",
+          "query": "{resource.service.name=~\"${tsvc:raw}\" && kind=server && status=error && resource.service.version=~\"v?($va|$vb)\"} | count_over_time() by (resource.service.version)",
+          "metricsQueryType": "range",
+          "step": "1h"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "getOption": "const MODE = \"errors\";\nconst MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst SANS = 'Inter, sans-serif';\nconst C = { text: '#E7ECF3', text2: '#C9D2DE', label: '#8D99AB', line: '#1F2733', a: '#60A5FA', b: '#F59E0B',\n  ok: '#34D399', warn: '#FBBF24', crit: '#FB7185' };\nconst frames = (context.panel.data && context.panel.data.series) || [];\nconst rv = (s) => { try { return context.grafana.replaceVariables(s); } catch (e) { return ''; } };\nconst unq = (s) => String(s).replace(/^\"(.*)\"$/, '$1');\nconst num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));\n// Labels of a value, wherever the data source put them: field labels, a frame name such as\n// {name=\"GET /\", p=\"0.95\"} (Tempo), or string columns of a table frame (Loki and Prometheus instant).\nconst labelsOf = (f, field) => {\n  const out = {};\n  const parse = (s) => {\n    if (!s) return;\n    const re = /([\\w.:-]+)\\s*=\\s*\"((?:[^\"\\\\]|\\\\.)*)\"/g;\n    let m;\n    while ((m = re.exec(String(s)))) out[m[1]] = unq(m[2]);\n  };\n  parse(f.name);\n  parse(field.config && field.config.displayNameFromDS);\n  Object.keys(field.labels || {}).forEach((k) => { out[k] = unq(field.labels[k]); });\n  return out;\n};\nconst refOf = (f, field) => f.refId || ((/#\\s*(\\w+)$/.exec(field.name || '') || [])[1]) || '';\nconst rows = (() => {\n  const out = [];\n  frames.forEach((f) => {\n    const fs = f.fields || [];\n    const tf = fs.find((x) => x.type === 'time');\n    const strs = fs.filter((x) => x.type === 'string');\n    fs.filter((x) => x.type === 'number').forEach((v) => {\n      const base = labelsOf(f, v);\n      const ref = refOf(f, v);\n      const n = v.values.length;\n      for (let i = 0; i < n; i++) {\n        const lab = Object.assign({}, base);\n        strs.forEach((s) => { const x = s.values[i]; if (x !== null && x !== undefined && x !== '') lab[s.name] = unq(x); });\n        out.push({ labels: lab, value: num(v.values[i]), time: tf ? Number(tf.values[i]) : null, ref: ref });\n      }\n    });\n  });\n  return out;\n})();\nconst hasKey = (lab, rx) => Object.keys(lab).some((k) => rx.test(k));\nconst chart = context.panel.chart;\nconst W = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 600;\nconst H = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 300;\nconst range = (() => {\n  const r = context.panel.data.timeRange;\n  return r ? { from: r.from.valueOf(), to: r.to.valueOf() } : { from: Date.now() - 6 * 3600000, to: Date.now() };\n})();\nconst empty = (msg) => ({ backgroundColor: 'transparent', animation: false,\n  graphic: [{ type: 'text', left: 'center', top: 'middle', silent: true,\n    style: { text: msg, fill: C.label, font: '13px ' + SANS } }] });\nconst bare = (s) => String(s || '').replace(/^v/, '');\nconst VER = /^v?\\d+\\.\\d+\\.\\d+\\S*$/;\nconst verOf = (lab) => { for (const k of Object.keys(lab)) { if (VER.test(lab[k])) return bare(lab[k]); } return null; };\nconst va = bare(rv('${va}'));\nconst vb = bare(rv('${vb}'));\nconst nameA = va ? 'v' + va : 'A';\nconst nameB = vb ? 'v' + vb : 'B';\n// A is the release before, B the one running; a value for neither is no release of this comparison.\nconst slotOf = (lab) => { const v = verOf(lab); return v === null ? null : v === vb ? 'B' : v === va ? 'A' : null; };\n// Per hour and per release, from Tempo series grouped by resource.service.version: the\n// version names the series, since Tempo's frames come without the query's refId.\nconst MIN = 5;\nconst pts = { A: new Map(), B: new Map() };\nconst cnt = { A: new Map(), B: new Map() };\nrows.forEach((r) => {\n  const slot = slotOf(r.labels);\n  if (!slot || r.time === null || r.value === null) return;\n  if (MODE === 'p95' && !('p' in r.labels)) cnt[slot].set(r.time, (cnt[slot].get(r.time) || 0) + r.value);\n  else pts[slot].set(r.time, (pts[slot].get(r.time) || 0) + r.value);\n});\nconst series = [];\n[['A', nameA, C.a], ['B', nameB, C.b]].forEach((s) => {\n  const m = pts[s[0]];\n  if (!m.size) return;\n  // A p95 over fewer than MIN spans in its hour is left out: a gap, not a bucket edge.\n  const data = Array.from(m.keys()).sort((x, y) => x - y)\n    .map((t) => [t, MODE === 'p95' ? ((cnt[s[0]].get(t) || 0) >= MIN ? m.get(t) * 1000 : null) : m.get(t)]);\n  if (!data.some((p) => p[1] !== null)) return;\n  series.push(MODE === 'p95'\n    ? { name: s[1], type: 'line', data: data, connectNulls: false, showSymbol: true, symbolSize: 4,\n      lineStyle: { width: 2, color: s[2] }, itemStyle: { color: s[2] } }\n    : { name: s[1], type: 'bar', data: data, barMaxWidth: 10, itemStyle: { color: s[2], borderRadius: [2, 2, 0, 0] } });\n});\nif (!series.length) return empty(MODE === 'p95' ? 'Too few spans for ' + nameA + ' or ' + nameB : 'No errors for ' + nameA + ' or ' + nameB);\nconst fmtY = MODE === 'p95' ? (v) => (v < 1000 ? Math.round(v) + ' ms' : (v / 1000).toFixed(1) + ' s') : (v) => String(Math.round(v));\nreturn {\n  backgroundColor: 'transparent', animation: false,\n  grid: { left: 8, right: 12, top: 10, bottom: 28, containLabel: true },\n  legend: { bottom: 0, left: 0, icon: 'roundRect', itemWidth: 12, itemHeight: 3, data: series.map((s) => s.name),\n    textStyle: { color: C.text2, fontSize: 12, fontFamily: MONO } },\n  tooltip: { trigger: 'axis', valueFormatter: (v) => (v === null || v === undefined ? '—' : fmtY(v)) },\n  xAxis: { type: 'time', min: range.from, max: range.to, axisLine: { lineStyle: { color: C.line } },\n    axisLabel: { color: C.label, fontSize: 11, hideOverlap: true }, splitLine: { show: false } },\n  yAxis: { type: 'value', min: 0, minInterval: MODE === 'p95' ? 0 : 1, splitNumber: 3,\n    axisLabel: { color: C.label, fontSize: 11, formatter: fmtY }, splitLine: { lineStyle: { color: C.line } } },\n  series: series,\n};\n",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        }
+      },
+      "id": 24,
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 24
+      }
+    },
+    {
+      "type": "state-timeline",
+      "id": 25,
+      "title": "Which release serves",
+      "transparent": true,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Pods running each release over the range (kube-state-metrics): a rollout shows as both rows at once.",
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 12,
+        "y": 29
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "A",
+          "expr": "count(kube_pod_container_info{namespace=\"$app\", image_spec=~\"ghcr.io/0xc0-labs/.*\", image_spec!~\".*-cms:.*\", image_spec=~\".*:v?$va(@.*)?\"})",
+          "editorMode": "code",
+          "range": true,
+          "instant": false,
+          "legendFormat": "${va:text}"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "B",
+          "expr": "count(kube_pod_container_info{namespace=\"$app\", image_spec=~\"ghcr.io/0xc0-labs/.*\", image_spec!~\".*-cms:.*\", image_spec=~\".*:v?$vb(@.*)?\"})",
+          "editorMode": "code",
+          "range": true,
+          "instant": false,
+          "legendFormat": "${vb:text}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: pods",
+          "decimals": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1743,465 +1408,62 @@
               }
             ]
           },
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "inspect": false,
-            "filterable": false
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#8D99AB"
           },
-          "noValue": "no data for these releases"
+          "custom": {
+            "lineWidth": 0,
+            "fillOpacity": 75
+          }
         },
         "overrides": [
           {
             "matcher": {
-              "id": "byName",
-              "options": "change"
+              "id": "byFrameRefID",
+              "options": "A"
             },
             "properties": [
-              {
-                "id": "unit",
-                "value": "percentunit"
-              },
-              {
-                "id": "decimals",
-                "value": 1
-              },
               {
                 "id": "color",
                 "value": {
-                  "mode": "thresholds"
-                }
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "#34D399",
-                      "value": null
-                    },
-                    {
-                      "color": "#FB7185",
-                      "value": 1e-06
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
+                  "mode": "fixed",
+                  "fixedColor": "#60A5FA"
                 }
               }
             ]
           },
           {
             "matcher": {
-              "id": "byName",
-              "options": "trend"
+              "id": "byFrameRefID",
+              "options": "B"
             },
             "properties": [
               {
-                "id": "displayName",
-                "value": " "
-              },
-              {
-                "id": "custom.width",
-                "value": 90
-              },
-              {
-                "id": "custom.cellOptions",
+                "id": "color",
                 "value": {
-                  "type": "color-text"
+                  "mode": "fixed",
+                  "fixedColor": "#F59E0B"
                 }
-              },
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "range",
-                    "options": {
-                      "from": -1000000000000.0,
-                      "to": -1e-06,
-                      "result": {
-                        "text": "▼ lower",
-                        "color": "#34D399"
-                      }
-                    }
-                  },
-                  {
-                    "type": "range",
-                    "options": {
-                      "from": 1e-06,
-                      "to": 1000000000000.0,
-                      "result": {
-                        "text": "▲ higher",
-                        "color": "#FB7185"
-                      }
-                    }
-                  },
-                  {
-                    "type": "value",
-                    "options": {
-                      "0": {
-                        "text": "= same",
-                        "color": "#8D99AB"
-                      }
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "signal"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 200
               }
             ]
           }
         ]
       },
       "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "footer": {
-          "show": false,
-          "reducer": [
-            "sum"
-          ],
-          "fields": ""
-        },
-        "sortBy": []
-      },
-      "datasource": {
-        "type": "datasource",
-        "uid": "-- Mixed --"
-      },
-      "transformations": [
-        {
-          "id": "labelsToFields",
-          "options": {
-            "mode": "columns"
-          }
-        },
-        {
-          "id": "merge",
-          "options": {}
-        },
-        {
-          "id": "groupingToMatrix",
-          "options": {
-            "columnField": "slot",
-            "rowField": "signal",
-            "valueField": "Value",
-            "emptyValue": "null"
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "mode": "binary",
-            "alias": "delta",
-            "binary": {
-              "left": "A",
-              "operator": "-",
-              "right": "B"
-            },
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "mode": "binary",
-            "alias": "change",
-            "binary": {
-              "left": "delta",
-              "operator": "/",
-              "right": "B"
-            },
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "mode": "binary",
-            "alias": "trend",
-            "binary": {
-              "left": "change",
-              "operator": "*",
-              "right": "1"
-            },
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "delta": true
-            },
-            "renameByName": {
-              "signal\\slot": "signal",
-              "A": "$va",
-              "B": "$vb"
-            }
-          }
-        }
-      ],
-      "id": 22,
-      "gridPos": {
-        "h": 12,
-        "w": 12,
-        "x": 0,
-        "y": 28
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "p95 by release",
-      "description": "95th percentile of server spans, release A and B overlaid (Tempo, service.version).",
-      "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{resource.service.name=~\"${tsvc:raw}\" && kind=server && resource.service.version=~\"$va|$vb\"} | quantile_over_time(duration, .95) by (resource.service.version)",
-          "metricsQueryType": "range",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "color": {
-            "mode": "palette-classic"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#E7ECF3",
-                "value": null
-              }
-            ]
-          },
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "fillOpacity": 8,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "lineInterpolation": "smooth",
-            "axisBorderShow": false,
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "noValue": "no spans for these releases"
-        },
-        "overrides": []
-      },
-      "options": {
+        "showValue": "auto",
+        "mergeValues": true,
+        "alignValue": "left",
+        "rowHeight": 0.7,
         "legend": {
+          "showLegend": false,
           "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true,
-          "calcs": []
+          "placement": "bottom"
         },
         "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
+          "mode": "single",
+          "sort": "none"
         }
-      },
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "id": 23,
-      "gridPos": {
-        "h": 6,
-        "w": 6,
-        "x": 12,
-        "y": 28
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Errors by release",
-      "description": "Server spans in error per second, by release (Tempo).",
-      "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{resource.service.name=~\"${tsvc:raw}\" && kind=server && status=error && resource.service.version=~\"$va|$vb\"} | rate() by (resource.service.version)",
-          "metricsQueryType": "range",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps",
-          "color": {
-            "mode": "palette-classic"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#E7ECF3",
-                "value": null
-              }
-            ]
-          },
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "fillOpacity": 8,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "lineInterpolation": "smooth",
-            "axisBorderShow": false,
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "noValue": "no errors for these releases"
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true,
-          "calcs": []
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "id": 24,
-      "gridPos": {
-        "h": 6,
-        "w": 6,
-        "x": 18,
-        "y": 28
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Rollout · share of requests",
-      "description": "Each release's share of the server spans over time (Tempo, service.version).",
-      "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{resource.service.name=~\"${tsvc:raw}\" && kind=server} | rate() by (resource.service.version)",
-          "metricsQueryType": "range",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percentunit",
-          "color": {
-            "mode": "palette-classic"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#E7ECF3",
-                "value": null
-              }
-            ]
-          },
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "fillOpacity": 60,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "lineInterpolation": "smooth",
-            "axisBorderShow": false,
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "stacking": {
-              "mode": "percent",
-              "group": "A"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "noValue": "no spans in range"
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true,
-          "calcs": []
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "id": 25,
-      "gridPos": {
-        "h": 6,
-        "w": 12,
-        "x": 12,
-        "y": 34
       }
     },
     {
@@ -2214,7 +1476,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 40
+        "y": 34
       }
     },
     {
@@ -2297,235 +1559,38 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 41
+        "y": 35
       }
     },
     {
-      "type": "table",
+      "type": "volkovlabs-echarts-panel",
       "title": "Slowest operations",
-      "description": "p95 and calls by span name over the range (Tempo); a row opens that operation's traces in Explore.",
+      "description": "p95 and calls per span name over the range (Tempo); a p95 over fewer than 20 calls reads —. An operation opens its traces in Explore.",
       "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{resource.service.name=~\"${tsvc:raw}\" && kind=server} | quantile_over_time(duration, .95) by (name)",
-          "metricsQueryType": "instant",
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{resource.service.name=~\"${tsvc:raw}\" && kind=server} | count_over_time() by (name)",
-          "metricsQueryType": "instant",
-          "refId": "B"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#E7ECF3",
-                "value": null
-              }
-            ]
-          },
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "inspect": false,
-            "filterable": false
-          },
-          "noValue": "no spans in range"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "operation"
-            },
-            "properties": [
-              {
-                "id": "links",
-                "value": [
-                  {
-                    "title": "Open its traces",
-                    "url": "/explore?schemaVersion=1&panes={%22a%22:{%22datasource%22:%22tempo%22%2C%22queries%22:%5B{%22refId%22:%22A%22%2C%22query%22:%22{resource.service.name%3D~%5C%22${tsvc:raw}%5C%22%20%26%26%20name%3D%5C%22${__data.fields.operation:percentencode}%5C%22}%22%2C%22datasource%22:{%22type%22:%22tempo%22%2C%22uid%22:%22tempo%22}%2C%22queryType%22:%22traceql%22}%5D%2C%22range%22:{%22from%22:%22now-6h%22%2C%22to%22:%22now%22}}}"
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "p95"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "s"
-              },
-              {
-                "id": "decimals",
-                "value": 3
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "thresholds"
-                }
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "#E7ECF3",
-                      "value": null
-                    },
-                    {
-                      "color": "#FBBF24",
-                      "value": 0.5
-                    },
-                    {
-                      "color": "#FB7185",
-                      "value": 1
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "calls"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "short"
-              },
-              {
-                "id": "decimals",
-                "value": 0
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "footer": {
-          "show": false,
-          "reducer": [
-            "sum"
-          ],
-          "fields": ""
-        },
-        "sortBy": [
-          {
-            "displayName": "p95",
-            "desc": true
-          }
-        ]
-      },
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
       },
-      "transformations": [
-        {
-          "id": "labelsToFields",
-          "options": {
-            "mode": "columns"
-          }
-        },
-        {
-          "id": "merge",
-          "options": {}
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true
-            },
-            "renameByName": {
-              "name": "operation",
-              "Value #A": "p95",
-              "Value #B": "calls"
-            }
-          }
-        }
-      ],
-      "id": 28,
-      "gridPos": {
-        "h": 9,
-        "w": 12,
-        "x": 12,
-        "y": 41
-      }
-    },
-    {
-      "type": "row",
-      "title": "Errors and pods",
-      "collapsed": false,
-      "panels": [],
-      "id": 29,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 50
-      }
-    },
-    {
-      "type": "logs",
-      "title": "Errors",
-      "description": "Server lines at error and above in the namespace, and the browser's exceptions from Faro.",
-      "transparent": true,
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "tempo",
+            "uid": "tempo"
           },
-          "expr": "{k8s_namespace_name=\"$app\"} | detected_level=~\"(?i)(error|fatal|critical)\"",
-          "queryType": "range",
-          "editorMode": "code",
-          "refId": "A",
-          "maxLines": 50
+          "refId": "P95",
+          "queryType": "traceql",
+          "query": "{resource.service.name=~\"${tsvc:raw}\" && kind=server} | quantile_over_time(duration, .95) by (name)",
+          "metricsQueryType": "instant"
         },
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "tempo",
+            "uid": "tempo"
           },
-          "expr": "{service_name=~\"${faro:raw}\"} | kind=\"exception\" | app_environment!=\"probe\"",
-          "queryType": "range",
-          "editorMode": "code",
-          "refId": "B",
-          "maxLines": 50
+          "refId": "CALLS",
+          "queryType": "traceql",
+          "query": "{resource.service.name=~\"${tsvc:raw}\" && kind=server} | count_over_time() by (name)",
+          "metricsQueryType": "instant"
         }
       ],
       "fieldConfig": {
@@ -2543,32 +1608,237 @@
         "overrides": []
       },
       "options": {
-        "showTime": true,
-        "wrapLogMessage": true,
-        "enableLogDetails": true,
-        "sortOrder": "Descending",
-        "dedupStrategy": "none",
-        "prettifyLogMessage": false,
-        "showLabels": false,
-        "showCommonLabels": false,
-        "enableInfiniteScrolling": false
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst SANS = 'Inter, sans-serif';\nconst C = { text: '#E7ECF3', text2: '#C9D2DE', label: '#8D99AB', line: '#1F2733', a: '#60A5FA', b: '#F59E0B',\n  ok: '#34D399', warn: '#FBBF24', crit: '#FB7185' };\nconst frames = (context.panel.data && context.panel.data.series) || [];\nconst rv = (s) => { try { return context.grafana.replaceVariables(s); } catch (e) { return ''; } };\nconst unq = (s) => String(s).replace(/^\"(.*)\"$/, '$1');\nconst num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));\n// Labels of a value, wherever the data source put them: field labels, a frame name such as\n// {name=\"GET /\", p=\"0.95\"} (Tempo), or string columns of a table frame (Loki and Prometheus instant).\nconst labelsOf = (f, field) => {\n  const out = {};\n  const parse = (s) => {\n    if (!s) return;\n    const re = /([\\w.:-]+)\\s*=\\s*\"((?:[^\"\\\\]|\\\\.)*)\"/g;\n    let m;\n    while ((m = re.exec(String(s)))) out[m[1]] = unq(m[2]);\n  };\n  parse(f.name);\n  parse(field.config && field.config.displayNameFromDS);\n  Object.keys(field.labels || {}).forEach((k) => { out[k] = unq(field.labels[k]); });\n  return out;\n};\nconst refOf = (f, field) => f.refId || ((/#\\s*(\\w+)$/.exec(field.name || '') || [])[1]) || '';\nconst rows = (() => {\n  const out = [];\n  frames.forEach((f) => {\n    const fs = f.fields || [];\n    const tf = fs.find((x) => x.type === 'time');\n    const strs = fs.filter((x) => x.type === 'string');\n    fs.filter((x) => x.type === 'number').forEach((v) => {\n      const base = labelsOf(f, v);\n      const ref = refOf(f, v);\n      const n = v.values.length;\n      for (let i = 0; i < n; i++) {\n        const lab = Object.assign({}, base);\n        strs.forEach((s) => { const x = s.values[i]; if (x !== null && x !== undefined && x !== '') lab[s.name] = unq(x); });\n        out.push({ labels: lab, value: num(v.values[i]), time: tf ? Number(tf.values[i]) : null, ref: ref });\n      }\n    });\n  });\n  return out;\n})();\nconst hasKey = (lab, rx) => Object.keys(lab).some((k) => rx.test(k));\nconst chart = context.panel.chart;\nconst W = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 600;\nconst H = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 300;\nconst range = (() => {\n  const r = context.panel.data.timeRange;\n  return r ? { from: r.from.valueOf(), to: r.to.valueOf() } : { from: Date.now() - 6 * 3600000, to: Date.now() };\n})();\nconst empty = (msg) => ({ backgroundColor: 'transparent', animation: false,\n  graphic: [{ type: 'text', left: 'center', top: 'middle', silent: true,\n    style: { text: msg, fill: C.label, font: '13px ' + SANS } }] });\n// p95 and calls per span name. Tempo's frames come without the query's refId: the quantile's\n// rows carry the label p, the count's do not.\nconst MIN = 20;\nconst ops = new Map();\nrows.forEach((r) => {\n  const name = r.labels.name;\n  if (!name || r.value === null) return;\n  const o = ops.get(name) || { name: name, p95: null, calls: 0 };\n  if ('p' in r.labels) o.p95 = r.value;\n  else o.calls += r.value;\n  ops.set(name, o);\n});\nconst list = Array.from(ops.values()).filter((o) => o.calls > 0)\n  .map((o) => Object.assign(o, { p95: o.calls >= MIN ? o.p95 : null }))\n  .sort((x, y) => (y.p95 === null ? -1 : y.p95) - (x.p95 === null ? -1 : x.p95) || y.calls - x.calls);\nif (!list.length) return empty('No server spans in this range');\nconst xP = Math.round(W * 0.64);\nconst xN = Math.round(W * 0.82);\nconst rh = 28;\nconst shown = list.slice(0, Math.max(1, Math.floor((H - 30) / rh)));\nconst svc = rv('${tsvc:raw}');\nconst explore = (name) => {\n  const q = '{resource.service.name=~\"' + svc + '\" && kind=server && name=\"' + name.replace(/[\"\\\\]/g, '\\\\$&') + '\"}';\n  const panes = { a: { datasource: 'tempo', queries: [{ refId: 'A', query: q, queryType: 'traceql',\n    datasource: { type: 'tempo', uid: 'tempo' } }], range: { from: String(range.from), to: String(range.to) } } };\n  return '/explore?schemaVersion=1&panes=' + encodeURIComponent(JSON.stringify(panes));\n};\nconst graphic = [];\nconst head = (x, text) => graphic.push({ type: 'text', left: x, top: 6, silent: true,\n  style: { text: text, fill: C.label, font: '600 11px ' + SANS } });\nhead(4, 'OPERATION');\nhead(xP, 'P95');\nhead(xN, 'CALLS');\nshown.forEach((o, i) => {\n  const y = 28 + i * rh;\n  const ty = y + 7;\n  graphic.push({ type: 'rect', left: 0, top: y, silent: true, shape: { width: W, height: 1 }, style: { fill: C.line } });\n  graphic.push({ type: 'text', left: 4, top: ty, cursor: 'pointer',\n    onclick: () => { window.location.assign(explore(o.name)); },\n    style: { text: o.name, width: xP - 16, overflow: 'truncate', ellipsis: '…', fill: '#7DD3FC', font: '13px ' + MONO } });\n  const p = o.p95;\n  graphic.push({ type: 'text', left: xP, top: ty, silent: true, style: {\n    text: p === null ? '—' : p < 1 ? Math.round(p * 1000) + ' ms' : p.toFixed(2) + ' s',\n    fill: p === null ? C.label : p >= 1 ? C.crit : p >= 0.5 ? C.warn : C.text, font: '13px ' + MONO } });\n  graphic.push({ type: 'text', left: xN, top: ty, silent: true, style: {\n    text: Math.round(o.calls).toLocaleString('en-US'), fill: C.text, font: '13px ' + MONO } });\n});\nreturn { backgroundColor: 'transparent', animation: false, graphic: graphic };\n",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        }
       },
+      "id": 28,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 35
+      }
+    },
+    {
+      "type": "row",
+      "title": "Errors and pods",
+      "collapsed": false,
+      "panels": [],
+      "id": 29,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 44
+      }
+    },
+    {
+      "type": "table",
+      "id": 30,
+      "title": "Errors",
+      "transparent": true,
       "datasource": {
         "type": "loki",
         "uid": "loki"
       },
-      "id": 30,
+      "description": "The latest lines at error and above from the app's pods, and the exceptions real browsers reported (pod: browser). Strapi's own shutdown line is left out: it logs it at error on every rollout.",
       "gridPos": {
         "h": 10,
         "w": 12,
         "x": 0,
-        "y": 51
+        "y": 45
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "A",
+          "expr": "# Strapi logs its graceful shutdown, \"received SIGTERM, exiting\", at error on every rollout.\n{k8s_namespace_name=\"$app\"} | detected_level=~\"(?i)(error|err|fatal|critical|crit|panic)\" != \"received SIGTERM, exiting\" | json m_message=\"message\", m_msg=\"msg\", m_body=\"body\" | logfmt m_msg=\"msg\" | drop __error__, __error_details__ | line_format `{{ regexReplaceAll \"^[IWEF][0-9]{4} [0-9:.]+ +[0-9]+ [^ ]+:[0-9]+[]] \" (default (default (default __line__ .m_body) .m_msg) .m_message) \"\" }}`",
+          "editorMode": "code",
+          "queryType": "range",
+          "maxLines": 30
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "refId": "B",
+          "expr": "{service_name=~\"${faro:raw}\"} | kind=\"exception\" | app_environment!=\"probe\" | logfmt m_value=\"value\", m_type=\"type\" | drop __error__, __error_details__ | label_format k8s_pod_name=\"browser\" | line_format `{{ if .m_value }}{{ .m_type }}: {{ .m_value }}{{ else }}{{ __line__ }}{{ end }}`",
+          "editorMode": "code",
+          "queryType": "range",
+          "maxLines": 30
+        }
+      ],
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "labels",
+            "format": "auto",
+            "replace": false,
+            "keepTime": false
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "Time",
+                "k8s_pod_name",
+                "Line"
+              ]
+            }
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "indexByName": {
+              "Time": 0,
+              "k8s_pod_name": 1,
+              "Line": 2
+            },
+            "renameByName": {
+              "Time": "When",
+              "k8s_pod_name": "Pod",
+              "Line": "Message"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "When",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "no errors in range",
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "When"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsLocalNoDateIfToday"
+              },
+              {
+                "id": "custom.width",
+                "value": 150
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Pod"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Message"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#C9D2DE"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
       }
     },
     {
       "type": "table",
       "title": "Pods",
-      "description": "Each pod: its phase and node, restarts, CPU against its requests (the pods set no CPU limit) and memory against its limit.",
+      "description": "Each pod, without the app's name before it: its phase and node, restarts, CPU against its requests (the pods set no CPU limit) and memory against its limit.",
       "transparent": true,
       "targets": [
         {
@@ -2576,7 +1846,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "max by (pod, phase, node) ((kube_pod_status_phase{namespace=\"$app\"} == 1) * on (namespace, pod) group_left (node) max by (namespace, pod, node) (kube_pod_info{namespace=\"$app\"}))",
+          "expr": "label_replace(max by (pod, phase, node) ((kube_pod_status_phase{namespace=\"$app\"} == 1) * on (namespace, pod) group_left (node) max by (namespace, pod, node) (kube_pod_info{namespace=\"$app\"})), \"pod\", \"$1\", \"pod\", \"$app-(.+)\")",
           "legendFormat": "__auto",
           "range": false,
           "instant": true,
@@ -2589,7 +1859,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (pod) (kube_pod_container_status_restarts_total{namespace=\"$app\"})",
+          "expr": "label_replace(sum by (pod) (kube_pod_container_status_restarts_total{namespace=\"$app\"}), \"pod\", \"$1\", \"pod\", \"$app-(.+)\")",
           "legendFormat": "__auto",
           "range": false,
           "instant": true,
@@ -2602,7 +1872,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"$app\", container!=\"\"}[5m])) / sum by (pod) (kube_pod_container_resource_requests{namespace=\"$app\", resource=\"cpu\"})",
+          "expr": "label_replace(sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"$app\", container!=\"\"}[5m])) / sum by (pod) (kube_pod_container_resource_requests{namespace=\"$app\", resource=\"cpu\"}), \"pod\", \"$1\", \"pod\", \"$app-(.+)\")",
           "legendFormat": "__auto",
           "range": false,
           "instant": true,
@@ -2615,7 +1885,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"$app\", container!=\"\"}) / sum by (pod) (kube_pod_container_resource_limits{namespace=\"$app\", resource=\"memory\"})",
+          "expr": "label_replace(sum by (pod) (container_memory_working_set_bytes{namespace=\"$app\", container!=\"\"}) / sum by (pod) (kube_pod_container_resource_limits{namespace=\"$app\", resource=\"memory\"}), \"pod\", \"$1\", \"pod\", \"$app-(.+)\")",
           "legendFormat": "__auto",
           "range": false,
           "instant": true,
@@ -2682,6 +1952,10 @@
                     }
                   }
                 ]
+              },
+              {
+                "id": "custom.width",
+                "value": 96
               }
             ]
           },
@@ -2726,6 +2000,10 @@
                 "value": {
                   "type": "color-text"
                 }
+              },
+              {
+                "id": "custom.width",
+                "value": 76
               }
             ]
           },
@@ -2765,6 +2043,10 @@
                   "mode": "basic",
                   "valueDisplayMode": "text"
                 }
+              },
+              {
+                "id": "custom.width",
+                "value": 116
               }
             ]
           },
@@ -2823,6 +2105,22 @@
                   "mode": "basic",
                   "valueDisplayMode": "text"
                 }
+              },
+              {
+                "id": "custom.width",
+                "value": 116
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "node"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 104
               }
             ]
           }
@@ -2877,7 +2175,7 @@
         "h": 10,
         "w": 12,
         "x": 12,
-        "y": 51
+        "y": 45
       }
     }
   ],
@@ -3012,52 +2310,77 @@
         "options": []
       },
       {
-        "name": "va",
-        "label": "release A",
+        "name": "about",
+        "label": "about",
         "type": "query",
         "datasource": {
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "definition": "query_result(count by (version) (label_replace(max_over_time(kube_pod_container_info{namespace=\"$app\", image_spec=~\"ghcr.io/0xc0-labs/.*\", image_spec!~\".*-cms:.*\"}[30d]), \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")))",
+        "definition": "query_result(label_replace(label_replace(label_replace(label_replace(label_replace(vector(1), \"ns\", \"$app\", \"\", \"\"), \"about\", \"RUM: site · traces: site\", \"ns\", \"offby1-cc\"), \"about\", \"RUM: site and CMS admin · traces: site and CMS\", \"ns\", \"artistlabco-com(-staging)?\"), \"about\", \"no RUM · traces: API and factory worker\", \"ns\", \"matchmark\"), \"about\", \"no RUM · no traces\", \"about\", \"\"))",
         "query": {
           "qryType": 5,
-          "query": "query_result(count by (version) (label_replace(max_over_time(kube_pod_container_info{namespace=\"$app\", image_spec=~\"ghcr.io/0xc0-labs/.*\", image_spec!~\".*-cms:.*\"}[30d]), \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")))",
+          "query": "query_result(label_replace(label_replace(label_replace(label_replace(label_replace(vector(1), \"ns\", \"$app\", \"\", \"\"), \"about\", \"RUM: site · traces: site\", \"ns\", \"offby1-cc\"), \"about\", \"RUM: site and CMS admin · traces: site and CMS\", \"ns\", \"artistlabco-com(-staging)?\"), \"about\", \"no RUM · traces: API and factory worker\", \"ns\", \"matchmark\"), \"about\", \"no RUM · no traces\", \"about\", \"\"))",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
-        "regex": "/version=\"([^\"]+)\"/",
+        "regex": "/about=\"([^\"]+)\"/",
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "refresh": 2,
+        "sort": 0,
+        "skipUrlSync": false,
+        "description": "",
+        "current": {},
+        "options": []
+      },
+      {
+        "name": "va",
+        "label": "release A · previous",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "query_result(count by (version) (label_replace(max_over_time(kube_pod_container_info{namespace=\"$app\", image_spec=~\"ghcr.io/0xc0-labs/.*\", image_spec!~\".*-cms:.*\"}[30d]), \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")) unless on (version) label_replace(vector(1), \"version\", \"${vb:text}\", \"\", \"\"))",
+        "query": {
+          "qryType": 5,
+          "query": "query_result(count by (version) (label_replace(max_over_time(kube_pod_container_info{namespace=\"$app\", image_spec=~\"ghcr.io/0xc0-labs/.*\", image_spec!~\".*-cms:.*\"}[30d]), \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")) unless on (version) label_replace(vector(1), \"version\", \"${vb:text}\", \"\", \"\"))",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "regex": "/version=\"(?<text>v?(?<value>[^\"]+))\"/",
         "hide": 0,
         "includeAll": false,
         "multi": false,
         "refresh": 2,
         "sort": 8,
         "skipUrlSync": false,
-        "description": "A release of ours seen in the namespace in the last 30 days; the newest by default.",
+        "description": "The release before B, of those that ran in the last 30 days.",
         "current": {},
         "options": []
       },
       {
         "name": "vb",
-        "label": "release B",
+        "label": "release B · running",
         "type": "query",
         "datasource": {
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "definition": "query_result(count by (version) (label_replace(max_over_time(kube_pod_container_info{namespace=\"$app\", image_spec=~\"ghcr.io/0xc0-labs/.*\", image_spec!~\".*-cms:.*\"}[30d]), \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")) unless on (version) label_replace(vector(1), \"version\", \"$va\", \"\", \"\"))",
+        "definition": "query_result(count by (version) (label_replace(kube_pod_container_info{namespace=\"$app\", image_spec=~\"ghcr.io/0xc0-labs/.*\", image_spec!~\".*-cms:.*\"}, \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")))",
         "query": {
           "qryType": 5,
-          "query": "query_result(count by (version) (label_replace(max_over_time(kube_pod_container_info{namespace=\"$app\", image_spec=~\"ghcr.io/0xc0-labs/.*\", image_spec!~\".*-cms:.*\"}[30d]), \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")) unless on (version) label_replace(vector(1), \"version\", \"$va\", \"\", \"\"))",
+          "query": "query_result(count by (version) (label_replace(kube_pod_container_info{namespace=\"$app\", image_spec=~\"ghcr.io/0xc0-labs/.*\", image_spec!~\".*-cms:.*\"}, \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")))",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
-        "regex": "/version=\"([^\"]+)\"/",
+        "regex": "/version=\"(?<text>v?(?<value>[^\"]+))\"/",
         "hide": 0,
         "includeAll": false,
         "multi": false,
         "refresh": 2,
         "sort": 8,
         "skipUrlSync": false,
-        "description": "The release to compare A with; the one before A by default.",
+        "description": "The release running now; the newest when a rollout runs two.",
         "current": {},
         "options": []
       }

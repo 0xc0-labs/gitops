@@ -95,7 +95,7 @@ last-applied annotation caps one near 256 KiB.
 
 | Board | `uid` | For |
 |---|---|---|
-| Estate | `home` | The estate on one screen: a health score, the KPI strip, the map of hosts, pools and nodes, traffic from entrypoint to service, golden signals per service, memory by pool, the log pulse, pool capacity, and changes |
+| Estate | `home` | The estate on one screen: a health score, the KPI strip, the map of hosts, pools and nodes, traffic from entrypoint to service, golden signals per public site, the tools behind WARP, memory by pool, the log pulse and the latest errors, pool capacity, and changes |
 | Apps | `apps` | One application, chosen with `app`: header, availability against its SLO, web vitals, traffic, top pages and devices, two releases compared, latency, errors and pods |
 | Matchmark | `matchmark` | Its API, the factory worker and Temporal, and its tasks while they run |
 | Web vitals | `applications-rum` | Real-user web vitals across the sites, from Faro |
@@ -118,18 +118,36 @@ One look across every board, a control room (operator, 2026-11-25).
   versions in Roboto Mono, labels small, uppercase and letter-spaced, and
   headings in Space Grotesk where the browser has it. Grafana's own panels
   take no font setting.
-- **Stats.** The value coloured by its threshold or its series, never the
-  panel; the change across the range under it (`showPercentChange`, inverted
-  where lower is better); a sparkline along the bottom.
-- **Layout.** A KPI strip first, then the blocks that matter most; sections
-  are open rows, none collapsed.
+- **Stats.** Each board opens on one strip of cards, 3 rows tall, drawn by
+  Business Charts: the label, the value in Roboto Mono with its unit, coloured
+  by its threshold, and one small line under it (per hour, "of N", a share),
+  short enough for the narrowest card at 1456 px and cut with an ellipsis
+  past it. No change across the range. A thin line only under a continuous
+  signal (requests), never an area, never under a ratio.
+- **Low traffic.** What the estate serves is a few requests an hour, so a
+  count is a total over the range (`increase(…[$__range])`) and a chart
+  counts per hour, never per second. A percentile needs enough samples in
+  its window (20 for a card, 10 for a point) or reads `—`. Rows and series
+  without data are left out, and a gap stays a gap (`spanNulls` off, lines
+  linear or stepped, never smoothed).
+- **Names.** A Traefik backend is a short key server side, its Service as
+  `<namespace>-<service>` or `rum-<site>` for a site's Faro route, and its
+  readable name comes from one list (`DISPLAY`): value mappings on a table,
+  rename transformations on a chart, a lookup in Business Charts' code. A
+  Tempo value comes back quoted: a rename takes the quotes off.
+- **Public and WARP apart.** Estate's cards count `websecure` alone; what
+  reaches the `internal` entrypoint has its own block.
+- **Layout.** A KPI strip first, then the blocks that matter most, above the
+  fold at 1512×800; sections are open rows, none collapsed.
 - **Navigation.** The board links across the top, in this order on every
   board: Estate, Apps, Matchmark, Web vitals, Traces, Platform. A row of
   Golden signals opens the App board with its app.
-- **Annotations**, on every time series of every board: `Argo CD syncs`, an
-  increase of `argocd_app_sync_total`; `Releases`, a new image tag of ours in
-  an application's namespace, from `kube_pod_container_info`, which is also
-  how a promotion shows. OpenTofu applies leave no metric.
+- **Annotations**, on every board, off by default with their toggles at the
+  top: `Argo CD syncs`, one point per sync, an increase of
+  `argocd_app_sync_total`; `Releases`, one point where a new image tag of
+  ours first appears in an application's namespace, from
+  `kube_pod_container_info`, which is also how a promotion shows. Estate
+  lists both in its Changes table. OpenTofu applies leave no metric.
 
 ### Sources
 
@@ -152,8 +170,8 @@ One look across every board, a control room (operator, 2026-11-25).
 
 | Plugin | For |
 |---|---|
-| Business Charts, `volkovlabs-echarts-panel` | The traffic sankey and the memory sunburst |
-| Business Text, `marcusolsson-dynamictext-panel` | The estate's health ring |
+| Business Charts, `volkovlabs-echarts-panel` | Every board's strip of cards, the traffic sankey, the memory sunburst, the web vitals gauges, and Apps' release comparison and slowest operations, which group by a label no stock panel can pivot on |
+| Business Text, `marcusolsson-dynamictext-panel` | The estate's health ring, drawn in CSS: its sanitizer strips `<svg>` |
 
 The estate map is Grafana's Canvas: each node's CPU, memory, pods and Ready
 are field-bound values, coloured by threshold, since Canvas draws no bar.

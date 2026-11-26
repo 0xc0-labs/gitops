@@ -19,10 +19,10 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "enable": true,
+        "enable": false,
         "hide": false,
         "iconColor": "#7DD3FC",
-        "expr": "sum by (name) (increase(argocd_app_sync_total{phase=\"Succeeded\"}[2m])) > 0",
+        "expr": "sum by (name) (argocd_app_sync_total{phase=\"Succeeded\"}) - sum by (name) (argocd_app_sync_total{phase=\"Succeeded\"} offset 1m) > 0",
         "step": "60s",
         "titleFormat": "sync {{name}}",
         "textFormat": "Argo CD synced {{name}}",
@@ -35,15 +35,15 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "enable": true,
+        "enable": false,
         "hide": false,
         "iconColor": "#34D399",
-        "expr": "label_replace(count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}) unless count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"} offset 10m), \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")",
+        "expr": "label_replace((min_over_time(timestamp(count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}))[15m:1m]) * 1000) and (count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}) unless count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"} offset 10m)), \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")",
         "step": "60s",
         "titleFormat": "{{namespace}} {{version}}",
         "textFormat": "{{image_spec}}",
         "tagKeys": "namespace,version",
-        "useValueForTime": false
+        "useValueForTime": true
       }
     ]
   },
@@ -130,100 +130,70 @@
   ],
   "panels": [
     {
-      "type": "stat",
-      "title": "Spans / s",
-      "description": "The service's spans.",
+      "type": "volkovlabs-echarts-panel",
+      "title": "",
+      "description": "Spans Tempo stored over the range for the service chosen above, and the p95 and the maximum of all its spans: a service such as the CMS sends database spans and no server span. Counted per hour and summed over the range: Tempo answers its range queries, not instant ones, for these panels. A p95 needs 20 spans, or it reads —.",
       "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{resource.service.name=~\"${service:raw}\"} | rate()",
-          "metricsQueryType": "range",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps",
-          "decimals": 2,
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#60A5FA"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#E7ECF3",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "orientation": "auto",
-        "showPercentChange": true,
-        "percentChangeColorMode": "standard",
-        "text": {
-          "titleSize": 11,
-          "valueSize": 34
-        }
-      },
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
       "id": 1,
       "gridPos": {
-        "h": 5,
-        "w": 6,
+        "h": 3,
+        "w": 24,
         "x": 0,
         "y": 0
-      }
-    },
-    {
-      "type": "stat",
-      "title": "Error spans / s",
-      "description": "Its spans with an error status.",
-      "transparent": true,
+      },
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "maxDataPoints": 48,
       "targets": [
         {
           "datasource": {
             "type": "tempo",
             "uid": "tempo"
           },
+          "refId": "A",
           "queryType": "traceql",
-          "query": "{resource.service.name=~\"${service:raw}\" && status = error} | rate()",
+          "query": "{resource.service.name=~\"${service:raw}\"} | count_over_time()",
           "metricsQueryType": "range",
-          "refId": "A"
+          "step": "1h"
+        },
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "refId": "B",
+          "queryType": "traceql",
+          "query": "{resource.service.name=~\"${service:raw}\" && status = error} | count_over_time() by (status)",
+          "metricsQueryType": "range",
+          "step": "1h"
+        },
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "refId": "C",
+          "queryType": "traceql",
+          "query": "{resource.service.name=~\"${service:raw}\"} | histogram_over_time(duration)",
+          "metricsQueryType": "range",
+          "step": "1h"
+        },
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "refId": "D",
+          "queryType": "traceql",
+          "query": "{resource.service.name=~\"${service:raw}\"} | max_over_time(duration)",
+          "metricsQueryType": "range",
+          "step": "1h"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "reqps",
-          "decimals": 3,
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#FB7185"
-          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -237,176 +207,34 @@
         "overrides": []
       },
       "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
         },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "orientation": "auto",
-        "showPercentChange": true,
-        "percentChangeColorMode": "inverted",
-        "text": {
-          "titleSize": 11,
-          "valueSize": 34
-        }
-      },
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "id": 2,
-      "gridPos": {
-        "h": 5,
-        "w": 6,
-        "x": 6,
-        "y": 0
-      }
-    },
-    {
-      "type": "stat",
-      "title": "p95",
-      "description": "95th percentile of its server spans.",
-      "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{resource.service.name=~\"${service:raw}\" && kind = server} | quantile_over_time(duration, .95)",
-          "metricsQueryType": "range",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "decimals": 3,
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#F59E0B"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#E7ECF3",
-                "value": null
-              }
-            ]
-          }
+        "editor": {
+          "format": "auto"
         },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
+        "editorMode": "code",
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst cards = [\n  { label: 'Spans', fmt: 'count', value: () => total('A'), sub: (v) => (v === null ? 'none · ' + span : Math.round(v / hours).toLocaleString('en-US') + ' per hour · ' + span), spark: 'A', sparkColour: '#60A5FA' },\n  { label: 'Error spans', fmt: 'count', value: () => (total('A') === null ? null : total('B') || 0), sub: (v) => (v === null ? 'no spans' : (100 * v / total('A')).toFixed(2) + ' % of spans'), colour: (v) => (v > 0 ? '#FBBF24' : '#E7ECF3') },\n  { label: 'p95', fmt: 'dur', value: () => quantile('C', 0.95, 20), sub: (v) => (v === null ? 'under 20 spans' : 'all its spans · ' + span), colour: (v) => (v >= 1 ? '#FB7185' : v >= 0.5 ? '#FBBF24' : '#E7ECF3') },\n  { label: 'Max duration', fmt: 'dur', value: () => most('D'), sub: (v) => (v === null ? 'no spans' : 'slowest span') },\n];\n// Grafana's Tempo data source sets each frame's refId to the series name, not the query's,\n// so frames are told apart by shape: a __bucket label is the histogram, max_over_time the\n// maximum, a status of error the error count (by (status) only there, so its name differs\n// from the plain count_over_time of every span). Exemplar frames are skipped.\nconst frames = context.panel.data.series.filter((f) => !(f.meta && f.meta.dataTopic === 'annotations') && !/exemplar/i.test(f.name || ''));\nconst num = (x) => (x === null || x === undefined || !Number.isFinite(Number(x)) ? null : Number(x));\nconst valueOf = (f) => f.fields.find((x) => x.type === 'number');\nconst nameOf = (f, v) => String(f.name || '') + ' ' + String(v.name || '') + ' ' + String((v.config && v.config.displayNameFromDS) || '');\nconst kindOf = (f) => {\n  const v = valueOf(f);\n  if (!v) return null;\n  const l = v.labels || {};\n  const n = nameOf(f, v);\n  if (l.__bucket !== undefined || /__bucket/.test(n)) return 'C';\n  if (/max_over_time/.test(n)) return 'D';\n  if (Object.values(l).some((x) => /error/i.test(String(x))) || /error/i.test(n)) return 'B';\n  return 'A';\n};\nconst byRef = (id) => frames.filter((f) => kindOf(f) === id);\nconst total = (id) => {\n  let s = 0;\n  let any = false;\n  for (const f of byRef(id)) {\n    for (const x of valueOf(f).values) { const n = num(x); if (n !== null) { s += n; any = true; } }\n  }\n  return any ? s : null;\n};\nconst most = (id) => {\n  let m = null;\n  for (const f of byRef(id)) {\n    for (const x of valueOf(f).values) { const n = num(x); if (n !== null && (m === null || n > m)) m = n; }\n  }\n  return m;\n};\n// Tempo's histogram_over_time: one series per bucket, its upper bound in\n// seconds on __bucket, each bucket twice the one before. Counts are summed\n// over the range, then the quantile is interpolated inside its bucket, so it\n// never reads as a bucket edge.\nconst quantile = (id, q, minCount) => {\n  const b = new Map();\n  for (const f of byRef(id)) {\n    const v = valueOf(f);\n    const l = v.labels || {};\n    const ub = num(l.__bucket !== undefined ? l.__bucket : (nameOf(f, v).match(/__bucket[^0-9]*([0-9.eE+-]+)/) || [])[1]);\n    if (ub === null || ub <= 0) continue;\n    let c = 0;\n    for (const x of v.values) { const n = num(x); if (n !== null) c += n; }\n    b.set(ub, (b.get(ub) || 0) + c);\n  }\n  const ubs = [...b.keys()].sort((x, y) => x - y);\n  const count = ubs.reduce((s, u) => s + b.get(u), 0);\n  if (count < minCount) return null;\n  let acc = 0;\n  for (const u of ubs) {\n    const c = b.get(u);\n    if (c > 0 && acc + c >= q * count) return u / 2 + (u / 2) * ((q * count - acc) / c);\n    acc += c;\n  }\n  return null;\n};\nconst points = (id) => {\n  const sum = new Map();\n  for (const f of byRef(id)) {\n    const t = f.fields.find((x) => x.type === 'time');\n    const v = valueOf(f);\n    if (!t) continue;\n    t.values.forEach((x, i) => { const n = num(v.values[i]); if (n !== null) sum.set(x, (sum.get(x) || 0) + n); });\n  }\n  return [...sum.entries()].sort((a, b) => a[0] - b[0]);\n};\nconst span = (() => {\n  const r = context.panel.data.timeRange;\n  if (!r) return '';\n  const m = (r.to.valueOf() - r.from.valueOf()) / 60000;\n  if (m < 90) return Math.round(m) + ' min';\n  if (m < 48 * 60) return Math.round(m / 60) + ' h';\n  return Math.round(m / 1440) + ' d';\n})();\nconst hours = (() => {\n  const r = context.panel.data.timeRange;\n  return r ? (r.to.valueOf() - r.from.valueOf()) / 3600000 : 1;\n})();\nconst fmt = {\n  count: (v) => [Math.round(v).toLocaleString('en-US'), ''],\n  pct: (v) => [(v * 100).toFixed(v * 100 >= 99.95 || v === 0 ? 2 : v * 100 < 10 ? 2 : 1), '%'],\n  dur: (v) => (v < 1 ? [String(Math.round(v * 1000)), 'ms'] : [v.toFixed(v < 10 ? 2 : 1), 's']),\n  num2: (v) => [v.toFixed(2), ''],\n  ms: (v) => (v < 1000 ? [String(Math.round(v)), 'ms'] : [(v / 1000).toFixed(2), 's']),\n  bytes: (v) => {\n    const u = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];\n    let i = 0;\n    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }\n    return [v.toFixed(v < 10 ? 2 : 1), u[i]];\n  },\n};\nconst n = cards.length;\nconst chart = context.panel.chart;\nconst W = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst H = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\nconst gap = 12;\nconst cw = W ? (W - gap * (n - 1)) / n : 0;\nconst graphic = [];\nconst grid = [];\nconst xAxis = [];\nconst yAxis = [];\nconst series = [];\ncards.forEach((c, i) => {\n  const x = W ? i * (cw + gap) : 0;\n  const at = (dx) => (W ? x + dx : (i * 100) / n + 1.2 + '%');\n  const v = c.value();\n  const shown = v === null ? ['—', ''] : c.show ? c.show(v) : fmt[c.fmt](v);\n  const unit = v === null ? '' : c.unit !== undefined ? c.unit : shown[1];\n  const colour = v === null ? '#8D99AB' : c.colour ? c.colour(v) : '#E7ECF3';\n  if (W && H) graphic.push({ type: 'rect', left: x, top: 0, z: -1, silent: true,\n    shape: { width: cw, height: H - 1, r: 14 }, style: { fill: '#10151C', stroke: '#1F2733', lineWidth: 1 } });\n  const fit = W ? { width: cw - 32, overflow: 'truncate', ellipsis: '…' } : {};\n  graphic.push({ type: 'text', left: at(16), top: 12, silent: true,\n    style: Object.assign({ text: c.label.toUpperCase(), fill: '#8D99AB', font: '600 11px Inter, sans-serif' }, fit) });\n  graphic.push({ type: 'text', left: at(16), top: 28, silent: true,\n    style: { text: '{v|' + shown[0] + '}' + (unit ? '{u| ' + unit + '}' : ''),\n      rich: { v: { fill: colour, font: '600 30px ' + MONO },\n        u: { fill: '#8D99AB', font: '13px ' + MONO, padding: [12, 0, 0, 4] } } } });\n  const sub = c.sub ? c.sub(v) : '';\n  if (sub) graphic.push({ type: 'text', left: at(16), top: 68, silent: true,\n    style: Object.assign({ text: sub, fill: '#8D99AB', font: '12px ' + MONO }, fit) });\n  if (c.spark) {\n    const data = points(c.spark);\n    if (data.some((p) => p[1] !== null)) {\n      const g = grid.length;\n      const sh = H ? Math.max(14, H - 94) : 20;\n      grid.push(W ? { left: x + 12, width: cw - 24, bottom: 6, height: sh }\n        : { left: (i * 100) / n + 1.2 + '%', width: 100 / n - 2.4 + '%', bottom: 6, height: sh });\n      xAxis.push({ type: 'time', gridIndex: g, show: false });\n      yAxis.push({ type: 'value', gridIndex: g, show: false, scale: false, min: 0 });\n      series.push({ type: 'line', xAxisIndex: g, yAxisIndex: g, data, showSymbol: false, silent: true,\n        connectNulls: false, lineStyle: { width: 1.5, color: c.sparkColour || '#60A5FA' } });\n    }\n  }\n});\nreturn { backgroundColor: 'transparent', animation: false, graphic, grid, xAxis, yAxis, series };",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
         },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "orientation": "auto",
-        "showPercentChange": true,
-        "percentChangeColorMode": "inverted",
-        "text": {
-          "titleSize": 11,
-          "valueSize": 34
-        }
-      },
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "id": 3,
-      "gridPos": {
-        "h": 5,
-        "w": 6,
-        "x": 12,
-        "y": 0
-      }
-    },
-    {
-      "type": "stat",
-      "title": "Max duration",
-      "description": "Its slowest server span.",
-      "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "queryType": "traceql",
-          "query": "{resource.service.name=~\"${service:raw}\" && kind = server} | max_over_time(duration)",
-          "metricsQueryType": "range",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "decimals": 2,
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#C9D2DE"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#E7ECF3",
-                "value": null
-              }
-            ]
-          }
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
         },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
         },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "orientation": "auto",
-        "showPercentChange": true,
-        "percentChangeColorMode": "inverted",
-        "text": {
-          "titleSize": 11,
-          "valueSize": 34
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
         }
-      },
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "id": 4,
-      "gridPos": {
-        "h": 5,
-        "w": 6,
-        "x": 18,
-        "y": 0
       }
     },
     {
@@ -419,13 +247,13 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 5
+        "y": 3
       }
     },
     {
       "type": "timeseries",
       "title": "Spans by name",
-      "description": "Spans per second by name.",
+      "description": "Spans per hour by name.",
       "transparent": true,
       "targets": [
         {
@@ -434,14 +262,15 @@
             "uid": "tempo"
           },
           "queryType": "traceql",
-          "query": "{resource.service.name=~\"${service:raw}\"} | rate() by (name)",
+          "query": "{resource.service.name=~\"${service:raw}\"} | count_over_time() by (name)",
           "metricsQueryType": "range",
-          "refId": "A"
+          "refId": "A",
+          "step": "1h"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "reqps",
+          "unit": "short",
           "color": {
             "mode": "palette-classic"
           },
@@ -457,13 +286,13 @@
           "custom": {
             "drawStyle": "line",
             "lineWidth": 2,
-            "fillOpacity": 18,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "lineInterpolation": "smooth",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "showPoints": "auto",
+            "spanNulls": false,
+            "lineInterpolation": "linear",
             "axisBorderShow": false,
-            "axisLabel": "",
+            "axisLabel": "per hour",
             "axisPlacement": "auto",
             "stacking": {
               "mode": "none",
@@ -472,7 +301,9 @@
             "thresholdsStyle": {
               "mode": "off"
             }
-          }
+          },
+          "decimals": 0,
+          "min": 0
         },
         "overrides": []
       },
@@ -497,13 +328,22 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 6
-      }
+        "y": 4
+      },
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^\\{?(?:[A-Za-z_.]+=)?\"?(.*?)\"?\\}?$",
+            "renamePattern": "$1"
+          }
+        }
+      ]
     },
     {
       "type": "timeseries",
       "title": "p95 by name",
-      "description": "95th percentile of server spans by name.",
+      "description": "95th percentile of the service's spans by name, every kind: some services send no server span.",
       "transparent": true,
       "targets": [
         {
@@ -512,9 +352,10 @@
             "uid": "tempo"
           },
           "queryType": "traceql",
-          "query": "{resource.service.name=~\"${service:raw}\" && kind = server} | quantile_over_time(duration, .95) by (name)",
+          "query": "{resource.service.name=~\"${service:raw}\"} | quantile_over_time(duration, .95) by (name)",
           "metricsQueryType": "range",
-          "refId": "A"
+          "refId": "A",
+          "step": "1h"
         }
       ],
       "fieldConfig": {
@@ -536,10 +377,10 @@
             "drawStyle": "line",
             "lineWidth": 2,
             "fillOpacity": 0,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "lineInterpolation": "smooth",
+            "gradientMode": "none",
+            "showPoints": "auto",
+            "spanNulls": false,
+            "lineInterpolation": "linear",
             "axisBorderShow": false,
             "axisLabel": "",
             "axisPlacement": "auto",
@@ -550,7 +391,8 @@
             "thresholdsStyle": {
               "mode": "off"
             }
-          }
+          },
+          "noValue": "no spans for this service in range"
         },
         "overrides": []
       },
@@ -575,13 +417,22 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 6
-      }
+        "y": 4
+      },
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^\\{?(?:p=\"?[0-9.]+\"?, ?)?(?:[A-Za-z_.]+=)?\"?(.*?)\"?(?:, ?p=\"?[0-9.]+\"?)?\\}?$",
+            "renamePattern": "$1"
+          }
+        }
+      ]
     },
     {
       "type": "timeseries",
       "title": "By status code",
-      "description": "Server spans by HTTP status code.",
+      "description": "The service's spans that carry an HTTP status code, by that code.",
       "transparent": true,
       "targets": [
         {
@@ -590,14 +441,15 @@
             "uid": "tempo"
           },
           "queryType": "traceql",
-          "query": "{resource.service.name=~\"${service:raw}\" && kind = server} | rate() by (span.http.response.status_code)",
+          "query": "{resource.service.name=~\"${service:raw}\" && span.http.response.status_code != nil} | count_over_time() by (span.http.response.status_code)",
           "metricsQueryType": "range",
-          "refId": "A"
+          "refId": "A",
+          "step": "1h"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "reqps",
+          "unit": "short",
           "color": {
             "mode": "palette-classic"
           },
@@ -613,13 +465,13 @@
           "custom": {
             "drawStyle": "line",
             "lineWidth": 2,
-            "fillOpacity": 18,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "lineInterpolation": "smooth",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "showPoints": "auto",
+            "spanNulls": false,
+            "lineInterpolation": "linear",
             "axisBorderShow": false,
-            "axisLabel": "",
+            "axisLabel": "per hour",
             "axisPlacement": "auto",
             "stacking": {
               "mode": "normal",
@@ -628,7 +480,10 @@
             "thresholdsStyle": {
               "mode": "off"
             }
-          }
+          },
+          "decimals": 0,
+          "noValue": "no HTTP spans for this service in range",
+          "min": 0
         },
         "overrides": [
           {
@@ -684,13 +539,22 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 14
-      }
+        "y": 12
+      },
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^\\{?(?:[A-Za-z_.]+=)?\"?(.*?)\"?\\}?$",
+            "renamePattern": "$1"
+          }
+        }
+      ]
     },
     {
       "type": "heatmap",
       "title": "Latency distribution",
-      "description": "Its server span durations over time.",
+      "description": "Durations of the service's spans over time, every kind: some services send no server span.",
       "transparent": true,
       "targets": [
         {
@@ -699,7 +563,7 @@
             "uid": "tempo"
           },
           "queryType": "traceql",
-          "query": "{resource.service.name=~\"${service:raw}\" && kind = server} | histogram_over_time(duration)",
+          "query": "{resource.service.name=~\"${service:raw}\"} | histogram_over_time(duration)",
           "metricsQueryType": "range",
           "refId": "A"
         }
@@ -715,7 +579,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "noValue": "no spans for this service in range"
         },
         "overrides": []
       },
@@ -766,7 +631,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 14
+        "y": 12
       }
     },
     {
@@ -779,7 +644,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 22
+        "y": 20
       }
     },
     {
@@ -829,7 +694,7 @@
         "h": 10,
         "w": 12,
         "x": 0,
-        "y": 23
+        "y": 21
       }
     },
     {
@@ -879,7 +744,7 @@
         "h": 10,
         "w": 12,
         "x": 12,
-        "y": 23
+        "y": 21
       }
     },
     {
@@ -892,7 +757,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 33
+        "y": 31
       }
     },
     {
@@ -957,7 +822,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 34
+        "y": 32
       }
     },
     {
@@ -1021,7 +886,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 34
+        "y": 32
       }
     },
     {
@@ -1076,7 +941,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 43
+        "y": 41
       }
     }
   ],
@@ -1096,10 +961,10 @@
           "type": "tempo",
           "uid": "tempo"
         },
-        "definition": "",
+        "definition": "service.name",
         "query": {
           "type": 1,
-          "label": "resource.service.name",
+          "label": "service.name",
           "refId": "TempoDatasourceVariableQueryEditor-VariableQuery"
         },
         "regex": "",

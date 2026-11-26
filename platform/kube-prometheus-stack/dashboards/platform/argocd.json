@@ -19,10 +19,10 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "enable": true,
+        "enable": false,
         "hide": false,
         "iconColor": "#7DD3FC",
-        "expr": "sum by (name) (increase(argocd_app_sync_total{phase=\"Succeeded\"}[2m])) > 0",
+        "expr": "sum by (name) (argocd_app_sync_total{phase=\"Succeeded\"}) - sum by (name) (argocd_app_sync_total{phase=\"Succeeded\"} offset 1m) > 0",
         "step": "60s",
         "titleFormat": "sync {{name}}",
         "textFormat": "Argo CD synced {{name}}",
@@ -35,15 +35,15 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "enable": true,
+        "enable": false,
         "hide": false,
         "iconColor": "#34D399",
-        "expr": "label_replace(count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}) unless count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"} offset 10m), \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")",
+        "expr": "label_replace((min_over_time(timestamp(count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}))[15m:1m]) * 1000) and (count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}) unless count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"} offset 10m)), \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")",
         "step": "60s",
         "titleFormat": "{{namespace}} {{version}}",
         "textFormat": "{{image_spec}}",
         "tagKeys": "namespace,version",
-        "useValueForTime": false
+        "useValueForTime": true
       }
     ]
   },
@@ -130,258 +130,92 @@
   ],
   "panels": [
     {
-      "type": "stat",
-      "title": "Applications",
-      "description": "Applications Argo CD manages.",
+      "type": "volkovlabs-echarts-panel",
+      "title": "",
+      "description": "Argo CD's applications now, and its syncs over the range (argocd_app_sync_total).",
       "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "count(argocd_app_info)",
-          "legendFormat": "__auto",
-          "range": true,
-          "instant": false,
-          "editorMode": "code",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#E7ECF3"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#E7ECF3",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "orientation": "auto",
-        "showPercentChange": true,
-        "percentChangeColorMode": "standard",
-        "text": {
-          "titleSize": 11,
-          "valueSize": 34
-        }
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
       "id": 1,
       "gridPos": {
-        "h": 5,
-        "w": 4,
+        "h": 3,
+        "w": 24,
         "x": 0,
         "y": 0
-      }
-    },
-    {
-      "type": "stat",
-      "title": "Out of sync",
-      "description": "Applications not Synced. 0 is a real count.",
-      "transparent": true,
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "maxDataPoints": 48,
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
+          "refId": "A",
+          "expr": "count(argocd_app_info)",
+          "editorMode": "code",
+          "range": false,
+          "instant": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "B",
           "expr": "count(argocd_app_info{sync_status!=\"Synced\"}) or vector(0)",
-          "legendFormat": "__auto",
-          "range": true,
-          "instant": false,
           "editorMode": "code",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#34D399",
-                "value": null
-              },
-              {
-                "color": "#FBBF24",
-                "value": 1
-              }
-            ]
-          }
+          "range": false,
+          "instant": true
         },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "orientation": "auto",
-        "showPercentChange": true,
-        "percentChangeColorMode": "inverted",
-        "text": {
-          "titleSize": 11,
-          "valueSize": 34
-        }
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "id": 2,
-      "gridPos": {
-        "h": 5,
-        "w": 4,
-        "x": 4,
-        "y": 0
-      }
-    },
-    {
-      "type": "stat",
-      "title": "Not healthy",
-      "description": "Applications not Healthy. 0 is a real count.",
-      "transparent": true,
-      "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
+          "refId": "C",
           "expr": "count(argocd_app_info{health_status!=\"Healthy\"}) or vector(0)",
-          "legendFormat": "__auto",
-          "range": true,
-          "instant": false,
           "editorMode": "code",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#34D399",
-                "value": null
-              },
-              {
-                "color": "#FBBF24",
-                "value": 1
-              },
-              {
-                "color": "#FB7185",
-                "value": 3
-              }
-            ]
-          }
+          "range": false,
+          "instant": true
         },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "orientation": "auto",
-        "showPercentChange": true,
-        "percentChangeColorMode": "inverted",
-        "text": {
-          "titleSize": 11,
-          "valueSize": 34
-        }
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "id": 3,
-      "gridPos": {
-        "h": 5,
-        "w": 4,
-        "x": 8,
-        "y": 0
-      }
-    },
-    {
-      "type": "stat",
-      "title": "Syncs",
-      "description": "Syncs in the range.",
-      "transparent": true,
-      "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(argocd_app_sync_total[$__rate_interval]))",
-          "legendFormat": "__auto",
-          "range": true,
-          "instant": false,
+          "refId": "D",
+          "expr": "sum(increase(argocd_app_sync_total[$__range]))",
           "editorMode": "code",
-          "refId": "A"
+          "range": false,
+          "instant": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "E",
+          "expr": "sum(increase(argocd_app_sync_total{phase!=\"Succeeded\"}[$__range])) or vector(0)",
+          "editorMode": "code",
+          "range": false,
+          "instant": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "F",
+          "expr": "count(argocd_app_info{sync_status=\"Synced\", health_status=\"Healthy\"}) or vector(0)",
+          "editorMode": "code",
+          "range": false,
+          "instant": true
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#7DD3FC"
-          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -395,112 +229,34 @@
         "overrides": []
       },
       "options": {
-        "reduceOptions": {
-          "calcs": [
-            "sum"
-          ],
-          "fields": "",
-          "values": false
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
         },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "orientation": "auto",
-        "showPercentChange": true,
-        "percentChangeColorMode": "standard",
-        "text": {
-          "titleSize": 11,
-          "valueSize": 34
-        }
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "id": 4,
-      "gridPos": {
-        "h": 5,
-        "w": 4,
-        "x": 12,
-        "y": 0
-      }
-    },
-    {
-      "type": "stat",
-      "title": "Failed syncs",
-      "description": "Syncs that did not succeed in the range.",
-      "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum(increase(argocd_app_sync_total{phase!=\"Succeeded\"}[$__rate_interval]))",
-          "legendFormat": "__auto",
-          "range": true,
-          "instant": false,
-          "editorMode": "code",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#34D399",
-                "value": null
-              },
-              {
-                "color": "#FB7185",
-                "value": 1
-              }
-            ]
-          },
-          "noValue": "0"
+        "editor": {
+          "format": "auto"
         },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "sum"
-          ],
-          "fields": "",
-          "values": false
+        "editorMode": "code",
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst cards = [\n{ label: 'Applications', fmt: 'count', value: () => last('A'), sub: (v) => Math.round(last('F') || 0).toLocaleString('en-US') + ' synced and healthy' },\n  { label: 'Out of sync', fmt: 'count', value: () => last('B'), sub: (v) => 'of ' + Math.round(last('A') || 0).toLocaleString('en-US') + ' applications', colour: (v) => (v > 0 ? '#FBBF24' : '#E7ECF3') },\n  { label: 'Not healthy', fmt: 'count', value: () => last('C'), sub: (v) => 'of ' + Math.round(last('A') || 0).toLocaleString('en-US') + ' applications', colour: (v) => (v > 0 ? '#FB7185' : '#E7ECF3') },\n  { label: 'Syncs', fmt: 'count', value: () => last('D'), sub: (v) => (v === null ? 'none · ' + span : Math.round(v / hours).toLocaleString('en-US') + ' per hour · ' + span) },\n  { label: 'Failed syncs', fmt: 'count', value: () => last('E'), sub: (v) => 'of ' + Math.round(last('D') || 0).toLocaleString('en-US') + ' syncs · ' + span, colour: (v) => (v > 0 ? '#FB7185' : '#E7ECF3') },\n];\nconst frames = context.panel.data.series;\nconst byRef = (id) => frames.filter((f) => f.refId === id);\nconst num = (x) => (x === null || x === undefined || !Number.isFinite(Number(x)) ? null : Number(x));\nconst last = (id) => {\n  for (const f of byRef(id)) {\n    const v = f.fields.find((x) => x.type === 'number');\n    if (!v) continue;\n    for (let i = v.values.length - 1; i >= 0; i--) { const n = num(v.values[i]); if (n !== null) return n; }\n  }\n  return null;\n};\nconst points = (id) => {\n  const f = byRef(id)[0];\n  if (!f) return [];\n  const t = f.fields.find((x) => x.type === 'time');\n  const v = f.fields.find((x) => x.type === 'number');\n  if (!t || !v) return [];\n  return t.values.map((x, i) => [x, num(v.values[i])]);\n};\nconst span = (() => {\n  const r = context.panel.data.timeRange;\n  if (!r) return '';\n  const m = (r.to.valueOf() - r.from.valueOf()) / 60000;\n  if (m < 90) return Math.round(m) + ' min';\n  if (m < 48 * 60) return Math.round(m / 60) + ' h';\n  return Math.round(m / 1440) + ' d';\n})();\nconst hours = (() => {\n  const r = context.panel.data.timeRange;\n  return r ? (r.to.valueOf() - r.from.valueOf()) / 3600000 : 1;\n})();\nconst fmt = {\n  count: (v) => [Math.round(v).toLocaleString('en-US'), ''],\n  pct: (v) => [(v * 100).toFixed(v * 100 >= 99.95 || v === 0 ? 2 : v * 100 < 10 ? 2 : 1), '%'],\n  dur: (v) => (v < 1 ? [String(Math.round(v * 1000)), 'ms'] : [v.toFixed(v < 10 ? 2 : 1), 's']),\n  num2: (v) => [v.toFixed(2), ''],\n  ms: (v) => (v < 1000 ? [String(Math.round(v)), 'ms'] : [(v / 1000).toFixed(2), 's']),\n  bytes: (v) => {\n    const u = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];\n    let i = 0;\n    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }\n    return [v.toFixed(v < 10 ? 2 : 1), u[i]];\n  },\n};\nconst n = cards.length;\nconst chart = context.panel.chart;\nconst W = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst H = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\nconst gap = 12;\nconst cw = W ? (W - gap * (n - 1)) / n : 0;\nconst graphic = [];\nconst grid = [];\nconst xAxis = [];\nconst yAxis = [];\nconst series = [];\ncards.forEach((c, i) => {\n  const x = W ? i * (cw + gap) : 0;\n  const at = (dx) => (W ? x + dx : (i * 100) / n + 1.2 + '%');\n  const v = c.value();\n  const shown = v === null ? ['—', ''] : c.show ? c.show(v) : fmt[c.fmt](v);\n  const unit = v === null ? '' : c.unit !== undefined ? c.unit : shown[1];\n  const colour = v === null ? '#8D99AB' : c.colour ? c.colour(v) : '#E7ECF3';\n  if (W && H) graphic.push({ type: 'rect', left: x, top: 0, z: -1, silent: true,\n    shape: { width: cw, height: H - 1, r: 14 }, style: { fill: '#10151C', stroke: '#1F2733', lineWidth: 1 } });\n  const fit = W ? { width: cw - 32, overflow: 'truncate', ellipsis: '…' } : {};\n  graphic.push({ type: 'text', left: at(16), top: 12, silent: true,\n    style: Object.assign({ text: c.label.toUpperCase(), fill: '#8D99AB', font: '600 11px Inter, sans-serif' }, fit) });\n  graphic.push({ type: 'text', left: at(16), top: 28, silent: true,\n    style: { text: '{v|' + shown[0] + '}' + (unit ? '{u| ' + unit + '}' : ''),\n      rich: { v: { fill: colour, font: '600 30px ' + MONO },\n        u: { fill: '#8D99AB', font: '13px ' + MONO, padding: [12, 0, 0, 4] } } } });\n  const sub = c.sub ? c.sub(v) : '';\n  if (sub) graphic.push({ type: 'text', left: at(16), top: 68, silent: true,\n    style: Object.assign({ text: sub, fill: '#8D99AB', font: '12px ' + MONO }, fit) });\n  if (c.spark) {\n    const data = points(c.spark);\n    if (data.some((p) => p[1] !== null)) {\n      const g = grid.length;\n      const sh = H ? Math.max(14, H - 94) : 20;\n      grid.push(W ? { left: x + 12, width: cw - 24, bottom: 6, height: sh }\n        : { left: (i * 100) / n + 1.2 + '%', width: 100 / n - 2.4 + '%', bottom: 6, height: sh });\n      xAxis.push({ type: 'time', gridIndex: g, show: false });\n      yAxis.push({ type: 'value', gridIndex: g, show: false, scale: false, min: 0 });\n      series.push({ type: 'line', xAxisIndex: g, yAxisIndex: g, data, showSymbol: false, silent: true,\n        connectNulls: false, lineStyle: { width: 1.5, color: c.sparkColour || '#60A5FA' } });\n    }\n  }\n});\nreturn { backgroundColor: 'transparent', animation: false, graphic, grid, xAxis, yAxis, series };",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
         },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "orientation": "auto",
-        "showPercentChange": true,
-        "percentChangeColorMode": "inverted",
-        "text": {
-          "titleSize": 11,
-          "valueSize": 34
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
         }
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "id": 5,
-      "gridPos": {
-        "h": 5,
-        "w": 8,
-        "x": 16,
-        "y": 0
       }
     },
     {
@@ -513,7 +269,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 5
+        "y": 3
       }
     },
     {
@@ -527,7 +283,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "max by (name, project, dest_namespace, sync_status, health_status, autosync_enabled) (argocd_app_info)",
+          "expr": "max by (name, project, sync_status, health_status) (argocd_app_info)",
           "legendFormat": "__auto",
           "range": false,
           "instant": true,
@@ -640,6 +396,42 @@
                 ]
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "health"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "sync"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "project"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
           }
         ]
       },
@@ -672,9 +464,13 @@
               "Time": true,
               "Value": true
             },
+            "indexByName": {
+              "name": 0,
+              "health_status": 1,
+              "sync_status": 2,
+              "project": 3
+            },
             "renameByName": {
-              "dest_namespace": "namespace",
-              "autosync_enabled": "auto-sync",
               "sync_status": "sync",
               "health_status": "health"
             }
@@ -686,7 +482,7 @@
         "h": 12,
         "w": 14,
         "x": 0,
-        "y": 6
+        "y": 4
       }
     },
     {
@@ -768,7 +564,7 @@
         "h": 12,
         "w": 10,
         "x": 14,
-        "y": 6
+        "y": 4
       }
     },
     {
@@ -781,7 +577,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 18
+        "y": 16
       }
     },
     {
@@ -795,7 +591,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (name) (increase(argocd_app_sync_total[$__interval]))",
+          "expr": "sum by (name) (increase(argocd_app_sync_total[$__interval])) > 0",
           "legendFormat": "{{name}}",
           "range": true,
           "instant": false,
@@ -825,8 +621,8 @@
             "fillOpacity": 70,
             "gradientMode": "none",
             "showPoints": "never",
-            "spanNulls": true,
-            "lineInterpolation": "smooth",
+            "spanNulls": false,
+            "lineInterpolation": "linear",
             "axisBorderShow": false,
             "axisLabel": "",
             "axisPlacement": "auto",
@@ -838,7 +634,8 @@
               "mode": "off"
             },
             "barAlignment": 0
-          }
+          },
+          "min": 0
         },
         "overrides": []
       },
@@ -863,7 +660,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 19
+        "y": 17
       }
     },
     {
@@ -905,10 +702,10 @@
             "drawStyle": "line",
             "lineWidth": 2,
             "fillOpacity": 0,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "lineInterpolation": "smooth",
+            "gradientMode": "none",
+            "showPoints": "auto",
+            "spanNulls": false,
+            "lineInterpolation": "linear",
             "axisBorderShow": false,
             "axisLabel": "",
             "axisPlacement": "auto",
@@ -945,7 +742,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 19
+        "y": 17
       }
     },
     {
@@ -958,7 +755,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 27
+        "y": 25
       }
     },
     {
@@ -972,7 +769,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "topk(10, sum by (name) (rate(argocd_app_k8s_request_total[$__rate_interval])))",
+          "expr": "(topk(10, sum by (name) (rate(argocd_app_k8s_request_total[$__rate_interval])))) * 3600",
           "legendFormat": "{{name}}",
           "range": true,
           "instant": false,
@@ -982,7 +779,7 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "reqps",
+          "unit": "short",
           "color": {
             "mode": "palette-classic"
           },
@@ -998,13 +795,13 @@
           "custom": {
             "drawStyle": "line",
             "lineWidth": 2,
-            "fillOpacity": 18,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "lineInterpolation": "smooth",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "showPoints": "auto",
+            "spanNulls": false,
+            "lineInterpolation": "linear",
             "axisBorderShow": false,
-            "axisLabel": "",
+            "axisLabel": "per hour",
             "axisPlacement": "auto",
             "stacking": {
               "mode": "none",
@@ -1013,7 +810,9 @@
             "thresholdsStyle": {
               "mode": "off"
             }
-          }
+          },
+          "decimals": 0,
+          "min": 0
         },
         "overrides": []
       },
@@ -1038,7 +837,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 28
+        "y": 26
       }
     },
     {
@@ -1052,7 +851,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (request_type) (rate(argocd_git_request_total[$__rate_interval]))",
+          "expr": "(sum by (request_type) (rate(argocd_git_request_total[$__rate_interval]))) * 3600",
           "legendFormat": "{{request_type}}",
           "range": true,
           "instant": false,
@@ -1062,7 +861,7 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "reqps",
+          "unit": "short",
           "color": {
             "mode": "palette-classic"
           },
@@ -1078,13 +877,13 @@
           "custom": {
             "drawStyle": "line",
             "lineWidth": 2,
-            "fillOpacity": 18,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "lineInterpolation": "smooth",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "showPoints": "auto",
+            "spanNulls": false,
+            "lineInterpolation": "linear",
             "axisBorderShow": false,
-            "axisLabel": "",
+            "axisLabel": "per hour",
             "axisPlacement": "auto",
             "stacking": {
               "mode": "none",
@@ -1093,7 +892,9 @@
             "thresholdsStyle": {
               "mode": "off"
             }
-          }
+          },
+          "decimals": 0,
+          "min": 0
         },
         "overrides": []
       },
@@ -1118,7 +919,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 28
+        "y": 26
       }
     },
     {
@@ -1132,7 +933,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (initiator) (rate(argocd_redis_request_total[$__rate_interval]))",
+          "expr": "(sum by (initiator) (rate(argocd_redis_request_total[$__rate_interval]))) * 3600",
           "legendFormat": "{{initiator}}",
           "range": true,
           "instant": false,
@@ -1142,7 +943,7 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "reqps",
+          "unit": "short",
           "color": {
             "mode": "palette-classic"
           },
@@ -1158,13 +959,13 @@
           "custom": {
             "drawStyle": "line",
             "lineWidth": 2,
-            "fillOpacity": 18,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "lineInterpolation": "smooth",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "showPoints": "auto",
+            "spanNulls": false,
+            "lineInterpolation": "linear",
             "axisBorderShow": false,
-            "axisLabel": "",
+            "axisLabel": "per hour",
             "axisPlacement": "auto",
             "stacking": {
               "mode": "none",
@@ -1173,7 +974,9 @@
             "thresholdsStyle": {
               "mode": "off"
             }
-          }
+          },
+          "decimals": 0,
+          "min": 0
         },
         "overrides": []
       },
@@ -1198,7 +1001,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 28
+        "y": 26
       }
     }
   ],

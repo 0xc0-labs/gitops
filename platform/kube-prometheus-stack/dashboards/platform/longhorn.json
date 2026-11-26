@@ -19,10 +19,10 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "enable": true,
+        "enable": false,
         "hide": false,
         "iconColor": "#7DD3FC",
-        "expr": "sum by (name) (increase(argocd_app_sync_total{phase=\"Succeeded\"}[2m])) > 0",
+        "expr": "sum by (name) (argocd_app_sync_total{phase=\"Succeeded\"}) - sum by (name) (argocd_app_sync_total{phase=\"Succeeded\"} offset 1m) > 0",
         "step": "60s",
         "titleFormat": "sync {{name}}",
         "textFormat": "Argo CD synced {{name}}",
@@ -35,15 +35,15 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "enable": true,
+        "enable": false,
         "hide": false,
         "iconColor": "#34D399",
-        "expr": "label_replace(count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}) unless count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"} offset 10m), \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")",
+        "expr": "label_replace((min_over_time(timestamp(count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}))[15m:1m]) * 1000) and (count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}) unless count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"} offset 10m)), \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")",
         "step": "60s",
         "titleFormat": "{{namespace}} {{version}}",
         "textFormat": "{{image_spec}}",
         "tagKeys": "namespace,version",
-        "useValueForTime": false
+        "useValueForTime": true
       }
     ]
   },
@@ -130,399 +130,103 @@
   ],
   "panels": [
     {
-      "type": "stat",
-      "title": "Volumes",
-      "description": "Every Longhorn volume, counted once.",
+      "type": "volkovlabs-echarts-panel",
+      "title": "",
+      "description": "Longhorn's volumes and nodes now.",
       "transparent": true,
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "count(count by (volume) (longhorn_volume_robustness))",
-          "legendFormat": "__auto",
-          "range": true,
-          "instant": false,
-          "editorMode": "code",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#E7ECF3"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#E7ECF3",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "orientation": "auto",
-        "showPercentChange": true,
-        "percentChangeColorMode": "standard",
-        "text": {
-          "titleSize": 11,
-          "valueSize": 34
-        }
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
       "id": 1,
       "gridPos": {
-        "h": 5,
-        "w": 4,
+        "h": 3,
+        "w": 24,
         "x": 0,
         "y": 0
-      }
-    },
-    {
-      "type": "stat",
-      "title": "Not healthy",
-      "description": "Volumes degraded or faulted. A detached volume reports unknown and is not counted. 0 is a real count.",
-      "transparent": true,
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "maxDataPoints": 48,
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
+          "refId": "A",
+          "expr": "count(count by (volume) (longhorn_volume_robustness))",
+          "editorMode": "code",
+          "range": false,
+          "instant": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "B",
           "expr": "count(max by (volume) (longhorn_volume_robustness{state=~\"degraded|faulted\"}) == 1) or vector(0)",
-          "legendFormat": "__auto",
-          "range": true,
-          "instant": false,
           "editorMode": "code",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#34D399",
-                "value": null
-              },
-              {
-                "color": "#FBBF24",
-                "value": 1
-              },
-              {
-                "color": "#FB7185",
-                "value": 3
-              }
-            ]
-          }
+          "range": false,
+          "instant": true
         },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "orientation": "auto",
-        "showPercentChange": true,
-        "percentChangeColorMode": "inverted",
-        "text": {
-          "titleSize": 11,
-          "valueSize": 34
-        }
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "id": 2,
-      "gridPos": {
-        "h": 5,
-        "w": 4,
-        "x": 4,
-        "y": 0
-      }
-    },
-    {
-      "type": "stat",
-      "title": "Attached",
-      "description": "Volumes attached to a node.",
-      "transparent": true,
-      "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
+          "refId": "C",
           "expr": "count(max by (volume) (longhorn_volume_state{state=\"attached\"}) == 1) or vector(0)",
-          "legendFormat": "__auto",
-          "range": true,
-          "instant": false,
           "editorMode": "code",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#60A5FA"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#E7ECF3",
-                "value": null
-              }
-            ]
-          }
+          "range": false,
+          "instant": true
         },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "orientation": "auto",
-        "showPercentChange": true,
-        "percentChangeColorMode": "standard",
-        "text": {
-          "titleSize": 11,
-          "valueSize": 34
-        }
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "id": 3,
-      "gridPos": {
-        "h": 5,
-        "w": 4,
-        "x": 8,
-        "y": 0
-      }
-    },
-    {
-      "type": "stat",
-      "title": "Provisioned",
-      "description": "The volumes' size.",
-      "transparent": true,
-      "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
+          "refId": "D",
           "expr": "sum(max by (volume) (longhorn_volume_capacity_bytes))",
-          "legendFormat": "__auto",
-          "range": true,
-          "instant": false,
           "editorMode": "code",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "bytes",
-          "decimals": 1,
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#C4B5FD"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#E7ECF3",
-                "value": null
-              }
-            ]
-          }
+          "range": false,
+          "instant": true
         },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "orientation": "auto",
-        "showPercentChange": true,
-        "percentChangeColorMode": "standard",
-        "text": {
-          "titleSize": 11,
-          "valueSize": 34
-        }
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "id": 4,
-      "gridPos": {
-        "h": 5,
-        "w": 4,
-        "x": 12,
-        "y": 0
-      }
-    },
-    {
-      "type": "stat",
-      "title": "Used",
-      "description": "What the volumes hold on disk (one replica).",
-      "transparent": true,
-      "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
+          "refId": "E",
           "expr": "sum(max by (volume) (longhorn_volume_actual_size_bytes))",
-          "legendFormat": "__auto",
-          "range": true,
-          "instant": false,
           "editorMode": "code",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "bytes",
-          "decimals": 1,
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#F59E0B"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#E7ECF3",
-                "value": null
-              }
-            ]
-          }
+          "range": false,
+          "instant": true
         },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "orientation": "auto",
-        "showPercentChange": true,
-        "percentChangeColorMode": "standard",
-        "text": {
-          "titleSize": 11,
-          "valueSize": 34
-        }
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "id": 5,
-      "gridPos": {
-        "h": 5,
-        "w": 4,
-        "x": 16,
-        "y": 0
-      }
-    },
-    {
-      "type": "stat",
-      "title": "Nodes ready",
-      "description": "Longhorn nodes Ready.",
-      "transparent": true,
-      "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
+          "refId": "F",
           "expr": "sum(max by (node) (longhorn_node_status{condition=\"ready\"}))",
-          "legendFormat": "__auto",
-          "range": true,
-          "instant": false,
           "editorMode": "code",
-          "refId": "A"
+          "range": false,
+          "instant": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "G",
+          "expr": "count(max by (node) (longhorn_node_status{condition=\"ready\"}))",
+          "editorMode": "code",
+          "range": false,
+          "instant": true
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#34D399"
-          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -536,36 +240,34 @@
         "overrides": []
       },
       "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
         },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "orientation": "auto",
-        "showPercentChange": true,
-        "percentChangeColorMode": "standard",
-        "text": {
-          "titleSize": 11,
-          "valueSize": 34
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst cards = [\n{ label: 'Volumes', fmt: 'count', value: () => last('A'), sub: (v) => Math.round(last('C') || 0).toLocaleString('en-US') + ' attached' },\n  { label: 'Not healthy', fmt: 'count', value: () => last('B'), sub: (v) => 'of ' + Math.round(last('A') || 0).toLocaleString('en-US') + ' volumes', colour: (v) => (v > 0 ? '#FB7185' : '#E7ECF3') },\n  { label: 'Attached', fmt: 'count', value: () => last('C'), sub: (v) => 'of ' + Math.round(last('A') || 0).toLocaleString('en-US') + ' volumes' },\n  { label: 'Provisioned', fmt: 'bytes', value: () => last('D'), sub: (v) => 'across ' + Math.round(last('A') || 0).toLocaleString('en-US') + ' volumes' },\n  { label: 'Used', fmt: 'bytes', value: () => last('E'), sub: (v) => (last('D') ? (100 * (v || 0) / last('D')).toFixed(1) + ' % of provisioned' : '') },\n  { label: 'Nodes ready', fmt: 'count', value: () => last('F'), sub: (v) => 'of ' + Math.round(last('G') || 0).toLocaleString('en-US') + ' nodes', colour: (v) => (v < (last('G') || 0) ? '#FB7185' : '#E7ECF3') },\n];\nconst frames = context.panel.data.series;\nconst byRef = (id) => frames.filter((f) => f.refId === id);\nconst num = (x) => (x === null || x === undefined || !Number.isFinite(Number(x)) ? null : Number(x));\nconst last = (id) => {\n  for (const f of byRef(id)) {\n    const v = f.fields.find((x) => x.type === 'number');\n    if (!v) continue;\n    for (let i = v.values.length - 1; i >= 0; i--) { const n = num(v.values[i]); if (n !== null) return n; }\n  }\n  return null;\n};\nconst points = (id) => {\n  const f = byRef(id)[0];\n  if (!f) return [];\n  const t = f.fields.find((x) => x.type === 'time');\n  const v = f.fields.find((x) => x.type === 'number');\n  if (!t || !v) return [];\n  return t.values.map((x, i) => [x, num(v.values[i])]);\n};\nconst span = (() => {\n  const r = context.panel.data.timeRange;\n  if (!r) return '';\n  const m = (r.to.valueOf() - r.from.valueOf()) / 60000;\n  if (m < 90) return Math.round(m) + ' min';\n  if (m < 48 * 60) return Math.round(m / 60) + ' h';\n  return Math.round(m / 1440) + ' d';\n})();\nconst hours = (() => {\n  const r = context.panel.data.timeRange;\n  return r ? (r.to.valueOf() - r.from.valueOf()) / 3600000 : 1;\n})();\nconst fmt = {\n  count: (v) => [Math.round(v).toLocaleString('en-US'), ''],\n  pct: (v) => [(v * 100).toFixed(v * 100 >= 99.95 || v === 0 ? 2 : v * 100 < 10 ? 2 : 1), '%'],\n  dur: (v) => (v < 1 ? [String(Math.round(v * 1000)), 'ms'] : [v.toFixed(v < 10 ? 2 : 1), 's']),\n  num2: (v) => [v.toFixed(2), ''],\n  ms: (v) => (v < 1000 ? [String(Math.round(v)), 'ms'] : [(v / 1000).toFixed(2), 's']),\n  bytes: (v) => {\n    const u = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];\n    let i = 0;\n    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }\n    return [v.toFixed(v < 10 ? 2 : 1), u[i]];\n  },\n};\nconst n = cards.length;\nconst chart = context.panel.chart;\nconst W = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst H = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\nconst gap = 12;\nconst cw = W ? (W - gap * (n - 1)) / n : 0;\nconst graphic = [];\nconst grid = [];\nconst xAxis = [];\nconst yAxis = [];\nconst series = [];\ncards.forEach((c, i) => {\n  const x = W ? i * (cw + gap) : 0;\n  const at = (dx) => (W ? x + dx : (i * 100) / n + 1.2 + '%');\n  const v = c.value();\n  const shown = v === null ? ['—', ''] : c.show ? c.show(v) : fmt[c.fmt](v);\n  const unit = v === null ? '' : c.unit !== undefined ? c.unit : shown[1];\n  const colour = v === null ? '#8D99AB' : c.colour ? c.colour(v) : '#E7ECF3';\n  if (W && H) graphic.push({ type: 'rect', left: x, top: 0, z: -1, silent: true,\n    shape: { width: cw, height: H - 1, r: 14 }, style: { fill: '#10151C', stroke: '#1F2733', lineWidth: 1 } });\n  const fit = W ? { width: cw - 32, overflow: 'truncate', ellipsis: '…' } : {};\n  graphic.push({ type: 'text', left: at(16), top: 12, silent: true,\n    style: Object.assign({ text: c.label.toUpperCase(), fill: '#8D99AB', font: '600 11px Inter, sans-serif' }, fit) });\n  graphic.push({ type: 'text', left: at(16), top: 28, silent: true,\n    style: { text: '{v|' + shown[0] + '}' + (unit ? '{u| ' + unit + '}' : ''),\n      rich: { v: { fill: colour, font: '600 30px ' + MONO },\n        u: { fill: '#8D99AB', font: '13px ' + MONO, padding: [12, 0, 0, 4] } } } });\n  const sub = c.sub ? c.sub(v) : '';\n  if (sub) graphic.push({ type: 'text', left: at(16), top: 68, silent: true,\n    style: Object.assign({ text: sub, fill: '#8D99AB', font: '12px ' + MONO }, fit) });\n  if (c.spark) {\n    const data = points(c.spark);\n    if (data.some((p) => p[1] !== null)) {\n      const g = grid.length;\n      const sh = H ? Math.max(14, H - 94) : 20;\n      grid.push(W ? { left: x + 12, width: cw - 24, bottom: 6, height: sh }\n        : { left: (i * 100) / n + 1.2 + '%', width: 100 / n - 2.4 + '%', bottom: 6, height: sh });\n      xAxis.push({ type: 'time', gridIndex: g, show: false });\n      yAxis.push({ type: 'value', gridIndex: g, show: false, scale: false, min: 0 });\n      series.push({ type: 'line', xAxisIndex: g, yAxisIndex: g, data, showSymbol: false, silent: true,\n        connectNulls: false, lineStyle: { width: 1.5, color: c.sparkColour || '#60A5FA' } });\n    }\n  }\n});\nreturn { backgroundColor: 'transparent', animation: false, graphic, grid, xAxis, yAxis, series };",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
         }
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "id": 6,
-      "gridPos": {
-        "h": 5,
-        "w": 4,
-        "x": 20,
-        "y": 0
       }
     },
     {
@@ -578,13 +280,13 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 5
+        "y": 3
       }
     },
     {
       "type": "table",
       "title": "Volumes",
-      "description": "Each volume once: robustness, size, use, and the age of its last Longhorn backup.",
+      "description": "Each volume once, by its claim (namespace/pvc): robustness, size and use. No backup column: no volume has a Longhorn backup (longhorn_volume_last_backup_at is empty).",
       "transparent": true,
       "targets": [
         {
@@ -592,7 +294,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "max by (volume, state) (longhorn_volume_robustness == 1)",
+          "expr": "max by (volume, claim, state) (label_join(longhorn_volume_robustness == 1, \"claim\", \"/\", \"pvc_namespace\", \"pvc\"))",
           "legendFormat": "__auto",
           "range": false,
           "instant": true,
@@ -605,7 +307,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "max by (volume) (longhorn_volume_capacity_bytes)",
+          "expr": "max by (volume, claim) (label_join(longhorn_volume_capacity_bytes, \"claim\", \"/\", \"pvc_namespace\", \"pvc\"))",
           "legendFormat": "__auto",
           "range": false,
           "instant": true,
@@ -618,26 +320,13 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "max by (volume) (longhorn_volume_actual_size_bytes)",
+          "expr": "max by (volume, claim) (label_join(longhorn_volume_actual_size_bytes, \"claim\", \"/\", \"pvc_namespace\", \"pvc\"))",
           "legendFormat": "__auto",
           "range": false,
           "instant": true,
           "editorMode": "code",
           "format": "table",
           "refId": "C"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "time() - max by (volume) (longhorn_volume_last_backup_at > 0)",
-          "legendFormat": "__auto",
-          "range": false,
-          "instant": true,
-          "editorMode": "code",
-          "format": "table",
-          "refId": "D"
         }
       ],
       "fieldConfig": {
@@ -736,44 +425,37 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "last backup"
+              "options": "claim"
             },
             "properties": [
               {
-                "id": "unit",
-                "value": "s"
+                "id": "custom.width",
+                "value": 330
               },
               {
-                "id": "decimals",
-                "value": 0
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
-                }
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "thresholds"
-                }
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "#E7ECF3",
-                      "value": null
-                    },
-                    {
-                      "color": "#FBBF24",
-                      "value": 172800
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "/": {
+                        "text": "no claim"
+                      }
                     }
-                  ]
-                }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "robustness"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
               }
             ]
           }
@@ -810,20 +492,19 @@
           "options": {
             "excludeByName": {
               "Time": true,
-              "Value #A": true
+              "Value #A": true,
+              "volume": true
             },
             "indexByName": {
-              "volume": 0,
+              "claim": 0,
               "state": 1,
               "Value #B": 2,
-              "Value #C": 3,
-              "Value #D": 4
+              "Value #C": 3
             },
             "renameByName": {
               "state": "robustness",
               "Value #B": "size",
-              "Value #C": "used",
-              "Value #D": "last backup"
+              "Value #C": "used"
             }
           }
         }
@@ -833,13 +514,13 @@
         "h": 12,
         "w": 14,
         "x": 0,
-        "y": 6
+        "y": 4
       }
     },
     {
       "type": "bargauge",
       "title": "Replicas per node",
-      "description": "Replicas each node holds (longhorn_replica_info). Replaces \"Volumes per node\": a volume metric's node is the manager reporting it.",
+      "description": "Replicas each Longhorn node holds (longhorn_replica_info); a node that holds none reads 0.",
       "transparent": true,
       "targets": [
         {
@@ -847,7 +528,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "count by (node) (longhorn_replica_info)",
+          "expr": "count by (node) (longhorn_replica_info) or max by (node) (longhorn_node_status{condition=\"ready\"}) * 0",
           "legendFormat": "{{node}}",
           "range": false,
           "instant": true,
@@ -903,7 +584,7 @@
         "h": 6,
         "w": 10,
         "x": 14,
-        "y": 6
+        "y": 4
       }
     },
     {
@@ -981,7 +662,7 @@
         "h": 6,
         "w": 10,
         "x": 14,
-        "y": 12
+        "y": 10
       }
     },
     {
@@ -994,7 +675,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 18
+        "y": 16
       }
     },
     {
@@ -1034,11 +715,11 @@
           "custom": {
             "drawStyle": "line",
             "lineWidth": 2,
-            "fillOpacity": 18,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "lineInterpolation": "smooth",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "showPoints": "auto",
+            "spanNulls": false,
+            "lineInterpolation": "linear",
             "axisBorderShow": false,
             "axisLabel": "",
             "axisPlacement": "auto",
@@ -1049,7 +730,8 @@
             "thresholdsStyle": {
               "mode": "off"
             }
-          }
+          },
+          "min": 0
         },
         "overrides": []
       },
@@ -1074,7 +756,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 19
+        "y": 17
       }
     },
     {
@@ -1114,11 +796,11 @@
           "custom": {
             "drawStyle": "line",
             "lineWidth": 2,
-            "fillOpacity": 18,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "lineInterpolation": "smooth",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "showPoints": "auto",
+            "spanNulls": false,
+            "lineInterpolation": "linear",
             "axisBorderShow": false,
             "axisLabel": "",
             "axisPlacement": "auto",
@@ -1129,7 +811,8 @@
             "thresholdsStyle": {
               "mode": "off"
             }
-          }
+          },
+          "min": 0
         },
         "overrides": []
       },
@@ -1154,7 +837,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 19
+        "y": 17
       }
     },
     {
@@ -1207,10 +890,10 @@
             "drawStyle": "line",
             "lineWidth": 2,
             "fillOpacity": 0,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "spanNulls": true,
-            "lineInterpolation": "smooth",
+            "gradientMode": "none",
+            "showPoints": "auto",
+            "spanNulls": false,
+            "lineInterpolation": "linear",
             "axisBorderShow": false,
             "axisLabel": "",
             "axisPlacement": "auto",
@@ -1246,7 +929,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 19
+        "y": 17
       }
     }
   ],
