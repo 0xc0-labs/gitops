@@ -9,7 +9,6 @@ kind: Kustomization
 namespace: matchmark-sandboxes
 components:
   - ../sandboxd-image
-  - ../../_components/pool-apps
 resources:
   - namespace.yaml
   - quota.yaml

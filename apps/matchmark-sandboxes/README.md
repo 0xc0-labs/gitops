@@ -97,12 +97,12 @@ Nothing else is tried: there is no other way out.
 
 ## The proof
 
-`sandbox-proof-5`, a plain Job (`sandbox-proof.yaml`, `proof.py`), kept after it
+`sandbox-proof-6`, a plain Job (`sandbox-proof.yaml`, `proof.py`), kept after it
 ends and not run again by a sync. To run it again, raise the number in its
-name (`-5` to `-6`): the sync creates the new Job and prunes the old one.
+name (`-6` to `-7`): the sync creates the new Job and prunes the old one.
 
 ```sh
-kubectl -n matchmark-sandboxes logs job/sandbox-proof-5
+kubectl -n matchmark-sandboxes logs job/sandbox-proof-6
 ```
 
 One line per step, `ok` or `FAILED`, and a last line `all steps ok`:

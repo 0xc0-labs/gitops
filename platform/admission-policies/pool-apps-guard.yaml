@@ -1,0 +1,70 @@
+# Rejects a pod that leaves the `apps` pool, or that selects it from outside an
+# application namespace (README.md). Mutation runs first, so a pod that merely
+# forgot the placement is fixed, not rejected.
+#
+# `failurePolicy: Ignore` because the binding covers every namespace: a fault
+# in an expression must not stop a system pod. A well-formed pod that breaks
+# the rule is always denied.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: pool-apps-guard
+spec:
+  failurePolicy: Ignore
+  matchConstraints:
+    matchPolicy: Equivalent
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
+        operations: ["CREATE"]
+  matchConditions:
+    - name: not-gvisor
+      expression: "!(has(object.spec.runtimeClassName) && object.spec.runtimeClassName == 'gvisor')"
+  variables:
+    - name: inAppsNamespace
+      expression: >-
+        has(namespaceObject.metadata.labels) &&
+        '0xc0.cc/pool' in namespaceObject.metadata.labels &&
+        namespaceObject.metadata.labels['0xc0.cc/pool'] == 'apps'
+    - name: selectedPool
+      expression: >-
+        has(object.spec.nodeSelector) && '0xc0.cc/pool' in object.spec.nodeSelector
+        ? object.spec.nodeSelector['0xc0.cc/pool'] : ''
+    - name: requiredTerms
+      expression: >-
+        has(object.spec.affinity) && has(object.spec.affinity.nodeAffinity) &&
+        has(object.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution)
+        ? object.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms
+        : []
+    - name: affinityNamesOtherPool
+      expression: >-
+        variables.requiredTerms.exists(term, has(term.matchExpressions) &&
+          term.matchExpressions.exists(e, e.key == '0xc0.cc/pool' && e.operator == 'In' &&
+            has(e.values) && e.values.exists(v, v != 'apps')))
+    - name: affinityNamesApps
+      expression: >-
+        variables.requiredTerms.exists(term, has(term.matchExpressions) &&
+          term.matchExpressions.exists(e, e.key == '0xc0.cc/pool' && e.operator == 'In' &&
+            has(e.values) && e.values.exists(v, v == 'apps')))
+  validations:
+    - expression: "!variables.inAppsNamespace || variables.selectedPool == '' || variables.selectedPool == 'apps'"
+      messageExpression: >-
+        'namespace ' + namespaceObject.metadata.name + ' is an application namespace (0xc0.cc/pool=apps): its pods run on the apps pool, but this one selects the pool ' + variables.selectedPool
+    - expression: "!variables.inAppsNamespace || !variables.affinityNamesOtherPool"
+      messageExpression: >-
+        'namespace ' + namespaceObject.metadata.name + ' is an application namespace (0xc0.cc/pool=apps): its pods run on the apps pool, but this one requires node affinity to another pool'
+    - expression: "variables.inAppsNamespace || variables.selectedPool != 'apps'"
+      messageExpression: >-
+        'namespace ' + namespaceObject.metadata.name + ' is not labelled 0xc0.cc/pool=apps, so its pods cannot select the apps pool with a nodeSelector'
+    - expression: "variables.inAppsNamespace || !variables.affinityNamesApps"
+      messageExpression: >-
+        'namespace ' + namespaceObject.metadata.name + ' is not labelled 0xc0.cc/pool=apps, so its pods cannot require node affinity to the apps pool'
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: pool-apps-guard
+spec:
+  policyName: pool-apps-guard
+  validationActions: [Deny]

@@ -1,0 +1,72 @@
+# Places every pod of an application namespace on the `apps` pool (README.md).
+# The two mutations add what is missing and never overwrite: a pod that names
+# another pool is left for `pool-apps-guard` to reject.
+#
+# JSON Patch, not an apply configuration: `tolerations` is an atomic list, so
+# applying one would replace the pod's own. A `/` in a key is `~1`.
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicy
+metadata:
+  name: pool-apps-placement
+spec:
+  failurePolicy: Fail
+  reinvocationPolicy: IfNeeded
+  matchConstraints:
+    matchPolicy: Equivalent
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
+        operations: ["CREATE"]
+  matchConditions:
+    # The RuntimeClass places a gvisor pod on `sandbox`, and rejects a
+    # nodeSelector that disagrees.
+    - name: not-gvisor
+      expression: "!(has(object.spec.runtimeClassName) && object.spec.runtimeClassName == 'gvisor')"
+  variables:
+    - name: hasSelector
+      expression: "has(object.spec.nodeSelector)"
+    - name: hasPoolKey
+      expression: "variables.hasSelector && '0xc0.cc/pool' in object.spec.nodeSelector"
+    - name: hasTolerations
+      expression: "has(object.spec.tolerations)"
+    - name: toleratesApps
+      expression: >-
+        variables.hasTolerations &&
+        object.spec.tolerations.exists(t,
+          has(t.key) && t.key == '0xc0.cc/pool' &&
+          has(t.operator) && t.operator == 'Equal' &&
+          has(t.value) && t.value == 'apps' &&
+          has(t.effect) && t.effect == 'NoSchedule')
+  mutations:
+    - patchType: JSONPatch
+      jsonPatch:
+        expression: >-
+          (!variables.hasSelector
+            ? [JSONPatch{op: "add", path: "/spec/nodeSelector", value: {"0xc0.cc/pool": "apps"}}]
+            : []) +
+          (variables.hasSelector && !variables.hasPoolKey
+            ? [JSONPatch{op: "add", path: "/spec/nodeSelector/0xc0.cc~1pool", value: "apps"}]
+            : [])
+    - patchType: JSONPatch
+      jsonPatch:
+        expression: >-
+          (!variables.hasTolerations
+            ? [JSONPatch{op: "add", path: "/spec/tolerations",
+                value: [Object.spec.tolerations{key: "0xc0.cc/pool", operator: "Equal", value: "apps", effect: "NoSchedule"}]}]
+            : []) +
+          (variables.hasTolerations && !variables.toleratesApps
+            ? [JSONPatch{op: "add", path: "/spec/tolerations/-",
+                value: Object.spec.tolerations{key: "0xc0.cc/pool", operator: "Equal", value: "apps", effect: "NoSchedule"}}]
+            : [])
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicyBinding
+metadata:
+  name: pool-apps-placement
+spec:
+  policyName: pool-apps-placement
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        0xc0.cc/pool: apps

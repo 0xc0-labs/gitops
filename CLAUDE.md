@@ -30,13 +30,13 @@ What runs in the Kubernetes cluster, as manifests ArgoCD applies.
   its volumes, each in its own manifest, never through `commonAnnotations`:
   that reaches its generated ConfigMaps too, and every change would leave the
   old one behind.
-- Placement is by node pool (`0xc0.cc/pool`). Every application lists the
-  component `apps/_components/pool-apps`, which puts its Deployments,
-  StatefulSets, Jobs and CronJobs on `pool=apps` with the taint's toleration;
-  a pod that asks for the `gvisor` RuntimeClass carries the label
-  `0xc0.cc/placement: runtime-class` instead, and the class places it on
-  `sandbox`. `platform/` sets no placement of its own, except the per-node
-  agents' tolerations.
+- Placement is by node pool (`0xc0.cc/pool`). An application's Namespace
+  manifest carries the label `0xc0.cc/pool: apps`, and the policies in
+  [`platform/admission-policies/`][admission-policies] place its pods on
+  `apps` and reject one that leaves the pool; a pod that asks for the `gvisor`
+  RuntimeClass is skipped by both, and the class places it on `sandbox`.
+  `platform/` sets no placement of its own, except the per-node agents'
+  tolerations.
 - ArgoCD itself is installed and upgraded by RKE2's helm-controller, never
   from here.
 
@@ -161,3 +161,4 @@ ArgoCD deploys: `platform/*`, `apps/*/prod`, `apps/*/staging` and
 git ignores: nothing is vendored.
 
 [design-delivery]: https://github.com/0xc0-labs/workspace/blob/main/docs/design/delivery.md
+[admission-policies]: platform/admission-policies/README.md
