@@ -39,6 +39,8 @@ a degraded Longhorn volume, etcd without a leader or a member down, a node's
 root filesystem above 85%, a Deployment or StatefulSet short of replicas, a
 target down, the collectors failing to export, and, as the example of a log
 rule, error lines per namespace in Loki.
+A second group, `cloudflare`, in the same folder, watches the edge's 5xx share
+and the tunnel connectors (`platform/cloudflare-exporter`).
 
 To add one, copy a rule in `alerting-rules.yaml` with a new `uid`. The file goes
 through Helm's `tpl` and Grafana's own `$` expansion: write no pair of braces
@@ -243,7 +245,7 @@ The namespace denies ingress by default. Grafana takes ingress from Traefik
 alone; Prometheus from Grafana, the operator and the collectors' gateway
 (OTLP). In the
 namespaces that limit ingress and carry a ServiceMonitor (`cert-manager`,
-`crowdsec`, `external-dns`, `longhorn-system`, `traefik`,
+`cloudflare-exporter`, `crowdsec`, `external-dns`, `longhorn-system`, `traefik`,
 `vault`, `vault-secrets-operator`), Prometheus's pods may reach the metrics
 port.
 
