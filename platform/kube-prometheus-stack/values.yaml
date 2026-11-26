@@ -217,7 +217,11 @@ grafana:
       api_url: https://0xc0.cloudflareaccess.com/cdn-cgi/access/sso/oidc/990b1b12b1339d1798df00cb935a407353960ef767df351a9cac37321220e2d1/userinfo
       login_attribute_path: email
       email_attribute_name: email
-      role_attribute_path: "'Admin'"
+      # Not the bare literal 'Admin': the INI parser drops the quotes around a
+      # value that begins and ends with one, leaving a JMESPath for a field
+      # that does not exist.
+      role_attribute_path: "contains(email, '@') && 'Admin'"
+      role_attribute_strict: true
     dashboards:
       default_home_dashboard_path: /var/lib/grafana/dashboards/home/home.json
     analytics:
