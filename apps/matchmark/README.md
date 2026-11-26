@@ -671,7 +671,7 @@ credential of its own and not the root one.
   when the user carries it), so a run after a half-finished one needs nothing
   removed by hand. It is not run again by a sync. To run it again (a rotated
   key pair, a changed policy), raise the number in its name.
-- **Proof**: `worker-proof-6`, a plain Job in wave 2, with the worker's
+- **Proof**: `worker-proof-7`, a plain Job in wave 2, with the worker's
   ServiceAccount and labels, so it has the worker's rights and network, and
   the secrets the worker reads (the App's key mounted as a file the same way).
   It prints one line per step and ends `all steps ok`. It prints nothing of
@@ -708,7 +708,7 @@ proof waits for the one `Sandbox` the quota allows, so it can run beside
 
 ```sh
 kubectl -n matchmark logs job/artifacts-setup-3 -c bucket   # lifecycle rule read back
-kubectl -n matchmark logs job/worker-proof-6                # all steps ok
+kubectl -n matchmark logs job/worker-proof-7                # all steps ok
 ```
 
 ## The tracker
@@ -744,16 +744,28 @@ its item follows the run; no webhook is needed for that.
   Plane's `plane-plane-api` pods on 8000, and `api-from-matchmark`, in
   `apps/plane/prod/network-policy.yaml` (the other Application), admits those
   two to them. Plane reaches nothing new.
-- **Proof**: `worker-proof-6` (Artifacts) ends with the steps `tracker key is
+- **Proof**: `worker-proof-7` (Artifacts) ends with the steps `tracker key is
   a file only its user and group read`, `tracker key is in no variable`,
   `Plane's API accepts a connection` (it waits up to five minutes, as for the
   proxy), `Plane answers the key` (`GET /api/v1/users/me/` is 200), `project
   PLAY is in workspace 0xc0` and `project PLAY has every state the mapping
   uses` (`Backlog`, `Todo`, `In Progress`, `In Review`, `Blocked`, `Done`,
   `Cancelled`). It prints no key.
+- **What it records**: after the states, lines `state change author: recorded
+  (…)`, which read the activities of the project's ten most recently changed
+  work items (GET only) and say whether the tracker tells who moved an item to
+  its state and when: the status of the activities call and how many items
+  and entries it read; how many entries have `field` `state`; the keys of the
+  newest, and the JSON type of its `actor`, `field`, `old_value`,
+  `new_value`, `old_identifier`, `new_identifier`, `verb`, `created_at` and
+  `epoch`; whether its `new_identifier` is one of the project's states; and
+  whether any state entry has an `actor` other than the platform's own user
+  (yes or no). A 404, an empty list or a missing field is a line that says
+  so: `recorded` is not `ok` or `FAILED` and never fails the Job. It prints
+  no id of a person, name, title or text of an item.
 
 ```sh
-kubectl -n matchmark logs job/worker-proof-6 | grep -i -e plane -e tracker  # all ok
+kubectl -n matchmark logs job/worker-proof-7 | grep -i -e plane -e tracker  # all ok, then the recorded lines
 kubectl -n matchmark logs deploy/factory-worker | grep -i tracker          # its poll, not "not configured"
 ```
 
