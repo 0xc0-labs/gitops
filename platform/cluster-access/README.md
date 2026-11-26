@@ -43,8 +43,12 @@ OIDC application, neither a secret: the issuer is
 `https://0xc0.cloudflareaccess.com/cdn-cgi/access/sso/oidc/<client id>`.
 
 ```sh
-mise exec -- kubectl config set-credentials oidc --exec-api-version=client.authentication.k8s.io/v1 --exec-interactive-mode=IfAvailable --exec-command=kubectl --exec-arg=oidc-login --exec-arg=get-token --exec-arg=--oidc-issuer-url=https://0xc0.cloudflareaccess.com/cdn-cgi/access/sso/oidc/ce6ce5b6752cc8cd7366367c36b3f8cea85e4feff9d16de741a16ce219fb1640 --exec-arg=--oidc-client-id=ce6ce5b6752cc8cd7366367c36b3f8cea85e4feff9d16de741a16ce219fb1640 --exec-arg=--oidc-pkce-method=S256 --exec-arg=--oidc-extra-scope=email
+mise exec -- kubectl config set-credentials oidc --exec-api-version=client.authentication.k8s.io/v1 --exec-interactive-mode=IfAvailable --exec-command=kubectl --exec-arg=oidc-login --exec-arg=get-token --exec-arg=--oidc-issuer-url=https://0xc0.cloudflareaccess.com/cdn-cgi/access/sso/oidc/ce6ce5b6752cc8cd7366367c36b3f8cea85e4feff9d16de741a16ce219fb1640 --exec-arg=--oidc-client-id=ce6ce5b6752cc8cd7366367c36b3f8cea85e4feff9d16de741a16ce219fb1640 --exec-arg=--oidc-pkce-method=S256 --exec-arg=--oidc-extra-scope=email --exec-arg=--oidc-extra-scope=offline_access
 ```
+
+Someone who set the entry before runs this `set-credentials` command again:
+it replaces the user's arguments, and the new scope reaches only a sign-in
+made after it.
 
 **The context** joins the two and becomes the current one:
 
@@ -65,6 +69,9 @@ mise exec -- kubectl config use-context 0xc0-oidc
   `usePKCE` on for the same reason.
 - **`email`** is an extra scope because the plugin asks only for `openid`, and
   the API server takes the username from the token's `email`.
+- **`offline_access`** asks Access for a refresh token. The plugin then renews
+  the one-hour token without the browser, for a day, and the browser opens
+  again only after that.
 
 The first command that needs a token opens the browser at Cloudflare. Sign in
 with GitHub or the one-time PIN, and the command goes on. The plugin listens
