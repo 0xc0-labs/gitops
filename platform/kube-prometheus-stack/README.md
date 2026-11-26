@@ -302,18 +302,19 @@ faster than every 5 minutes: Estate, Apps and Cloudflare refresh every 5.
 Every Cloudflare query of a board asks for all the zones it needs at once
 (`zoneTag_in`), with one alias per dataset and filter, and its JSONata root
 selector flattens the answer into one table: a row per group, its kind in `q`,
-then `zone`, `t` (the hour or the event's time), `k`, `s`, `r` and the count in
+then `zone`, `t` (the hour or the event's time), `k`, `s`, `r` (a WAF event's
+rule: its description, or its ID when Cloudflare gives none) and the count in
 `n`. Each query also returns one marker row (`ok`, `okb`, `okc`), so an answer
 without groups is an empty block rather than an error, and a block whose query
-failed is left out. A refresh costs two queries on Estate, one on Apps (none for
-an app behind WARP) and three on Cloudflare, whose other blocks read the cards'
-frames through `-- Dashboard --`.
+failed is left out. A refresh costs two queries on Estate, one on Apps (for an
+app behind WARP too, which asks for no zone and gets none) and three on
+Cloudflare, whose other blocks read the cards' frames through `-- Dashboard --`.
 
 | Where | What, and from which dataset |
 |---|---|
 | Estate, Edge | Requests per hour at the edge (`httpRequestsAdaptiveGroups`, every zone) against Traefik's `websecure` entrypoint, the origin; the edge's 5xx share; the top countries; what the WAF blocked (`firewallEventsAdaptive`); and each tunnel's connectors, one dot each, from the job `cloudflared` |
 | Estate, Sites up · 30 d | The share of offby1.cc's and artistlabco.com's requests over 30 days that the edge answered with a status under 500 (`httpRequests1dGroups`, unsampled), or Traefik's view of the same sites when that query returns nothing. Infinity's macros take no offset, so the first day comes from the hidden variable `edge_since` |
-| Apps, Edge | The app's hosts at the edge: requests, cache hits, 5xx and top countries. The hidden variable `edge` gives the app's zone and its public hosts, and repeats the row: an app behind WARP has none, and no row |
+| Apps, Edge | The app's hosts at the edge: requests, cache hits, 5xx and top countries. The hidden variable `edge` gives the app's zone and its public hosts, and repeats the row. An app behind WARP has none, but Grafana still draws a repeat over an empty variable once: its row, titled Edge alone by the hidden variable `edge_title`, holds one line that says it is reached over WARP only |
 | Cloudflare | The cards, then requests by zone and by status class, countries and WAF events, every zone; the tunnels from Prometheus |
 
 Past 96 hours, a point of a chart is the hourly mean of several hours, so a
