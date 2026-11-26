@@ -72,9 +72,16 @@ README, Writing or rotating a secret][vault-write] says:
 | Vault | Keys | Read by |
 |---|---|---|
 | `platform/grafana/admin` | `admin_user`, `admin_password` | Grafana, through the Secret `grafana-admin` |
+| `platform/grafana/github-oauth` | `client_id`, `client_secret` | Grafana, through the Secret `grafana-github-oauth` and the variables `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`, which `auth.github` expands |
 | `platform/grafana/cloudflare` | `api_token` | Grafana, through the Secret `cloudflare-api` and the variable `CLOUDFLARE_API_TOKEN`, which the data source `cloudflare` expands (Cloudflare, below) |
 
-Until it is written, Grafana's pod waits for the Secret and the rest runs.
+Members of the GitHub organization `0xc0-labs` sign in with GitHub
+(`auth.github`, callback `https://grafana.int.0xc0.cc/login/github`): the team
+`admins` is `Admin`, everyone else `Viewer`. The role is mapped from the team
+on every login, since Grafana's database does not outlive its pod. The local
+admin login stays as break-glass.
+
+Until the admin secret is written, Grafana's pod waits for the Secret and the rest runs.
 Vault Secrets Operator restarts Grafana when the secret changes. Dashboards
 and data sources come from git: an edit made in the UI is lost on a restart.
 

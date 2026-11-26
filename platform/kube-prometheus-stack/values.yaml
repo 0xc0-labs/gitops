@@ -121,6 +121,14 @@ grafana:
       secretKeyRef:
         name: cloudflare-api
         key: api_token
+    GITHUB_CLIENT_ID:
+      secretKeyRef:
+        name: grafana-github-oauth
+        key: client_id
+    GITHUB_CLIENT_SECRET:
+      secretKeyRef:
+        name: grafana-github-oauth
+        key: client_secret
   defaultDashboardsEnabled: true
   # Home is not loaded by the sidecar: Grafana's home dashboard is a file path,
   # and the sidecar's folders are not a stable one. Its ConfigMap
@@ -188,6 +196,17 @@ grafana:
     server:
       domain: grafana.int.0xc0.cc
       root_url: https://grafana.int.0xc0.cc
+    # The database does not outlive the pod, so every login creates the user
+    # again: the role comes from the team on each one, never from a grant made
+    # by hand.
+    auth.github:
+      enabled: true
+      client_id: $__env{GITHUB_CLIENT_ID}
+      client_secret: $__env{GITHUB_CLIENT_SECRET}
+      scopes: user:email,read:org
+      allow_sign_up: true
+      allowed_organizations: 0xc0-labs
+      role_attribute_path: contains(groups[*], '@0xc0-labs/admins') && 'Admin' || 'Viewer'
     dashboards:
       default_home_dashboard_path: /var/lib/grafana/dashboards/home/home.json
     analytics:
