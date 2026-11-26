@@ -1,0 +1,778 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "name": "Argo CD syncs",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "enable": false,
+        "hide": false,
+        "iconColor": "#7DD3FC",
+        "expr": "sum by (name) (argocd_app_sync_total{phase=\"Succeeded\"}) - sum by (name) (argocd_app_sync_total{phase=\"Succeeded\"} offset 1m) > 0",
+        "step": "60s",
+        "titleFormat": "sync {{name}}",
+        "textFormat": "Argo CD synced {{name}}",
+        "tagKeys": "name",
+        "useValueForTime": false
+      },
+      {
+        "name": "Releases",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "enable": false,
+        "hide": false,
+        "iconColor": "#34D399",
+        "expr": "label_replace((min_over_time(timestamp(count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}))[15m:1m]) * 1000) and (count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"}) unless count by (namespace, image_spec) (kube_pod_container_info{namespace=~\"offby1-cc|artistlabco-com|artistlabco-com-staging|mautic-artistlabco-com|plane|matchmark\", image_spec=~\"ghcr.io/0xc0-labs/.*\"} offset 10m)), \"version\", \"$1\", \"image_spec\", \"[^@]*:([^@:]+)(@.*)?\")",
+        "step": "60s",
+        "titleFormat": "{{namespace}} {{version}}",
+        "textFormat": "{{image_spec}}",
+        "tagKeys": "namespace,version",
+        "useValueForTime": true
+      }
+    ]
+  },
+  "description": "Whether every workload is sized right: what it asks for against what it used over the range, per workload, namespace and pool.",
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [
+    {
+      "title": "Estate",
+      "type": "link",
+      "url": "/d/home",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Apps",
+      "type": "link",
+      "url": "/d/apps",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Matchmark",
+      "type": "link",
+      "url": "/d/matchmark",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Web vitals",
+      "type": "link",
+      "url": "/d/applications-rum",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Traces",
+      "type": "link",
+      "url": "/d/traces-overall",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false,
+      "tags": [],
+      "tooltip": ""
+    },
+    {
+      "title": "Platform",
+      "type": "dashboards",
+      "tags": [
+        "platform"
+      ],
+      "asDropdown": true,
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    }
+  ],
+  "panels": [
+    {
+      "type": "volkovlabs-echarts-panel",
+      "title": "",
+      "description": "Requests against use, over the range. CPU idle: requested minus used at p95, per container, times its pods; memory idle likewise with the range's maximum. Workloads: one dot each, by state. OOM kills: restarts of a container whose last termination was OOMKilled. Based on: how much of the range Prometheus holds. States: idle uses under 30 % of its request, fits 30 to 100 %, short more than its request, near limit a container's memory maximum over 80 % of its limit (it wins over the others), unset asks for nothing. A workload is a Deployment, StatefulSet or DaemonSet (kube_pod_owner, and kube_replicaset_owner for a Deployment); per pod, its containers are summed, each at its largest across the pods. Jobs, CronJobs and static pods are left out.",
+      "transparent": true,
+      "id": 1,
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        },
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst COL = { idle: '#60A5FA', fits: '#34D399', short: '#FBBF24', near: '#FB7185', unset: '#8D99AB' };\nconst FILL = { idle: 'rgba(96,165,250,.28)', fits: 'rgba(52,211,153,.28)', short: 'rgba(251,191,36,.30)', near: 'rgba(251,113,133,.32)', unset: 'rgba(141,153,171,.25)' };\nconst WORD = { idle: 'idle', fits: 'fits', short: 'short', near: 'near limit', unset: 'unset' };\nconst MIB = 2 ** 20;\nconst GIB = 2 ** 30;\nconst num = (x) => (x === null || x === undefined || !Number.isFinite(Number(x)) ? null : Number(x));\nconst rows = {};\nconst ts = {};\nfor (const f of context.panel.data.series || []) {\n  const vf = f.fields.find((x) => x.type === 'number');\n  if (!vf) continue;\n  const qf = f.fields.find((x) => x.name === 'q');\n  if (qf) {\n    const keys = f.fields.filter((x) => x.type !== 'number' && x.type !== 'time');\n    for (let i = 0; i < vf.values.length; i++) {\n      const r = { value: num(vf.values[i]) };\n      keys.forEach((k) => { r[k.name] = k.values[i]; });\n      (rows[r.q] = rows[r.q] || []).push(r);\n    }\n  } else if (vf.labels && vf.labels.q) {\n    const t = f.fields.find((x) => x.type === 'time');\n    if (!t) continue;\n    (ts[vf.labels.q] = ts[vf.labels.q] || []).push({ labels: vf.labels,\n      points: t.values.map((x, i) => [x, num(vf.values[i])]) });\n  }\n}\nconst range = context.panel.data.timeRange;\nconst rangeSec = range ? (range.to.valueOf() - range.from.valueOf()) / 1000 : 0;\nconst days = (s) => (s >= 86400 ? String(+(s / 86400).toFixed(s >= 10 * 86400 ? 0 : 1)) + ' d' : Math.round(s / 3600) + ' h');\nconst coveredSec = (() => {\n  const c = (rows.covered || []).map((r) => r.value).filter((v) => v !== null);\n  return c.length ? Math.min(rangeSec, Math.max(...c)) : null;\n})();\nconst cores = (v) => (v === null ? '—' : v >= 1 ? v.toFixed(v >= 10 ? 1 : 2) + ' cores' : Math.round(v * 1000) + 'm');\nconst bytes = (v) => (v === null ? '—' : v >= GIB ? (v / GIB).toFixed(1) + ' GiB' : Math.round(v / MIB) + ' MiB');\nconst up = (v, step) => Math.max(step, Math.ceil(v / step) * step);\nconst k8sCpu = (v) => Math.round(up(v, 0.01) * 1000) + 'm';\nconst k8sMem = (v) => Math.round(up(v, 16 * MIB) / MIB) + 'Mi';\nconst key = (r) => r.namespace + '|' + r.workload + '|' + r.kind;\nconst W = {};\n(rows.info || []).forEach((r) => {\n  const k = key(r);\n  const w = W[k] || (W[k] = { key: k, ns: r.namespace, name: r.workload, kind: r.kind, replicas: 0, c: {} });\n  w.c[r.container] = {};\n});\n(rows.replicas || []).forEach((r) => { if (W[key(r)]) W[key(r)].replicas = r.value || 0; });\n['cpu_req', 'cpu_lim', 'mem_req', 'mem_lim', 'cpu_p95', 'mem_max', 'mem_p95', 'throttle'].forEach((q) =>\n  (rows[q] || []).forEach((r) => { const w = W[key(r)]; if (w && w.c[r.container]) w.c[r.container][q] = r.value; }));\nconst stateOf = (req, used) => (req === null ? 'unset' : used === null ? null : used > req ? 'short' : used < 0.3 * req ? 'idle' : 'fits');\nconst pair = (w, reqF, usedF) => {\n  let req = 0, used = 0, any = false, seen = false;\n  for (const c of Object.values(w.c)) {\n    if (c[usedF] !== null && c[usedF] !== undefined) seen = true;\n    if (!(c[reqF] > 0)) continue;\n    any = true;\n    req += c[reqF];\n    used += c[usedF] || 0;\n  }\n  return { req: any ? req : null, used: any ? used : seen ? 0 : null };\n};\nconst workloads = Object.values(W).filter((w) => w.replicas > 0).map((w) => {\n  w.cpu = pair(w, 'cpu_req', 'cpu_p95');\n  w.mem = pair(w, 'mem_req', 'mem_max');\n  w.near = Object.values(w.c).some((c) => c.mem_lim > 0 && c.mem_max !== null && c.mem_max !== undefined && c.mem_max > 0.8 * c.mem_lim);\n  w.cpuState = stateOf(w.cpu.req, w.cpu.req === null ? 0 : w.cpu.used);\n  w.memState = w.near ? 'near' : stateOf(w.mem.req, w.mem.req === null ? 0 : w.mem.used);\n  const asked = [w.cpuState, w.memState].filter((s) => s && s !== 'unset');\n  w.state = w.near ? 'near' : asked.includes('short') ? 'short' : !asked.length ? 'unset'\n    : asked.every((s) => s === 'idle') ? 'idle' : 'fits';\n  w.label = w.name + (w.replicas > 1 ? ' ×' + w.replicas : '');\n  w.full = (w.ns === w.name ? w.name : w.ns + ' · ' + w.name);\n  return w;\n});\nconst suggest = (c) => {\n  const out = [];\n  if (c.cpu_p95 !== null && c.cpu_p95 !== undefined) out.push('cpu request ' + k8sCpu(c.cpu_p95 * 1.2));\n  if (c.mem_p95 !== null && c.mem_p95 !== undefined) out.push('memory request ' + k8sMem(c.mem_p95 * 1.2));\n  if (c.mem_max !== null && c.mem_max !== undefined) out.push('memory limit ' + k8sMem(c.mem_max * 1.5));\n  return out;\n};\nconst pct = (a, b) => (b > 0 && a !== null ? Math.round((100 * a) / b) + ' %' : '—');\nconst empty = (text) => ({ backgroundColor: 'transparent', title: { text, left: 'center', top: 'middle',\n  textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } });\nconst chart = context.panel.chart;\nconst CW = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst CH = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\n\nlet cpuR = 0, cpuU = 0, memR = 0, memU = 0;\nfor (const w of workloads) {\n  for (const c of Object.values(w.c)) {\n    if (c.cpu_req > 0 && c.cpu_p95 !== null && c.cpu_p95 !== undefined) { cpuR += c.cpu_req * w.replicas; cpuU += Math.min(c.cpu_p95, c.cpu_req) * w.replicas; }\n    if (c.mem_req > 0 && c.mem_max !== null && c.mem_max !== undefined) { memR += c.mem_req * w.replicas; memU += Math.min(c.mem_max, c.mem_req) * w.replicas; }\n  }\n}\nconst ORDER = ['idle', 'fits', 'short', 'near', 'unset'];\nconst counts = {};\nORDER.forEach((s) => { counts[s] = workloads.filter((w) => w.state === s).length; });\nconst ooms = (rows.oom_count || []).filter((r) => r.value > 0);\nconst oomTotal = Math.round(ooms.reduce((s, r) => s + r.value, 0));\nconst lastOom = (rows.oom_last || []).filter((r) => r.value !== null).sort((a, b) => b.value - a.value)[0];\nconst podName = (p) => String(p).replace(/-[a-z0-9]{6,10}-[a-z0-9]{5}$/, '').replace(/-[a-z0-9]{5}$/, '').replace(/-\\d+$/, '');\nconst when = (s) => new Date(s * 1000).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });\nconst span = days(rangeSec);\nconst partial = coveredSec !== null && coveredSec < 0.95 * rangeSec;\nconst cards = [\n  { label: 'CPU reserved, idle', weight: 1, value: cpuR ? cores(cpuR - cpuU).split(' ') : null, bar: cpuR ? cpuU / cpuR : null,\n    sub: cpuR ? 'in use ' + cores(cpuU) + ' of ' + cores(cpuR) + ' asked' : 'no request reported' },\n  { label: 'Memory reserved, idle', weight: 1, value: memR ? bytes(memR - memU).split(' ') : null, bar: memR ? memU / memR : null,\n    sub: memR ? 'in use ' + bytes(memU) + ' of ' + bytes(memR) + ' asked' : 'no request reported' },\n  { label: 'Workloads · ' + workloads.length, weight: 1.7, dots: true },\n  { label: 'OOM kills · ' + span, weight: 1, value: [String(oomTotal), ''], colour: oomTotal > 0 ? '#FB7185' : '#34D399',\n    sub: lastOom ? 'last ' + podName(lastOom.pod) + (podName(lastOom.pod) === lastOom.container ? '' : ' · ' + lastOom.container) + ' · ' + when(lastOom.value) : 'none in ' + span },\n  { label: 'Based on', weight: 0.9, value: coveredSec === null ? null : days(coveredSec).split(' '), colour: partial ? '#FBBF24' : '#E7ECF3',\n    sub: coveredSec === null ? 'no history' : partial ? 'of ' + span + ' asked: history starts later' : 'the whole range' },\n];\nconst gap = 12;\nconst totalW = cards.reduce((s, c) => s + c.weight, 0);\nconst free = CW - gap * (cards.length - 1);\nconst graphic = [];\nlet x = 0;\ncards.forEach((c) => {\n  const cw = CW ? (free * c.weight) / totalW : 0;\n  const fit = { width: Math.max(10, cw - 32), overflow: 'truncate', ellipsis: '…' };\n  graphic.push({ type: 'rect', left: x, top: 0, z: -1, silent: true,\n    shape: { width: cw, height: CH - 1, r: 14 }, style: { fill: '#10151C', stroke: '#1F2733', lineWidth: 1 } });\n  graphic.push({ type: 'text', left: x + 16, top: 12, silent: true,\n    style: Object.assign({ text: c.label.toUpperCase(), fill: '#8D99AB', font: '600 11px Inter, sans-serif' }, fit) });\n  if (c.dots) {\n    const list = ORDER.flatMap((s) => workloads.filter((w) => w.state === s));\n    let size = 10;\n    const fits = (s) => Math.ceil(list.length / Math.max(1, Math.floor((cw - 32 + 3) / (s + 3)))) * (s + 3) <= 36;\n    while (size > 4 && !fits(size)) size--;\n    const per = Math.max(1, Math.floor((cw - 32 + 3) / (size + 3)));\n    list.forEach((w, i) => {\n      graphic.push({ type: 'circle', left: x + 16 + (i % per) * (size + 3), top: 32 + Math.floor(i / per) * (size + 3),\n        shape: { r: size / 2 }, style: { fill: COL[w.state] }, info: w.full });\n    });\n    const parts = ORDER.filter((s) => counts[s]).map((s) => '{' + s + '|' + counts[s] + ' ' + (s === 'near' ? 'near limit' : s === 'fits' ? 'fit' : s) + '}');\n    const rich = {};\n    ORDER.forEach((s) => { rich[s] = { fill: COL[s], font: '12px ' + MONO }; });\n    graphic.push({ type: 'text', left: x + 16, top: 72, silent: true,\n      style: Object.assign({ text: parts.join('{sep| · }') || '{unset|no workload}', rich: Object.assign(rich, { sep: { fill: '#8D99AB', font: '12px ' + MONO } }) }, fit) });\n  } else {\n    const v = c.value;\n    const colour = v === null ? '#8D99AB' : c.colour || '#E7ECF3';\n    graphic.push({ type: 'text', left: x + 16, top: 26, silent: true,\n      style: { text: '{v|' + (v ? v[0] : '—') + '}' + (v && v[1] ? '{u| ' + v[1] + '}' : ''),\n        rich: { v: { fill: colour, font: '600 30px ' + MONO }, u: { fill: '#8D99AB', font: '13px ' + MONO, padding: [12, 0, 0, 4] } } } });\n    if (c.bar !== null && c.bar !== undefined) {\n      const bw = cw - 32;\n      graphic.push({ type: 'rect', left: x + 16, top: 61, silent: true, shape: { width: bw, height: 7, r: 4 }, style: { fill: 'rgba(96,165,250,.55)' } });\n      graphic.push({ type: 'rect', left: x + 16, top: 61, silent: true, shape: { width: Math.max(0, Math.min(1, c.bar)) * bw, height: 7, r: 4 }, style: { fill: '#34D399' } });\n    }\n    graphic.push({ type: 'text', left: x + 16, top: 74, silent: true,\n      style: Object.assign({ text: c.sub, fill: '#8D99AB', font: '12px ' + MONO }, fit) });\n  }\n  x += cw + gap;\n});\nreturn { backgroundColor: 'transparent', animation: false, graphic };\n"
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "A",
+          "expr": "label_replace(max by (namespace, workload, kind, container) (max by (namespace, pod, container) (kube_pod_container_info{container!=\"\"}) * on (namespace, pod) group_left (workload, kind) max by (namespace, pod, workload, kind) (label_replace(label_replace(max_over_time(kube_pod_owner{owner_kind=~\"StatefulSet|DaemonSet\"}[$__range]), \"workload\", \"$1\", \"owner_name\", \"(.+)\"), \"kind\", \"$1\", \"owner_kind\", \"(.+)\") or label_replace(max_over_time(kube_pod_owner{owner_kind=\"ReplicaSet\"}[$__range]), \"replicaset\", \"$1\", \"owner_name\", \"(.+)\") * on (namespace, replicaset) group_left (workload, kind) label_replace(label_replace(max by (namespace, replicaset, owner_kind, owner_name) (max_over_time(kube_replicaset_owner{owner_kind=\"Deployment\"}[$__range])), \"workload\", \"$1\", \"owner_name\", \"(.+)\"), \"kind\", \"$1\", \"owner_kind\", \"(.+)\"))), \"q\", \"info\", \"\", \"\")",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table",
+          "legendFormat": "__auto"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "B",
+          "expr": "label_replace(count by (namespace, workload, kind) (max by (namespace, pod) (kube_pod_status_phase{phase=\"Running\"} == 1) * on (namespace, pod) group_left (workload, kind) max by (namespace, pod, workload, kind) (label_replace(label_replace(max_over_time(kube_pod_owner{owner_kind=~\"StatefulSet|DaemonSet\"}[$__range]), \"workload\", \"$1\", \"owner_name\", \"(.+)\"), \"kind\", \"$1\", \"owner_kind\", \"(.+)\") or label_replace(max_over_time(kube_pod_owner{owner_kind=\"ReplicaSet\"}[$__range]), \"replicaset\", \"$1\", \"owner_name\", \"(.+)\") * on (namespace, replicaset) group_left (workload, kind) label_replace(label_replace(max by (namespace, replicaset, owner_kind, owner_name) (max_over_time(kube_replicaset_owner{owner_kind=\"Deployment\"}[$__range])), \"workload\", \"$1\", \"owner_name\", \"(.+)\"), \"kind\", \"$1\", \"owner_kind\", \"(.+)\"))), \"q\", \"replicas\", \"\", \"\")",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table",
+          "legendFormat": "__auto"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "C",
+          "expr": "label_replace(max by (namespace, workload, kind, container) (max by (namespace, pod, container) (kube_pod_container_resource_requests{resource=\"cpu\"}) * on (namespace, pod) group_left (workload, kind) max by (namespace, pod, workload, kind) (label_replace(label_replace(max_over_time(kube_pod_owner{owner_kind=~\"StatefulSet|DaemonSet\"}[$__range]), \"workload\", \"$1\", \"owner_name\", \"(.+)\"), \"kind\", \"$1\", \"owner_kind\", \"(.+)\") or label_replace(max_over_time(kube_pod_owner{owner_kind=\"ReplicaSet\"}[$__range]), \"replicaset\", \"$1\", \"owner_name\", \"(.+)\") * on (namespace, replicaset) group_left (workload, kind) label_replace(label_replace(max by (namespace, replicaset, owner_kind, owner_name) (max_over_time(kube_replicaset_owner{owner_kind=\"Deployment\"}[$__range])), \"workload\", \"$1\", \"owner_name\", \"(.+)\"), \"kind\", \"$1\", \"owner_kind\", \"(.+)\"))), \"q\", \"cpu_req\", \"\", \"\")",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table",
+          "legendFormat": "__auto"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "D",
+          "expr": "label_replace(max by (namespace, workload, kind, container) (max by (namespace, pod, container) (kube_pod_container_resource_limits{resource=\"cpu\"}) * on (namespace, pod) group_left (workload, kind) max by (namespace, pod, workload, kind) (label_replace(label_replace(max_over_time(kube_pod_owner{owner_kind=~\"StatefulSet|DaemonSet\"}[$__range]), \"workload\", \"$1\", \"owner_name\", \"(.+)\"), \"kind\", \"$1\", \"owner_kind\", \"(.+)\") or label_replace(max_over_time(kube_pod_owner{owner_kind=\"ReplicaSet\"}[$__range]), \"replicaset\", \"$1\", \"owner_name\", \"(.+)\") * on (namespace, replicaset) group_left (workload, kind) label_replace(label_replace(max by (namespace, replicaset, owner_kind, owner_name) (max_over_time(kube_replicaset_owner{owner_kind=\"Deployment\"}[$__range])), \"workload\", \"$1\", \"owner_name\", \"(.+)\"), \"kind\", \"$1\", \"owner_kind\", \"(.+)\"))), \"q\", \"cpu_lim\", \"\", \"\")",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table",
+          "legendFormat": "__auto"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "E",
+          "expr": "label_replace(max by (namespace, workload, kind, container) (max by (namespace, pod, container) (kube_pod_container_resource_requests{resource=\"memory\"}) * on (namespace, pod) group_left (workload, kind) max by (namespace, pod, workload, kind) (label_replace(label_replace(max_over_time(kube_pod_owner{owner_kind=~\"StatefulSet|DaemonSet\"}[$__range]), \"workload\", \"$1\", \"owner_name\", \"(.+)\"), \"kind\", \"$1\", \"owner_kind\", \"(.+)\") or label_replace(max_over_time(kube_pod_owner{owner_kind=\"ReplicaSet\"}[$__range]), \"replicaset\", \"$1\", \"owner_name\", \"(.+)\") * on (namespace, replicaset) group_left (workload, kind) label_replace(label_replace(max by (namespace, replicaset, owner_kind, owner_name) (max_over_time(kube_replicaset_owner{owner_kind=\"Deployment\"}[$__range])), \"workload\", \"$1\", \"owner_name\", \"(.+)\"), \"kind\", \"$1\", \"owner_kind\", \"(.+)\"))), \"q\", \"mem_req\", \"\", \"\")",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table",
+          "legendFormat": "__auto"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "F",
+          "expr": "label_replace(max by (namespace, workload, kind, container) (max by (namespace, pod, container) (kube_pod_container_resource_limits{resource=\"memory\"}) * on (namespace, pod) group_left (workload, kind) max by (namespace, pod, workload, kind) (label_replace(label_replace(max_over_time(kube_pod_owner{owner_kind=~\"StatefulSet|DaemonSet\"}[$__range]), \"workload\", \"$1\", \"owner_name\", \"(.+)\"), \"kind\", \"$1\", \"owner_kind\", \"(.+)\") or label_replace(max_over_time(kube_pod_owner{owner_kind=\"ReplicaSet\"}[$__range]), \"replicaset\", \"$1\", \"owner_name\", \"(.+)\") * on (namespace, replicaset) group_left (workload, kind) label_replace(label_replace(max by (namespace, replicaset, owner_kind, owner_name) (max_over_time(kube_replicaset_owner{owner_kind=\"Deployment\"}[$__range])), \"workload\", \"$1\", \"owner_name\", \"(.+)\"), \"kind\", \"$1\", \"owner_kind\", \"(.+)\"))), \"q\", \"mem_lim\", \"\", \"\")",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table",
+          "legendFormat": "__auto"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "G",
+          "expr": "label_replace(max by (namespace, workload, kind, container) (quantile_over_time(0.95, sum by (namespace, pod, container) (rate(container_cpu_usage_seconds_total{container!=\"\", image!=\"\"}[5m]))[$__range:5m]) * on (namespace, pod) group_left (workload, kind) max by (namespace, pod, workload, kind) (label_replace(label_replace(max_over_time(kube_pod_owner{owner_kind=~\"StatefulSet|DaemonSet\"}[$__range]), \"workload\", \"$1\", \"owner_name\", \"(.+)\"), \"kind\", \"$1\", \"owner_kind\", \"(.+)\") or label_replace(max_over_time(kube_pod_owner{owner_kind=\"ReplicaSet\"}[$__range]), \"replicaset\", \"$1\", \"owner_name\", \"(.+)\") * on (namespace, replicaset) group_left (workload, kind) label_replace(label_replace(max by (namespace, replicaset, owner_kind, owner_name) (max_over_time(kube_replicaset_owner{owner_kind=\"Deployment\"}[$__range])), \"workload\", \"$1\", \"owner_name\", \"(.+)\"), \"kind\", \"$1\", \"owner_kind\", \"(.+)\"))), \"q\", \"cpu_p95\", \"\", \"\")",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table",
+          "legendFormat": "__auto"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "H",
+          "expr": "label_replace(max by (namespace, workload, kind, container) (max by (namespace, pod, container) (max_over_time(container_memory_working_set_bytes{container!=\"\", image!=\"\"}[$__range])) * on (namespace, pod) group_left (workload, kind) max by (namespace, pod, workload, kind) (label_replace(label_replace(max_over_time(kube_pod_owner{owner_kind=~\"StatefulSet|DaemonSet\"}[$__range]), \"workload\", \"$1\", \"owner_name\", \"(.+)\"), \"kind\", \"$1\", \"owner_kind\", \"(.+)\") or label_replace(max_over_time(kube_pod_owner{owner_kind=\"ReplicaSet\"}[$__range]), \"replicaset\", \"$1\", \"owner_name\", \"(.+)\") * on (namespace, replicaset) group_left (workload, kind) label_replace(label_replace(max by (namespace, replicaset, owner_kind, owner_name) (max_over_time(kube_replicaset_owner{owner_kind=\"Deployment\"}[$__range])), \"workload\", \"$1\", \"owner_name\", \"(.+)\"), \"kind\", \"$1\", \"owner_kind\", \"(.+)\"))), \"q\", \"mem_max\", \"\", \"\")",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table",
+          "legendFormat": "__auto"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "I",
+          "expr": "label_replace(max by (namespace, workload, kind, container) (max by (namespace, pod, container) (quantile_over_time(0.95, container_memory_working_set_bytes{container!=\"\", image!=\"\"}[$__range])) * on (namespace, pod) group_left (workload, kind) max by (namespace, pod, workload, kind) (label_replace(label_replace(max_over_time(kube_pod_owner{owner_kind=~\"StatefulSet|DaemonSet\"}[$__range]), \"workload\", \"$1\", \"owner_name\", \"(.+)\"), \"kind\", \"$1\", \"owner_kind\", \"(.+)\") or label_replace(max_over_time(kube_pod_owner{owner_kind=\"ReplicaSet\"}[$__range]), \"replicaset\", \"$1\", \"owner_name\", \"(.+)\") * on (namespace, replicaset) group_left (workload, kind) label_replace(label_replace(max by (namespace, replicaset, owner_kind, owner_name) (max_over_time(kube_replicaset_owner{owner_kind=\"Deployment\"}[$__range])), \"workload\", \"$1\", \"owner_name\", \"(.+)\"), \"kind\", \"$1\", \"owner_kind\", \"(.+)\"))), \"q\", \"mem_p95\", \"\", \"\")",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table",
+          "legendFormat": "__auto"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "J",
+          "expr": "label_replace(max by (namespace, workload, kind, container) (sum by (namespace, pod, container) (increase(container_cpu_cfs_throttled_periods_total{container!=\"\"}[$__range])) / sum by (namespace, pod, container) (increase(container_cpu_cfs_periods_total{container!=\"\"}[$__range])) * on (namespace, pod) group_left (workload, kind) max by (namespace, pod, workload, kind) (label_replace(label_replace(max_over_time(kube_pod_owner{owner_kind=~\"StatefulSet|DaemonSet\"}[$__range]), \"workload\", \"$1\", \"owner_name\", \"(.+)\"), \"kind\", \"$1\", \"owner_kind\", \"(.+)\") or label_replace(max_over_time(kube_pod_owner{owner_kind=\"ReplicaSet\"}[$__range]), \"replicaset\", \"$1\", \"owner_name\", \"(.+)\") * on (namespace, replicaset) group_left (workload, kind) label_replace(label_replace(max by (namespace, replicaset, owner_kind, owner_name) (max_over_time(kube_replicaset_owner{owner_kind=\"Deployment\"}[$__range])), \"workload\", \"$1\", \"owner_name\", \"(.+)\"), \"kind\", \"$1\", \"owner_kind\", \"(.+)\"))), \"q\", \"throttle\", \"\", \"\")",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table",
+          "legendFormat": "__auto"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "K",
+          "expr": "label_replace(max by (node, resource, label_0xc0_cc_pool) (kube_node_status_capacity{resource=~\"cpu|memory\"} * on (node) group_left (label_0xc0_cc_pool) max by (node, label_0xc0_cc_pool) (kube_node_labels)), \"q\", \"node_capacity\", \"\", \"\")",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table",
+          "legendFormat": "__auto"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "L",
+          "expr": "label_replace(max by (node, resource, label_0xc0_cc_pool) (kube_node_status_allocatable{resource=~\"cpu|memory\"} * on (node) group_left (label_0xc0_cc_pool) max by (node, label_0xc0_cc_pool) (kube_node_labels)), \"q\", \"node_allocatable\", \"\", \"\")",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table",
+          "legendFormat": "__auto"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "M",
+          "expr": "label_replace(sum by (label_0xc0_cc_pool, resource) (kube_pod_container_resource_requests{resource=~\"cpu|memory\"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=~\"Running|Pending\"} == 1) * on (node) group_left (label_0xc0_cc_pool) max by (node, label_0xc0_cc_pool) (kube_node_labels)), \"q\", \"pool_req\", \"\", \"\")",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table",
+          "legendFormat": "__auto"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "N",
+          "expr": "label_replace(quantile_over_time(0.95, sum by (label_0xc0_cc_pool) (sum by (namespace, pod) (rate(container_cpu_usage_seconds_total{container!=\"\", image!=\"\"}[5m])) * on (namespace, pod) group_left (node) max by (namespace, pod, node) (kube_pod_info{node!=\"\"}) * on (node) group_left (label_0xc0_cc_pool) max by (node, label_0xc0_cc_pool) (kube_node_labels))[$__range:5m]), \"q\", \"pool_cpu_p95\", \"\", \"\")",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table",
+          "legendFormat": "__auto"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "O",
+          "expr": "label_replace(quantile_over_time(0.95, sum by (label_0xc0_cc_pool) (sum by (namespace, pod) (container_memory_working_set_bytes{container!=\"\", image!=\"\"}) * on (namespace, pod) group_left (node) max by (namespace, pod, node) (kube_pod_info{node!=\"\"}) * on (node) group_left (label_0xc0_cc_pool) max by (node, label_0xc0_cc_pool) (kube_node_labels))[$__range:5m]), \"q\", \"pool_mem_p95\", \"\", \"\")",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table",
+          "legendFormat": "__auto"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "P",
+          "expr": "label_replace(sum by (namespace, pod, container) (sum_over_time((changes(kube_pod_container_status_restarts_total[5m]) > 0 and on (namespace, pod, container) max by (namespace, pod, container) (kube_pod_container_status_last_terminated_reason{reason=\"OOMKilled\"}) == 1)[$__range:5m])), \"q\", \"oom_count\", \"\", \"\")",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table",
+          "legendFormat": "__auto"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "Q",
+          "expr": "label_replace(max by (namespace, pod, container) (max_over_time(timestamp(changes(kube_pod_container_status_restarts_total[5m]) > 0 and on (namespace, pod, container) max by (namespace, pod, container) (kube_pod_container_status_last_terminated_reason{reason=\"OOMKilled\"}) == 1)[$__range:5m])), \"q\", \"oom_last\", \"\", \"\")",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table",
+          "legendFormat": "__auto"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "R",
+          "expr": "label_replace(time() - min_over_time(timestamp(sum(up{job=\"kube-state-metrics\"}))[$__range:10m]), \"q\", \"covered\", \"\", \"\")",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table",
+          "legendFormat": "__auto"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "S",
+          "expr": "label_replace(max by (namespace, workload, kind, container) (max_over_time(container_memory_working_set_bytes{container!=\"\", image!=\"\"}[$__interval]) * on (namespace, pod) group_left (workload, kind) max by (namespace, pod, workload, kind) (label_replace(label_replace(max_over_time(kube_pod_owner{owner_kind=~\"StatefulSet|DaemonSet\"}[$__interval]), \"workload\", \"$1\", \"owner_name\", \"(.+)\"), \"kind\", \"$1\", \"owner_kind\", \"(.+)\") or label_replace(max_over_time(kube_pod_owner{owner_kind=\"ReplicaSet\"}[$__interval]), \"replicaset\", \"$1\", \"owner_name\", \"(.+)\") * on (namespace, replicaset) group_left (workload, kind) label_replace(label_replace(max by (namespace, replicaset, owner_kind, owner_name) (max_over_time(kube_replicaset_owner{owner_kind=\"Deployment\"}[$__interval])), \"workload\", \"$1\", \"owner_name\", \"(.+)\"), \"kind\", \"$1\", \"owner_kind\", \"(.+)\"))), \"q\", \"mem_ts\", \"\", \"\")",
+          "editorMode": "code",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "legendFormat": "__auto"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "T",
+          "expr": "label_replace(max by (namespace, workload, kind, container) (quantile_over_time(0.95, sum by (namespace, pod, container) (rate(container_cpu_usage_seconds_total{container!=\"\", image!=\"\"}[5m]))[$__interval:5m]) * on (namespace, pod) group_left (workload, kind) max by (namespace, pod, workload, kind) (label_replace(label_replace(max_over_time(kube_pod_owner{owner_kind=~\"StatefulSet|DaemonSet\"}[$__interval]), \"workload\", \"$1\", \"owner_name\", \"(.+)\"), \"kind\", \"$1\", \"owner_kind\", \"(.+)\") or label_replace(max_over_time(kube_pod_owner{owner_kind=\"ReplicaSet\"}[$__interval]), \"replicaset\", \"$1\", \"owner_name\", \"(.+)\") * on (namespace, replicaset) group_left (workload, kind) label_replace(label_replace(max by (namespace, replicaset, owner_kind, owner_name) (max_over_time(kube_replicaset_owner{owner_kind=\"Deployment\"}[$__interval])), \"workload\", \"$1\", \"owner_name\", \"(.+)\"), \"kind\", \"$1\", \"owner_kind\", \"(.+)\"))), \"q\", \"cpu_ts\", \"\", \"\")",
+          "editorMode": "code",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "legendFormat": "__auto"
+        }
+      ],
+      "maxDataPoints": 100,
+      "interval": "5m"
+    },
+    {
+      "type": "volkovlabs-echarts-panel",
+      "title": "Pools",
+      "description": "Per pool (0xc0.cc/pool): the track is what its nodes can allocate, the light bar what running and pending pods ask for (Jobs and static pods included), the solid bar what every container used together, at the 95th percentile over the range.",
+      "transparent": true,
+      "id": 2,
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 3
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        },
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst COL = { idle: '#60A5FA', fits: '#34D399', short: '#FBBF24', near: '#FB7185', unset: '#8D99AB' };\nconst FILL = { idle: 'rgba(96,165,250,.28)', fits: 'rgba(52,211,153,.28)', short: 'rgba(251,191,36,.30)', near: 'rgba(251,113,133,.32)', unset: 'rgba(141,153,171,.25)' };\nconst WORD = { idle: 'idle', fits: 'fits', short: 'short', near: 'near limit', unset: 'unset' };\nconst MIB = 2 ** 20;\nconst GIB = 2 ** 30;\nconst num = (x) => (x === null || x === undefined || !Number.isFinite(Number(x)) ? null : Number(x));\nconst rows = {};\nconst ts = {};\nfor (const f of context.panel.data.series || []) {\n  const vf = f.fields.find((x) => x.type === 'number');\n  if (!vf) continue;\n  const qf = f.fields.find((x) => x.name === 'q');\n  if (qf) {\n    const keys = f.fields.filter((x) => x.type !== 'number' && x.type !== 'time');\n    for (let i = 0; i < vf.values.length; i++) {\n      const r = { value: num(vf.values[i]) };\n      keys.forEach((k) => { r[k.name] = k.values[i]; });\n      (rows[r.q] = rows[r.q] || []).push(r);\n    }\n  } else if (vf.labels && vf.labels.q) {\n    const t = f.fields.find((x) => x.type === 'time');\n    if (!t) continue;\n    (ts[vf.labels.q] = ts[vf.labels.q] || []).push({ labels: vf.labels,\n      points: t.values.map((x, i) => [x, num(vf.values[i])]) });\n  }\n}\nconst range = context.panel.data.timeRange;\nconst rangeSec = range ? (range.to.valueOf() - range.from.valueOf()) / 1000 : 0;\nconst days = (s) => (s >= 86400 ? String(+(s / 86400).toFixed(s >= 10 * 86400 ? 0 : 1)) + ' d' : Math.round(s / 3600) + ' h');\nconst coveredSec = (() => {\n  const c = (rows.covered || []).map((r) => r.value).filter((v) => v !== null);\n  return c.length ? Math.min(rangeSec, Math.max(...c)) : null;\n})();\nconst cores = (v) => (v === null ? '—' : v >= 1 ? v.toFixed(v >= 10 ? 1 : 2) + ' cores' : Math.round(v * 1000) + 'm');\nconst bytes = (v) => (v === null ? '—' : v >= GIB ? (v / GIB).toFixed(1) + ' GiB' : Math.round(v / MIB) + ' MiB');\nconst up = (v, step) => Math.max(step, Math.ceil(v / step) * step);\nconst k8sCpu = (v) => Math.round(up(v, 0.01) * 1000) + 'm';\nconst k8sMem = (v) => Math.round(up(v, 16 * MIB) / MIB) + 'Mi';\nconst key = (r) => r.namespace + '|' + r.workload + '|' + r.kind;\nconst W = {};\n(rows.info || []).forEach((r) => {\n  const k = key(r);\n  const w = W[k] || (W[k] = { key: k, ns: r.namespace, name: r.workload, kind: r.kind, replicas: 0, c: {} });\n  w.c[r.container] = {};\n});\n(rows.replicas || []).forEach((r) => { if (W[key(r)]) W[key(r)].replicas = r.value || 0; });\n['cpu_req', 'cpu_lim', 'mem_req', 'mem_lim', 'cpu_p95', 'mem_max', 'mem_p95', 'throttle'].forEach((q) =>\n  (rows[q] || []).forEach((r) => { const w = W[key(r)]; if (w && w.c[r.container]) w.c[r.container][q] = r.value; }));\nconst stateOf = (req, used) => (req === null ? 'unset' : used === null ? null : used > req ? 'short' : used < 0.3 * req ? 'idle' : 'fits');\nconst pair = (w, reqF, usedF) => {\n  let req = 0, used = 0, any = false, seen = false;\n  for (const c of Object.values(w.c)) {\n    if (c[usedF] !== null && c[usedF] !== undefined) seen = true;\n    if (!(c[reqF] > 0)) continue;\n    any = true;\n    req += c[reqF];\n    used += c[usedF] || 0;\n  }\n  return { req: any ? req : null, used: any ? used : seen ? 0 : null };\n};\nconst workloads = Object.values(W).filter((w) => w.replicas > 0).map((w) => {\n  w.cpu = pair(w, 'cpu_req', 'cpu_p95');\n  w.mem = pair(w, 'mem_req', 'mem_max');\n  w.near = Object.values(w.c).some((c) => c.mem_lim > 0 && c.mem_max !== null && c.mem_max !== undefined && c.mem_max > 0.8 * c.mem_lim);\n  w.cpuState = stateOf(w.cpu.req, w.cpu.req === null ? 0 : w.cpu.used);\n  w.memState = w.near ? 'near' : stateOf(w.mem.req, w.mem.req === null ? 0 : w.mem.used);\n  const asked = [w.cpuState, w.memState].filter((s) => s && s !== 'unset');\n  w.state = w.near ? 'near' : asked.includes('short') ? 'short' : !asked.length ? 'unset'\n    : asked.every((s) => s === 'idle') ? 'idle' : 'fits';\n  w.label = w.name + (w.replicas > 1 ? ' ×' + w.replicas : '');\n  w.full = (w.ns === w.name ? w.name : w.ns + ' · ' + w.name);\n  return w;\n});\nconst suggest = (c) => {\n  const out = [];\n  if (c.cpu_p95 !== null && c.cpu_p95 !== undefined) out.push('cpu request ' + k8sCpu(c.cpu_p95 * 1.2));\n  if (c.mem_p95 !== null && c.mem_p95 !== undefined) out.push('memory request ' + k8sMem(c.mem_p95 * 1.2));\n  if (c.mem_max !== null && c.mem_max !== undefined) out.push('memory limit ' + k8sMem(c.mem_max * 1.5));\n  return out;\n};\nconst pct = (a, b) => (b > 0 && a !== null ? Math.round((100 * a) / b) + ' %' : '—');\nconst empty = (text) => ({ backgroundColor: 'transparent', title: { text, left: 'center', top: 'middle',\n  textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } });\nconst chart = context.panel.chart;\nconst CW = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst CH = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\n\nconst POOL = { infra: '#7DD3FC', apps: '#FBBF24', sandbox: '#C4B5FD' };\nconst SOFT = { infra: 'rgba(125,211,252,.22)', apps: 'rgba(251,191,36,.20)', sandbox: 'rgba(196,181,253,.22)' };\nconst P = {};\nconst pool = (name) => (P[name] = P[name] || { name, nodes: {}, alloc: { cpu: 0, memory: 0 }, req: { cpu: null, memory: null }, used: { cpu: null, memory: null } });\n(rows.node_capacity || []).forEach((r) => {\n  const p = pool(r.label_0xc0_cc_pool || 'no pool');\n  (p.nodes[r.node] = p.nodes[r.node] || {})[r.resource] = r.value;\n});\n(rows.node_allocatable || []).forEach((r) => { pool(r.label_0xc0_cc_pool || 'no pool').alloc[r.resource] += r.value || 0; });\n(rows.pool_req || []).forEach((r) => { pool(r.label_0xc0_cc_pool || 'no pool').req[r.resource] = r.value; });\n(rows.pool_cpu_p95 || []).forEach((r) => { pool(r.label_0xc0_cc_pool || 'no pool').used.cpu = r.value; });\n(rows.pool_mem_p95 || []).forEach((r) => { pool(r.label_0xc0_cc_pool || 'no pool').used.memory = r.value; });\nconst order = ['infra', 'apps', 'sandbox'];\nconst names = Object.keys(P).sort((a, b) => ((order.indexOf(a) + 9) % 9) - ((order.indexOf(b) + 9) % 9));\nif (!names.length) return empty('No node reports a pool');\nconst sizeOf = (n) => Math.round(n.cpu || 0) + ' vCPU / ' + Math.round((n.memory || 0) / GIB) + ' GiB';\nconst nodesLine = (p) => {\n  const list = Object.keys(p.nodes).sort();\n  const sizes = list.map((n) => sizeOf(p.nodes[n]));\n  const same = sizes.every((s) => s === sizes[0]);\n  return list.join(', ') + ' · ' + (same ? (list.length > 1 ? list.length + ' × ' : '') + sizes[0] : sizes.join(', '));\n};\nconst gap = 16;\nconst bw = (CW - gap * (names.length - 1)) / names.length;\nconst graphic = [];\nnames.forEach((name, i) => {\n  const p = P[name];\n  const x = i * (bw + gap);\n  const colour = POOL[name] || '#8D99AB';\n  const fit = (w) => ({ width: Math.max(10, w), overflow: 'truncate', ellipsis: '…' });\n  graphic.push({ type: 'rect', left: x, top: 0, z: -1, silent: true, shape: { width: bw, height: CH - 1, r: 14 },\n    style: { fill: '#0D1218', stroke: '#1C2530', lineWidth: 1 } });\n  graphic.push({ type: 'text', left: x + 16, top: 14, silent: true, style: { text: name.toUpperCase(), fill: colour, font: '600 12px Inter, sans-serif' } });\n  graphic.push({ type: 'text', left: x + 16, top: 32, silent: true, style: Object.assign({ text: nodesLine(p), fill: '#8D99AB', font: '11px ' + MONO }, fit(bw - 32)) });\n  [['cpu', 'CPU', (v) => (v === null ? '—' : v.toFixed(v < 10 ? 1 : 0)), 'cores'],\n   ['memory', 'memory', (v) => (v === null ? '—' : (v / GIB).toFixed(1)), 'GiB']].forEach((row, j) => {\n    const [res, label, show, unit] = row;\n    const top = 58 + j * 52;\n    const has = p.alloc[res];\n    graphic.push({ type: 'text', left: x + 16, top, silent: true, style: { text: label, fill: '#C9D2DE', font: '12px ' + MONO } });\n    graphic.push({ type: 'text', right: CW - (x + bw - 16), top: top + 1, silent: true, style: { text: 'used ' + show(p.used[res]) + ' · asked ' + show(p.req[res]) + ' · has ' + show(has) + ' ' + unit,\n      fill: '#8D99AB', font: '11px ' + MONO, align: 'right' } });\n    const tw = bw - 32;\n    const share = (v) => (has > 0 && v !== null ? Math.max(0, Math.min(1, v / has)) : 0);\n    graphic.push({ type: 'rect', left: x + 16, top: top + 20, silent: true, shape: { width: tw, height: 20, r: 6 }, style: { fill: '#161D27' } });\n    if (share(p.req[res]) > 0) {\n      graphic.push({ type: 'rect', left: x + 16, top: top + 20, silent: true, shape: { width: share(p.req[res]) * tw, height: 20, r: [6, 0, 0, 6] }, style: { fill: SOFT[name] || 'rgba(141,153,171,.22)' } });\n      graphic.push({ type: 'rect', left: x + 16 + share(p.req[res]) * tw - 2, top: top + 20, silent: true, shape: { width: 2, height: 20 }, style: { fill: colour } });\n    }\n    if (share(p.used[res]) > 0) graphic.push({ type: 'rect', left: x + 16, top: top + 25, silent: true, shape: { width: share(p.used[res]) * tw, height: 10, r: [0, 4, 4, 0] }, style: { fill: colour } });\n  });\n});\nreturn { backgroundColor: 'transparent', animation: false, graphic };\n"
+      },
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Dashboard --"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "-- Dashboard --"
+          },
+          "panelId": 1,
+          "refId": "A",
+          "withTransforms": false
+        }
+      ]
+    },
+    {
+      "type": "volkovlabs-echarts-panel",
+      "title": "Asked vs used · CPU",
+      "description": "Each bubble is a workload, sized by its pods: its CPU request per pod against its use at the 95th percentile of rate(container_cpu_usage_seconds_total[5m]) over the range. The dashed line is a perfect fit. Hover a bubble for its numbers and the suggested request (p95 × 1.2, in steps of 10m). States: idle uses under 30 % of its request, fits 30 to 100 %, short more than its request, near limit a container's memory maximum over 80 % of its limit (it wins over the others), unset asks for nothing. A workload is a Deployment, StatefulSet or DaemonSet (kube_pod_owner, and kube_replicaset_owner for a Deployment); per pod, its containers are summed, each at its largest across the pods. Jobs, CronJobs and static pods are left out.",
+      "transparent": true,
+      "id": 3,
+      "gridPos": {
+        "h": 11,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        },
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst COL = { idle: '#60A5FA', fits: '#34D399', short: '#FBBF24', near: '#FB7185', unset: '#8D99AB' };\nconst FILL = { idle: 'rgba(96,165,250,.28)', fits: 'rgba(52,211,153,.28)', short: 'rgba(251,191,36,.30)', near: 'rgba(251,113,133,.32)', unset: 'rgba(141,153,171,.25)' };\nconst WORD = { idle: 'idle', fits: 'fits', short: 'short', near: 'near limit', unset: 'unset' };\nconst MIB = 2 ** 20;\nconst GIB = 2 ** 30;\nconst num = (x) => (x === null || x === undefined || !Number.isFinite(Number(x)) ? null : Number(x));\nconst rows = {};\nconst ts = {};\nfor (const f of context.panel.data.series || []) {\n  const vf = f.fields.find((x) => x.type === 'number');\n  if (!vf) continue;\n  const qf = f.fields.find((x) => x.name === 'q');\n  if (qf) {\n    const keys = f.fields.filter((x) => x.type !== 'number' && x.type !== 'time');\n    for (let i = 0; i < vf.values.length; i++) {\n      const r = { value: num(vf.values[i]) };\n      keys.forEach((k) => { r[k.name] = k.values[i]; });\n      (rows[r.q] = rows[r.q] || []).push(r);\n    }\n  } else if (vf.labels && vf.labels.q) {\n    const t = f.fields.find((x) => x.type === 'time');\n    if (!t) continue;\n    (ts[vf.labels.q] = ts[vf.labels.q] || []).push({ labels: vf.labels,\n      points: t.values.map((x, i) => [x, num(vf.values[i])]) });\n  }\n}\nconst range = context.panel.data.timeRange;\nconst rangeSec = range ? (range.to.valueOf() - range.from.valueOf()) / 1000 : 0;\nconst days = (s) => (s >= 86400 ? String(+(s / 86400).toFixed(s >= 10 * 86400 ? 0 : 1)) + ' d' : Math.round(s / 3600) + ' h');\nconst coveredSec = (() => {\n  const c = (rows.covered || []).map((r) => r.value).filter((v) => v !== null);\n  return c.length ? Math.min(rangeSec, Math.max(...c)) : null;\n})();\nconst cores = (v) => (v === null ? '—' : v >= 1 ? v.toFixed(v >= 10 ? 1 : 2) + ' cores' : Math.round(v * 1000) + 'm');\nconst bytes = (v) => (v === null ? '—' : v >= GIB ? (v / GIB).toFixed(1) + ' GiB' : Math.round(v / MIB) + ' MiB');\nconst up = (v, step) => Math.max(step, Math.ceil(v / step) * step);\nconst k8sCpu = (v) => Math.round(up(v, 0.01) * 1000) + 'm';\nconst k8sMem = (v) => Math.round(up(v, 16 * MIB) / MIB) + 'Mi';\nconst key = (r) => r.namespace + '|' + r.workload + '|' + r.kind;\nconst W = {};\n(rows.info || []).forEach((r) => {\n  const k = key(r);\n  const w = W[k] || (W[k] = { key: k, ns: r.namespace, name: r.workload, kind: r.kind, replicas: 0, c: {} });\n  w.c[r.container] = {};\n});\n(rows.replicas || []).forEach((r) => { if (W[key(r)]) W[key(r)].replicas = r.value || 0; });\n['cpu_req', 'cpu_lim', 'mem_req', 'mem_lim', 'cpu_p95', 'mem_max', 'mem_p95', 'throttle'].forEach((q) =>\n  (rows[q] || []).forEach((r) => { const w = W[key(r)]; if (w && w.c[r.container]) w.c[r.container][q] = r.value; }));\nconst stateOf = (req, used) => (req === null ? 'unset' : used === null ? null : used > req ? 'short' : used < 0.3 * req ? 'idle' : 'fits');\nconst pair = (w, reqF, usedF) => {\n  let req = 0, used = 0, any = false, seen = false;\n  for (const c of Object.values(w.c)) {\n    if (c[usedF] !== null && c[usedF] !== undefined) seen = true;\n    if (!(c[reqF] > 0)) continue;\n    any = true;\n    req += c[reqF];\n    used += c[usedF] || 0;\n  }\n  return { req: any ? req : null, used: any ? used : seen ? 0 : null };\n};\nconst workloads = Object.values(W).filter((w) => w.replicas > 0).map((w) => {\n  w.cpu = pair(w, 'cpu_req', 'cpu_p95');\n  w.mem = pair(w, 'mem_req', 'mem_max');\n  w.near = Object.values(w.c).some((c) => c.mem_lim > 0 && c.mem_max !== null && c.mem_max !== undefined && c.mem_max > 0.8 * c.mem_lim);\n  w.cpuState = stateOf(w.cpu.req, w.cpu.req === null ? 0 : w.cpu.used);\n  w.memState = w.near ? 'near' : stateOf(w.mem.req, w.mem.req === null ? 0 : w.mem.used);\n  const asked = [w.cpuState, w.memState].filter((s) => s && s !== 'unset');\n  w.state = w.near ? 'near' : asked.includes('short') ? 'short' : !asked.length ? 'unset'\n    : asked.every((s) => s === 'idle') ? 'idle' : 'fits';\n  w.label = w.name + (w.replicas > 1 ? ' ×' + w.replicas : '');\n  w.full = (w.ns === w.name ? w.name : w.ns + ' · ' + w.name);\n  return w;\n});\nconst suggest = (c) => {\n  const out = [];\n  if (c.cpu_p95 !== null && c.cpu_p95 !== undefined) out.push('cpu request ' + k8sCpu(c.cpu_p95 * 1.2));\n  if (c.mem_p95 !== null && c.mem_p95 !== undefined) out.push('memory request ' + k8sMem(c.mem_p95 * 1.2));\n  if (c.mem_max !== null && c.mem_max !== undefined) out.push('memory limit ' + k8sMem(c.mem_max * 1.5));\n  return out;\n};\nconst pct = (a, b) => (b > 0 && a !== null ? Math.round((100 * a) / b) + ' %' : '—');\nconst empty = (text) => ({ backgroundColor: 'transparent', title: { text, left: 'center', top: 'middle',\n  textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } });\nconst chart = context.panel.chart;\nconst CW = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst CH = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\n\nconst RES = 'cpu';\nconst isCpu = RES === 'cpu';\nconst R = isCpu ? 'cpu' : 'mem';\nconst fmt = isCpu ? cores : bytes;\nconst base = isCpu ? 10 : 4;\nconst floor = isCpu ? 0.001 : 16 * MIB;\nconst stateKey = isCpu ? 'cpuState' : 'memState';\nconst drawn = workloads.filter((w) => w[R].req !== null && w[R].used !== null && w[stateKey]);\nconst unset = workloads.filter((w) => w[R].req === null).length;\nif (!drawn.length) return empty('No workload asks for ' + (isCpu ? 'CPU' : 'memory') + ' in this range');\nconst lg = (v) => Math.log(v) / Math.log(base);\nconst vals = drawn.flatMap((w) => [w[R].req, w[R].used]).filter((v) => v > 0);\nconst lo = Math.max(floor, base ** Math.floor(lg(Math.min(...vals))));\nconst hi = base ** Math.ceil(lg(Math.max(...vals)) + 1e-9);\nconst clamp = (v) => Math.min(hi, Math.max(lo, v));\nconst ratio = (w) => (w[R].req > 0 ? Math.max(w[R].used, lo / 10) / w[R].req : 1);\nconst labelled = new Set(drawn.filter((w) => w[stateKey] === 'near').map((w) => w.key));\ndrawn.filter((w) => w[stateKey] !== 'fits').sort((a, b) => Math.abs(Math.log(ratio(b))) - Math.abs(Math.log(ratio(a))))\n  .forEach((w) => { if (labelled.size < 6) labelled.add(w.key); });\nconst usedWord = isCpu ? 'p95' : 'max';\nconst tip = (w) => {\n  const lines = ['<b>' + w.full + '</b> <span style=\"color:#8D99AB\">' + w.kind + ' · ' + w.replicas + (w.replicas > 1 ? ' pods' : ' pod') + '</span>',\n    'asked ' + fmt(w[R].req) + ' per pod · ' + usedWord + ' ' + fmt(w[R].used) + ' (' + pct(w[R].used, w[R].req) + ')',\n    '<span style=\"color:' + COL[w[stateKey]] + '\">● ' + WORD[w[stateKey]] + '</span>'];\n  const cs = Object.entries(w.c);\n  cs.slice(0, 4).forEach(([name, c]) => {\n    const s = suggest(c).filter((t) => t.indexOf(isCpu ? 'cpu' : 'memory') === 0);\n    if (s.length) lines.push('<span style=\"color:#8D99AB\">' + (cs.length > 1 ? name + ': ' : 'suggested: ') + '</span>' + s.join(' · '));\n  });\n  return lines.join('<br/>');\n};\nconst STATES = ['idle', 'fits', 'short', 'near'];\nconst series = STATES.filter((s) => drawn.some((w) => w[stateKey] === s)).map((s) => ({\n  name: WORD[s], type: 'scatter', z: 3,\n  data: drawn.filter((w) => w[stateKey] === s).map((w) => ({\n    value: [clamp(w[R].req), clamp(w[R].used)], w,\n    symbolSize: 12 + Math.min(16, w.replicas * 4),\n    label: labelled.has(w.key) ? { show: true } : { show: false } })),\n  itemStyle: { color: FILL[s], borderColor: COL[s], borderWidth: 2 },\n  label: { position: 'right', distance: 8, formatter: (p) => (p.data.w.label.length > 26 ? p.data.w.label.slice(0, 25) + '…' : p.data.w.label),\n    color: '#E7ECF3', fontFamily: MONO, fontSize: 11, backgroundColor: 'rgba(10,13,18,.75)', padding: [1, 5], borderRadius: 4 },\n  labelLayout: { hideOverlap: true },\n  emphasis: { scale: 1.2 },\n}));\nconst N = 40;\nconst xs = Array.from({ length: N + 1 }, (_, i) => lo * (hi / lo) ** (i / N));\nconst zones = {\n  type: 'custom', silent: true, z: 1, data: [[lo, lo]],\n  renderItem: (params, api) => {\n    const band = (k1, k2, fill) => ({ type: 'polygon', shape: { points: xs.map((v) => api.coord([v, clamp(v * k1)]))\n      .concat(xs.slice().reverse().map((v) => api.coord([v, clamp(v * k2)]))) }, style: { fill } });\n    const a = api.coord([lo, lo]);\n    const b = api.coord([hi, hi]);\n    const mid = api.coord([Math.sqrt(lo * hi), Math.sqrt(lo * hi)]);\n    const text = (t, x, y, fill, align, rotation) => ({ type: 'text', x, y, rotation: rotation || 0,\n      style: { text: t, fill, font: '11px ' + MONO, align, verticalAlign: 'middle' } });\n    return { type: 'group', children: [\n      band(0, 0.3, 'rgba(96,165,250,.07)'),\n      band(0.3, 1, 'rgba(52,211,153,.10)'),\n      band(1, 1e6, 'rgba(251,191,36,.07)'),\n      text('uses more than it asks ↑', b[0] - 10, b[1] + 14, '#FBBF24', 'right'),\n      text('asks more than it uses ↓', b[0] - 10, a[1] - 14, '#60A5FA', 'right'),\n      text('just right', mid[0] + 8, mid[1] - 10, '#34D399', 'left', Math.atan2(a[1] - b[1], b[0] - a[0])),\n    ] };\n  },\n};\nconst diagonal = { type: 'line', silent: true, z: 2, symbol: 'none', data: [[lo, lo], [hi, hi]],\n  lineStyle: { color: '#34D399', width: 1.5, type: [6, 5] }, tooltip: { show: false } };\nconst axis = (name) => ({ type: 'log', logBase: base, min: lo, max: hi, name, nameLocation: 'middle', nameGap: 28,\n  nameTextStyle: { color: '#8D99AB', fontFamily: MONO, fontSize: 11 },\n  axisLabel: { color: '#8D99AB', fontFamily: MONO, fontSize: 10, formatter: (v) => fmt(v) },\n  axisLine: { lineStyle: { color: '#1F2733' } }, splitLine: { lineStyle: { color: '#1F2733' } }, minorTick: { show: false } });\nconst xa = axis('asked per pod (log scale)');\nconst ya = axis((isCpu ? 'used at p95' : 'maximum') + (coveredSec !== null ? ' over ' + days(coveredSec) : ''));\nya.nameGap = 50;\nreturn {\n  backgroundColor: 'transparent', animation: false,\n  legend: { top: 0, left: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { color: '#C9D2DE', fontSize: 12 },\n    data: series.map((s) => s.name) },\n  graphic: unset ? [{ type: 'text', right: 8, top: 2, style: { text: unset + ' ask for nothing · not drawn', fill: '#8D99AB', font: '11px ' + MONO } }] : [],\n  tooltip: { trigger: 'item', backgroundColor: '#10151C', borderColor: '#1F2733', textStyle: { color: '#E7ECF3', fontSize: 12 },\n    formatter: (p) => (p.data && p.data.w ? tip(p.data.w) : '') },\n  grid: { left: 66, right: 16, top: 34, bottom: 44, show: true, backgroundColor: '#0D1218', borderColor: '#1F2733' },\n  xAxis: xa, yAxis: ya,\n  series: [zones, diagonal].concat(series),\n};\n"
+      },
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Dashboard --"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "-- Dashboard --"
+          },
+          "panelId": 1,
+          "refId": "A",
+          "withTransforms": false
+        }
+      ]
+    },
+    {
+      "type": "volkovlabs-echarts-panel",
+      "title": "Asked vs used · memory",
+      "description": "Each bubble is a workload, sized by its pods: its memory request per pod against its working set's maximum over the range. The dashed line is a perfect fit. Hover a bubble for its numbers and the suggested request (p95 × 1.2) and limit (maximum × 1.5), in steps of 16 MiB. States: idle uses under 30 % of its request, fits 30 to 100 %, short more than its request, near limit a container's memory maximum over 80 % of its limit (it wins over the others), unset asks for nothing. A workload is a Deployment, StatefulSet or DaemonSet (kube_pod_owner, and kube_replicaset_owner for a Deployment); per pod, its containers are summed, each at its largest across the pods. Jobs, CronJobs and static pods are left out.",
+      "transparent": true,
+      "id": 4,
+      "gridPos": {
+        "h": 11,
+        "w": 12,
+        "x": 12,
+        "y": 9
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        },
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst COL = { idle: '#60A5FA', fits: '#34D399', short: '#FBBF24', near: '#FB7185', unset: '#8D99AB' };\nconst FILL = { idle: 'rgba(96,165,250,.28)', fits: 'rgba(52,211,153,.28)', short: 'rgba(251,191,36,.30)', near: 'rgba(251,113,133,.32)', unset: 'rgba(141,153,171,.25)' };\nconst WORD = { idle: 'idle', fits: 'fits', short: 'short', near: 'near limit', unset: 'unset' };\nconst MIB = 2 ** 20;\nconst GIB = 2 ** 30;\nconst num = (x) => (x === null || x === undefined || !Number.isFinite(Number(x)) ? null : Number(x));\nconst rows = {};\nconst ts = {};\nfor (const f of context.panel.data.series || []) {\n  const vf = f.fields.find((x) => x.type === 'number');\n  if (!vf) continue;\n  const qf = f.fields.find((x) => x.name === 'q');\n  if (qf) {\n    const keys = f.fields.filter((x) => x.type !== 'number' && x.type !== 'time');\n    for (let i = 0; i < vf.values.length; i++) {\n      const r = { value: num(vf.values[i]) };\n      keys.forEach((k) => { r[k.name] = k.values[i]; });\n      (rows[r.q] = rows[r.q] || []).push(r);\n    }\n  } else if (vf.labels && vf.labels.q) {\n    const t = f.fields.find((x) => x.type === 'time');\n    if (!t) continue;\n    (ts[vf.labels.q] = ts[vf.labels.q] || []).push({ labels: vf.labels,\n      points: t.values.map((x, i) => [x, num(vf.values[i])]) });\n  }\n}\nconst range = context.panel.data.timeRange;\nconst rangeSec = range ? (range.to.valueOf() - range.from.valueOf()) / 1000 : 0;\nconst days = (s) => (s >= 86400 ? String(+(s / 86400).toFixed(s >= 10 * 86400 ? 0 : 1)) + ' d' : Math.round(s / 3600) + ' h');\nconst coveredSec = (() => {\n  const c = (rows.covered || []).map((r) => r.value).filter((v) => v !== null);\n  return c.length ? Math.min(rangeSec, Math.max(...c)) : null;\n})();\nconst cores = (v) => (v === null ? '—' : v >= 1 ? v.toFixed(v >= 10 ? 1 : 2) + ' cores' : Math.round(v * 1000) + 'm');\nconst bytes = (v) => (v === null ? '—' : v >= GIB ? (v / GIB).toFixed(1) + ' GiB' : Math.round(v / MIB) + ' MiB');\nconst up = (v, step) => Math.max(step, Math.ceil(v / step) * step);\nconst k8sCpu = (v) => Math.round(up(v, 0.01) * 1000) + 'm';\nconst k8sMem = (v) => Math.round(up(v, 16 * MIB) / MIB) + 'Mi';\nconst key = (r) => r.namespace + '|' + r.workload + '|' + r.kind;\nconst W = {};\n(rows.info || []).forEach((r) => {\n  const k = key(r);\n  const w = W[k] || (W[k] = { key: k, ns: r.namespace, name: r.workload, kind: r.kind, replicas: 0, c: {} });\n  w.c[r.container] = {};\n});\n(rows.replicas || []).forEach((r) => { if (W[key(r)]) W[key(r)].replicas = r.value || 0; });\n['cpu_req', 'cpu_lim', 'mem_req', 'mem_lim', 'cpu_p95', 'mem_max', 'mem_p95', 'throttle'].forEach((q) =>\n  (rows[q] || []).forEach((r) => { const w = W[key(r)]; if (w && w.c[r.container]) w.c[r.container][q] = r.value; }));\nconst stateOf = (req, used) => (req === null ? 'unset' : used === null ? null : used > req ? 'short' : used < 0.3 * req ? 'idle' : 'fits');\nconst pair = (w, reqF, usedF) => {\n  let req = 0, used = 0, any = false, seen = false;\n  for (const c of Object.values(w.c)) {\n    if (c[usedF] !== null && c[usedF] !== undefined) seen = true;\n    if (!(c[reqF] > 0)) continue;\n    any = true;\n    req += c[reqF];\n    used += c[usedF] || 0;\n  }\n  return { req: any ? req : null, used: any ? used : seen ? 0 : null };\n};\nconst workloads = Object.values(W).filter((w) => w.replicas > 0).map((w) => {\n  w.cpu = pair(w, 'cpu_req', 'cpu_p95');\n  w.mem = pair(w, 'mem_req', 'mem_max');\n  w.near = Object.values(w.c).some((c) => c.mem_lim > 0 && c.mem_max !== null && c.mem_max !== undefined && c.mem_max > 0.8 * c.mem_lim);\n  w.cpuState = stateOf(w.cpu.req, w.cpu.req === null ? 0 : w.cpu.used);\n  w.memState = w.near ? 'near' : stateOf(w.mem.req, w.mem.req === null ? 0 : w.mem.used);\n  const asked = [w.cpuState, w.memState].filter((s) => s && s !== 'unset');\n  w.state = w.near ? 'near' : asked.includes('short') ? 'short' : !asked.length ? 'unset'\n    : asked.every((s) => s === 'idle') ? 'idle' : 'fits';\n  w.label = w.name + (w.replicas > 1 ? ' ×' + w.replicas : '');\n  w.full = (w.ns === w.name ? w.name : w.ns + ' · ' + w.name);\n  return w;\n});\nconst suggest = (c) => {\n  const out = [];\n  if (c.cpu_p95 !== null && c.cpu_p95 !== undefined) out.push('cpu request ' + k8sCpu(c.cpu_p95 * 1.2));\n  if (c.mem_p95 !== null && c.mem_p95 !== undefined) out.push('memory request ' + k8sMem(c.mem_p95 * 1.2));\n  if (c.mem_max !== null && c.mem_max !== undefined) out.push('memory limit ' + k8sMem(c.mem_max * 1.5));\n  return out;\n};\nconst pct = (a, b) => (b > 0 && a !== null ? Math.round((100 * a) / b) + ' %' : '—');\nconst empty = (text) => ({ backgroundColor: 'transparent', title: { text, left: 'center', top: 'middle',\n  textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } });\nconst chart = context.panel.chart;\nconst CW = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst CH = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\n\nconst RES = 'memory';\nconst isCpu = RES === 'cpu';\nconst R = isCpu ? 'cpu' : 'mem';\nconst fmt = isCpu ? cores : bytes;\nconst base = isCpu ? 10 : 4;\nconst floor = isCpu ? 0.001 : 16 * MIB;\nconst stateKey = isCpu ? 'cpuState' : 'memState';\nconst drawn = workloads.filter((w) => w[R].req !== null && w[R].used !== null && w[stateKey]);\nconst unset = workloads.filter((w) => w[R].req === null).length;\nif (!drawn.length) return empty('No workload asks for ' + (isCpu ? 'CPU' : 'memory') + ' in this range');\nconst lg = (v) => Math.log(v) / Math.log(base);\nconst vals = drawn.flatMap((w) => [w[R].req, w[R].used]).filter((v) => v > 0);\nconst lo = Math.max(floor, base ** Math.floor(lg(Math.min(...vals))));\nconst hi = base ** Math.ceil(lg(Math.max(...vals)) + 1e-9);\nconst clamp = (v) => Math.min(hi, Math.max(lo, v));\nconst ratio = (w) => (w[R].req > 0 ? Math.max(w[R].used, lo / 10) / w[R].req : 1);\nconst labelled = new Set(drawn.filter((w) => w[stateKey] === 'near').map((w) => w.key));\ndrawn.filter((w) => w[stateKey] !== 'fits').sort((a, b) => Math.abs(Math.log(ratio(b))) - Math.abs(Math.log(ratio(a))))\n  .forEach((w) => { if (labelled.size < 6) labelled.add(w.key); });\nconst usedWord = isCpu ? 'p95' : 'max';\nconst tip = (w) => {\n  const lines = ['<b>' + w.full + '</b> <span style=\"color:#8D99AB\">' + w.kind + ' · ' + w.replicas + (w.replicas > 1 ? ' pods' : ' pod') + '</span>',\n    'asked ' + fmt(w[R].req) + ' per pod · ' + usedWord + ' ' + fmt(w[R].used) + ' (' + pct(w[R].used, w[R].req) + ')',\n    '<span style=\"color:' + COL[w[stateKey]] + '\">● ' + WORD[w[stateKey]] + '</span>'];\n  const cs = Object.entries(w.c);\n  cs.slice(0, 4).forEach(([name, c]) => {\n    const s = suggest(c).filter((t) => t.indexOf(isCpu ? 'cpu' : 'memory') === 0);\n    if (s.length) lines.push('<span style=\"color:#8D99AB\">' + (cs.length > 1 ? name + ': ' : 'suggested: ') + '</span>' + s.join(' · '));\n  });\n  return lines.join('<br/>');\n};\nconst STATES = ['idle', 'fits', 'short', 'near'];\nconst series = STATES.filter((s) => drawn.some((w) => w[stateKey] === s)).map((s) => ({\n  name: WORD[s], type: 'scatter', z: 3,\n  data: drawn.filter((w) => w[stateKey] === s).map((w) => ({\n    value: [clamp(w[R].req), clamp(w[R].used)], w,\n    symbolSize: 12 + Math.min(16, w.replicas * 4),\n    label: labelled.has(w.key) ? { show: true } : { show: false } })),\n  itemStyle: { color: FILL[s], borderColor: COL[s], borderWidth: 2 },\n  label: { position: 'right', distance: 8, formatter: (p) => (p.data.w.label.length > 26 ? p.data.w.label.slice(0, 25) + '…' : p.data.w.label),\n    color: '#E7ECF3', fontFamily: MONO, fontSize: 11, backgroundColor: 'rgba(10,13,18,.75)', padding: [1, 5], borderRadius: 4 },\n  labelLayout: { hideOverlap: true },\n  emphasis: { scale: 1.2 },\n}));\nconst N = 40;\nconst xs = Array.from({ length: N + 1 }, (_, i) => lo * (hi / lo) ** (i / N));\nconst zones = {\n  type: 'custom', silent: true, z: 1, data: [[lo, lo]],\n  renderItem: (params, api) => {\n    const band = (k1, k2, fill) => ({ type: 'polygon', shape: { points: xs.map((v) => api.coord([v, clamp(v * k1)]))\n      .concat(xs.slice().reverse().map((v) => api.coord([v, clamp(v * k2)]))) }, style: { fill } });\n    const a = api.coord([lo, lo]);\n    const b = api.coord([hi, hi]);\n    const mid = api.coord([Math.sqrt(lo * hi), Math.sqrt(lo * hi)]);\n    const text = (t, x, y, fill, align, rotation) => ({ type: 'text', x, y, rotation: rotation || 0,\n      style: { text: t, fill, font: '11px ' + MONO, align, verticalAlign: 'middle' } });\n    return { type: 'group', children: [\n      band(0, 0.3, 'rgba(96,165,250,.07)'),\n      band(0.3, 1, 'rgba(52,211,153,.10)'),\n      band(1, 1e6, 'rgba(251,191,36,.07)'),\n      text('uses more than it asks ↑', b[0] - 10, b[1] + 14, '#FBBF24', 'right'),\n      text('asks more than it uses ↓', b[0] - 10, a[1] - 14, '#60A5FA', 'right'),\n      text('just right', mid[0] + 8, mid[1] - 10, '#34D399', 'left', Math.atan2(a[1] - b[1], b[0] - a[0])),\n    ] };\n  },\n};\nconst diagonal = { type: 'line', silent: true, z: 2, symbol: 'none', data: [[lo, lo], [hi, hi]],\n  lineStyle: { color: '#34D399', width: 1.5, type: [6, 5] }, tooltip: { show: false } };\nconst axis = (name) => ({ type: 'log', logBase: base, min: lo, max: hi, name, nameLocation: 'middle', nameGap: 28,\n  nameTextStyle: { color: '#8D99AB', fontFamily: MONO, fontSize: 11 },\n  axisLabel: { color: '#8D99AB', fontFamily: MONO, fontSize: 10, formatter: (v) => fmt(v) },\n  axisLine: { lineStyle: { color: '#1F2733' } }, splitLine: { lineStyle: { color: '#1F2733' } }, minorTick: { show: false } });\nconst xa = axis('asked per pod (log scale)');\nconst ya = axis((isCpu ? 'used at p95' : 'maximum') + (coveredSec !== null ? ' over ' + days(coveredSec) : ''));\nya.nameGap = 50;\nreturn {\n  backgroundColor: 'transparent', animation: false,\n  legend: { top: 0, left: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { color: '#C9D2DE', fontSize: 12 },\n    data: series.map((s) => s.name) },\n  graphic: unset ? [{ type: 'text', right: 8, top: 2, style: { text: unset + ' ask for nothing · not drawn', fill: '#8D99AB', font: '11px ' + MONO } }] : [],\n  tooltip: { trigger: 'item', backgroundColor: '#10151C', borderColor: '#1F2733', textStyle: { color: '#E7ECF3', fontSize: 12 },\n    formatter: (p) => (p.data && p.data.w ? tip(p.data.w) : '') },\n  grid: { left: 66, right: 16, top: 34, bottom: 44, show: true, backgroundColor: '#0D1218', borderColor: '#1F2733' },\n  xAxis: xa, yAxis: ya,\n  series: [zones, diagonal].concat(series),\n};\n"
+      },
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Dashboard --"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "-- Dashboard --"
+          },
+          "panelId": 1,
+          "refId": "A",
+          "withTransforms": false
+        }
+      ]
+    },
+    {
+      "type": "volkovlabs-echarts-panel",
+      "title": "Where the memory reservation goes",
+      "description": "Namespace, then workload. Area is the memory it asks for (request per pod × pods), colour its state, and the label its maximum over the range as a share of that request. States: idle uses under 30 % of its request, fits 30 to 100 %, short more than its request, near limit a container's memory maximum over 80 % of its limit (it wins over the others), unset asks for nothing.",
+      "transparent": true,
+      "id": 5,
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 20
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        },
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst COL = { idle: '#60A5FA', fits: '#34D399', short: '#FBBF24', near: '#FB7185', unset: '#8D99AB' };\nconst FILL = { idle: 'rgba(96,165,250,.28)', fits: 'rgba(52,211,153,.28)', short: 'rgba(251,191,36,.30)', near: 'rgba(251,113,133,.32)', unset: 'rgba(141,153,171,.25)' };\nconst WORD = { idle: 'idle', fits: 'fits', short: 'short', near: 'near limit', unset: 'unset' };\nconst MIB = 2 ** 20;\nconst GIB = 2 ** 30;\nconst num = (x) => (x === null || x === undefined || !Number.isFinite(Number(x)) ? null : Number(x));\nconst rows = {};\nconst ts = {};\nfor (const f of context.panel.data.series || []) {\n  const vf = f.fields.find((x) => x.type === 'number');\n  if (!vf) continue;\n  const qf = f.fields.find((x) => x.name === 'q');\n  if (qf) {\n    const keys = f.fields.filter((x) => x.type !== 'number' && x.type !== 'time');\n    for (let i = 0; i < vf.values.length; i++) {\n      const r = { value: num(vf.values[i]) };\n      keys.forEach((k) => { r[k.name] = k.values[i]; });\n      (rows[r.q] = rows[r.q] || []).push(r);\n    }\n  } else if (vf.labels && vf.labels.q) {\n    const t = f.fields.find((x) => x.type === 'time');\n    if (!t) continue;\n    (ts[vf.labels.q] = ts[vf.labels.q] || []).push({ labels: vf.labels,\n      points: t.values.map((x, i) => [x, num(vf.values[i])]) });\n  }\n}\nconst range = context.panel.data.timeRange;\nconst rangeSec = range ? (range.to.valueOf() - range.from.valueOf()) / 1000 : 0;\nconst days = (s) => (s >= 86400 ? String(+(s / 86400).toFixed(s >= 10 * 86400 ? 0 : 1)) + ' d' : Math.round(s / 3600) + ' h');\nconst coveredSec = (() => {\n  const c = (rows.covered || []).map((r) => r.value).filter((v) => v !== null);\n  return c.length ? Math.min(rangeSec, Math.max(...c)) : null;\n})();\nconst cores = (v) => (v === null ? '—' : v >= 1 ? v.toFixed(v >= 10 ? 1 : 2) + ' cores' : Math.round(v * 1000) + 'm');\nconst bytes = (v) => (v === null ? '—' : v >= GIB ? (v / GIB).toFixed(1) + ' GiB' : Math.round(v / MIB) + ' MiB');\nconst up = (v, step) => Math.max(step, Math.ceil(v / step) * step);\nconst k8sCpu = (v) => Math.round(up(v, 0.01) * 1000) + 'm';\nconst k8sMem = (v) => Math.round(up(v, 16 * MIB) / MIB) + 'Mi';\nconst key = (r) => r.namespace + '|' + r.workload + '|' + r.kind;\nconst W = {};\n(rows.info || []).forEach((r) => {\n  const k = key(r);\n  const w = W[k] || (W[k] = { key: k, ns: r.namespace, name: r.workload, kind: r.kind, replicas: 0, c: {} });\n  w.c[r.container] = {};\n});\n(rows.replicas || []).forEach((r) => { if (W[key(r)]) W[key(r)].replicas = r.value || 0; });\n['cpu_req', 'cpu_lim', 'mem_req', 'mem_lim', 'cpu_p95', 'mem_max', 'mem_p95', 'throttle'].forEach((q) =>\n  (rows[q] || []).forEach((r) => { const w = W[key(r)]; if (w && w.c[r.container]) w.c[r.container][q] = r.value; }));\nconst stateOf = (req, used) => (req === null ? 'unset' : used === null ? null : used > req ? 'short' : used < 0.3 * req ? 'idle' : 'fits');\nconst pair = (w, reqF, usedF) => {\n  let req = 0, used = 0, any = false, seen = false;\n  for (const c of Object.values(w.c)) {\n    if (c[usedF] !== null && c[usedF] !== undefined) seen = true;\n    if (!(c[reqF] > 0)) continue;\n    any = true;\n    req += c[reqF];\n    used += c[usedF] || 0;\n  }\n  return { req: any ? req : null, used: any ? used : seen ? 0 : null };\n};\nconst workloads = Object.values(W).filter((w) => w.replicas > 0).map((w) => {\n  w.cpu = pair(w, 'cpu_req', 'cpu_p95');\n  w.mem = pair(w, 'mem_req', 'mem_max');\n  w.near = Object.values(w.c).some((c) => c.mem_lim > 0 && c.mem_max !== null && c.mem_max !== undefined && c.mem_max > 0.8 * c.mem_lim);\n  w.cpuState = stateOf(w.cpu.req, w.cpu.req === null ? 0 : w.cpu.used);\n  w.memState = w.near ? 'near' : stateOf(w.mem.req, w.mem.req === null ? 0 : w.mem.used);\n  const asked = [w.cpuState, w.memState].filter((s) => s && s !== 'unset');\n  w.state = w.near ? 'near' : asked.includes('short') ? 'short' : !asked.length ? 'unset'\n    : asked.every((s) => s === 'idle') ? 'idle' : 'fits';\n  w.label = w.name + (w.replicas > 1 ? ' ×' + w.replicas : '');\n  w.full = (w.ns === w.name ? w.name : w.ns + ' · ' + w.name);\n  return w;\n});\nconst suggest = (c) => {\n  const out = [];\n  if (c.cpu_p95 !== null && c.cpu_p95 !== undefined) out.push('cpu request ' + k8sCpu(c.cpu_p95 * 1.2));\n  if (c.mem_p95 !== null && c.mem_p95 !== undefined) out.push('memory request ' + k8sMem(c.mem_p95 * 1.2));\n  if (c.mem_max !== null && c.mem_max !== undefined) out.push('memory limit ' + k8sMem(c.mem_max * 1.5));\n  return out;\n};\nconst pct = (a, b) => (b > 0 && a !== null ? Math.round((100 * a) / b) + ' %' : '—');\nconst empty = (text) => ({ backgroundColor: 'transparent', title: { text, left: 'center', top: 'middle',\n  textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } });\nconst chart = context.panel.chart;\nconst CW = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst CH = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\n\nconst NS = {};\nlet total = 0;\nworkloads.filter((w) => w.mem.req !== null).forEach((w) => {\n  const asked = w.mem.req * w.replicas;\n  total += asked;\n  (NS[w.ns] = NS[w.ns] || []).push({\n    name: w.label, value: asked, w,\n    itemStyle: { color: FILL[w.memState], borderColor: COL[w.memState], borderWidth: 1 },\n    label: { rich: { s: { color: COL[w.memState], fontFamily: MONO, fontSize: 10 } } },\n  });\n});\nif (!total) return empty('No workload asks for memory');\nconst data = Object.entries(NS).map(([ns, children]) => ({ name: ns, children,\n  value: children.reduce((s, c) => s + c.value, 0) }));\nreturn {\n  backgroundColor: 'transparent', animation: false,\n  tooltip: { backgroundColor: '#10151C', borderColor: '#1F2733', textStyle: { color: '#E7ECF3', fontSize: 12 },\n    formatter: (p) => {\n      if (!p.data || !p.data.w) return p.name + ': ' + bytes(p.value) + ' asked · ' + pct(p.value, total) + ' of the reservation';\n      const w = p.data.w;\n      return '<b>' + w.full + '</b><br/>asked ' + bytes(w.mem.req) + ' per pod × ' + w.replicas + ' = ' + bytes(p.value) +\n        '<br/>maximum ' + bytes(w.mem.used) + ' per pod (' + pct(w.mem.used, w.mem.req) + ')' +\n        '<br/><span style=\"color:' + COL[w.memState] + '\">● ' + WORD[w.memState] + '</span>';\n    } },\n  series: [{\n    type: 'treemap', data, roam: false, nodeClick: false, breadcrumb: { show: false }, sort: 'desc',\n    left: 0, right: 0, top: 0, bottom: 0, squareRatio: 1.2,\n    levels: [\n      { itemStyle: { color: '#10151C', borderColor: '#0B0F14', borderWidth: 0, gapWidth: 4 },\n        upperLabel: { show: true, height: 18, color: '#8D99AB', fontFamily: MONO, fontSize: 10 } },\n      { itemStyle: { gapWidth: 2, borderRadius: 4 },\n        label: { show: true, position: 'insideTopLeft', padding: [4, 6], color: '#E7ECF3', fontSize: 11, overflow: 'truncate',\n          formatter: (p) => (p.data && p.data.w ? p.name + '\\n{s|' + pct(p.data.w.mem.used, p.data.w.mem.req) + ' of ' + bytes(p.value) + '}' : p.name) } },\n    ],\n  }],\n};\n"
+      },
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Dashboard --"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "-- Dashboard --"
+          },
+          "panelId": 1,
+          "refId": "A",
+          "withTransforms": false
+        }
+      ]
+    },
+    {
+      "type": "volkovlabs-echarts-panel",
+      "title": "At the edge",
+      "description": "The containers closest to trouble: a memory maximum near its limit (80 %), use over its request (CPU at p95, memory at its maximum), or CPU throttled in over 20 % of its periods. At least four, at most six. Each shows its use over the range (the largest pod), the request dashed, the limit red, and the suggested change: request at p95 × 1.2, memory limit at the maximum × 1.5, rounded up to 10m and 16 MiB.",
+      "transparent": true,
+      "id": 6,
+      "gridPos": {
+        "h": 13,
+        "w": 24,
+        "x": 0,
+        "y": 30
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        },
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst COL = { idle: '#60A5FA', fits: '#34D399', short: '#FBBF24', near: '#FB7185', unset: '#8D99AB' };\nconst FILL = { idle: 'rgba(96,165,250,.28)', fits: 'rgba(52,211,153,.28)', short: 'rgba(251,191,36,.30)', near: 'rgba(251,113,133,.32)', unset: 'rgba(141,153,171,.25)' };\nconst WORD = { idle: 'idle', fits: 'fits', short: 'short', near: 'near limit', unset: 'unset' };\nconst MIB = 2 ** 20;\nconst GIB = 2 ** 30;\nconst num = (x) => (x === null || x === undefined || !Number.isFinite(Number(x)) ? null : Number(x));\nconst rows = {};\nconst ts = {};\nfor (const f of context.panel.data.series || []) {\n  const vf = f.fields.find((x) => x.type === 'number');\n  if (!vf) continue;\n  const qf = f.fields.find((x) => x.name === 'q');\n  if (qf) {\n    const keys = f.fields.filter((x) => x.type !== 'number' && x.type !== 'time');\n    for (let i = 0; i < vf.values.length; i++) {\n      const r = { value: num(vf.values[i]) };\n      keys.forEach((k) => { r[k.name] = k.values[i]; });\n      (rows[r.q] = rows[r.q] || []).push(r);\n    }\n  } else if (vf.labels && vf.labels.q) {\n    const t = f.fields.find((x) => x.type === 'time');\n    if (!t) continue;\n    (ts[vf.labels.q] = ts[vf.labels.q] || []).push({ labels: vf.labels,\n      points: t.values.map((x, i) => [x, num(vf.values[i])]) });\n  }\n}\nconst range = context.panel.data.timeRange;\nconst rangeSec = range ? (range.to.valueOf() - range.from.valueOf()) / 1000 : 0;\nconst days = (s) => (s >= 86400 ? String(+(s / 86400).toFixed(s >= 10 * 86400 ? 0 : 1)) + ' d' : Math.round(s / 3600) + ' h');\nconst coveredSec = (() => {\n  const c = (rows.covered || []).map((r) => r.value).filter((v) => v !== null);\n  return c.length ? Math.min(rangeSec, Math.max(...c)) : null;\n})();\nconst cores = (v) => (v === null ? '—' : v >= 1 ? v.toFixed(v >= 10 ? 1 : 2) + ' cores' : Math.round(v * 1000) + 'm');\nconst bytes = (v) => (v === null ? '—' : v >= GIB ? (v / GIB).toFixed(1) + ' GiB' : Math.round(v / MIB) + ' MiB');\nconst up = (v, step) => Math.max(step, Math.ceil(v / step) * step);\nconst k8sCpu = (v) => Math.round(up(v, 0.01) * 1000) + 'm';\nconst k8sMem = (v) => Math.round(up(v, 16 * MIB) / MIB) + 'Mi';\nconst key = (r) => r.namespace + '|' + r.workload + '|' + r.kind;\nconst W = {};\n(rows.info || []).forEach((r) => {\n  const k = key(r);\n  const w = W[k] || (W[k] = { key: k, ns: r.namespace, name: r.workload, kind: r.kind, replicas: 0, c: {} });\n  w.c[r.container] = {};\n});\n(rows.replicas || []).forEach((r) => { if (W[key(r)]) W[key(r)].replicas = r.value || 0; });\n['cpu_req', 'cpu_lim', 'mem_req', 'mem_lim', 'cpu_p95', 'mem_max', 'mem_p95', 'throttle'].forEach((q) =>\n  (rows[q] || []).forEach((r) => { const w = W[key(r)]; if (w && w.c[r.container]) w.c[r.container][q] = r.value; }));\nconst stateOf = (req, used) => (req === null ? 'unset' : used === null ? null : used > req ? 'short' : used < 0.3 * req ? 'idle' : 'fits');\nconst pair = (w, reqF, usedF) => {\n  let req = 0, used = 0, any = false, seen = false;\n  for (const c of Object.values(w.c)) {\n    if (c[usedF] !== null && c[usedF] !== undefined) seen = true;\n    if (!(c[reqF] > 0)) continue;\n    any = true;\n    req += c[reqF];\n    used += c[usedF] || 0;\n  }\n  return { req: any ? req : null, used: any ? used : seen ? 0 : null };\n};\nconst workloads = Object.values(W).filter((w) => w.replicas > 0).map((w) => {\n  w.cpu = pair(w, 'cpu_req', 'cpu_p95');\n  w.mem = pair(w, 'mem_req', 'mem_max');\n  w.near = Object.values(w.c).some((c) => c.mem_lim > 0 && c.mem_max !== null && c.mem_max !== undefined && c.mem_max > 0.8 * c.mem_lim);\n  w.cpuState = stateOf(w.cpu.req, w.cpu.req === null ? 0 : w.cpu.used);\n  w.memState = w.near ? 'near' : stateOf(w.mem.req, w.mem.req === null ? 0 : w.mem.used);\n  const asked = [w.cpuState, w.memState].filter((s) => s && s !== 'unset');\n  w.state = w.near ? 'near' : asked.includes('short') ? 'short' : !asked.length ? 'unset'\n    : asked.every((s) => s === 'idle') ? 'idle' : 'fits';\n  w.label = w.name + (w.replicas > 1 ? ' ×' + w.replicas : '');\n  w.full = (w.ns === w.name ? w.name : w.ns + ' · ' + w.name);\n  return w;\n});\nconst suggest = (c) => {\n  const out = [];\n  if (c.cpu_p95 !== null && c.cpu_p95 !== undefined) out.push('cpu request ' + k8sCpu(c.cpu_p95 * 1.2));\n  if (c.mem_p95 !== null && c.mem_p95 !== undefined) out.push('memory request ' + k8sMem(c.mem_p95 * 1.2));\n  if (c.mem_max !== null && c.mem_max !== undefined) out.push('memory limit ' + k8sMem(c.mem_max * 1.5));\n  return out;\n};\nconst pct = (a, b) => (b > 0 && a !== null ? Math.round((100 * a) / b) + ' %' : '—');\nconst empty = (text) => ({ backgroundColor: 'transparent', title: { text, left: 'center', top: 'middle',\n  textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } });\nconst chart = context.panel.chart;\nconst CW = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst CH = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\n\nconst cand = [];\nfor (const w of workloads) {\n  for (const [name, c] of Object.entries(w.c)) {\n    const opts = [];\n    if (c.mem_lim > 0 && c.mem_max !== null && c.mem_max !== undefined) opts.push({ res: 'memory', score: c.mem_max / c.mem_lim / 0.8, state: c.mem_max > 0.8 * c.mem_lim ? 'near' : 'fits', word: 'near limit',\n      why: 'maximum ' + pct(c.mem_max, c.mem_lim) + ' of its limit' });\n    if (c.mem_req > 0 && c.mem_max !== null && c.mem_max !== undefined) opts.push({ res: 'memory', score: c.mem_max / c.mem_req, state: c.mem_max > c.mem_req ? 'short' : 'fits', word: 'over request',\n      why: 'maximum ' + pct(c.mem_max, c.mem_req) + ' of its request' });\n    if (c.cpu_req > 0 && c.cpu_p95 !== null && c.cpu_p95 !== undefined) opts.push({ res: 'cpu', score: c.cpu_p95 / c.cpu_req, state: c.cpu_p95 > c.cpu_req ? 'short' : 'fits', word: 'over request',\n      why: 'p95 ' + pct(c.cpu_p95, c.cpu_req) + ' of its request' });\n    if (c.throttle !== null && c.throttle !== undefined) opts.push({ res: 'cpu', score: c.throttle / 0.2, state: c.throttle > 0.2 ? 'short' : 'fits', word: 'throttled',\n      why: 'throttled in ' + pct(c.throttle, 1) + ' of periods' });\n    if (!opts.length) continue;\n    opts.sort((a, b) => b.score - a.score);\n    const shown = opts.find((o) => o.state === 'near') || opts[0];\n    cand.push(Object.assign({ w, name, c }, shown, { score: opts[0].score }));\n  }\n}\ncand.sort((a, b) => b.score - a.score);\nlet picked = cand.filter((e) => e.score >= 1).slice(0, 6);\nif (picked.length < 4) picked = cand.slice(0, 4);\nif (!picked.length) return empty('No workload with a request or limit in this range');\nconst seriesOf = (e) => {\n  const list = ts[e.res === 'cpu' ? 'cpu_ts' : 'mem_ts'] || [];\n  const s = list.find((x) => x.labels.namespace === e.w.ns && x.labels.workload === e.w.name && x.labels.kind === e.w.kind && x.labels.container === e.name);\n  return s ? s.points : [];\n};\nconst n = picked.length;\nconst gap = 16;\nlet cols = Math.max(1, Math.min(n <= 4 ? n : Math.ceil(n / 2), Math.floor((CW + gap) / (300 + gap))));\nconst nrows = Math.ceil(n / cols);\nconst cw = (CW - gap * (cols - 1)) / cols;\nconst ch = Math.min(260, (CH - gap * (nrows - 1)) / nrows);\nconst graphic = [], grid = [], xAxis = [], yAxis = [], series = [];\nconst from = range ? range.from.valueOf() : undefined;\nconst to = range ? range.to.valueOf() : undefined;\npicked.forEach((e, i) => {\n  const x = (i % cols) * (cw + gap);\n  const y = Math.floor(i / cols) * (ch + gap);\n  const isCpu = e.res === 'cpu';\n  const f = isCpu ? cores : bytes;\n  const req = isCpu ? e.c.cpu_req : e.c.mem_req;\n  const lim = isCpu ? e.c.cpu_lim : e.c.mem_lim;\n  const state = e.state === 'fits' ? (e.word === 'near limit' ? 'near' : 'short') : e.state;\n  const colour = COL[state];\n  const fit = (w) => ({ width: Math.max(10, w), overflow: 'truncate', ellipsis: '…' });\n  const title = e.w.full + (Object.keys(e.w.c).length > 1 ? ' · ' + e.name : '');\n  graphic.push({ type: 'rect', left: x, top: y, z: -1, silent: true, shape: { width: cw, height: ch - 1, r: 14 }, style: { fill: '#10151C', stroke: '#1F2733', lineWidth: 1 } });\n  graphic.push({ type: 'text', left: x + 16, top: y + 14, silent: true, style: Object.assign({ text: title, fill: '#E7ECF3', font: '600 13px ' + MONO }, fit(cw - 130)) });\n  graphic.push({ type: 'text', right: CW - (x + cw - 16), top: y + 15, silent: true, style: { text: e.score >= 1 ? e.word : 'closest: ' + e.word, fill: e.score >= 1 ? colour : '#8D99AB', font: '11px ' + MONO, align: 'right' } });\n  graphic.push({ type: 'text', left: x + 16, top: y + 33, silent: true, style: Object.assign({ text: (isCpu ? 'cpu' : 'memory') + ' · ' + e.why + ' · ' + e.w.replicas + (e.w.replicas > 1 ? ' pods' : ' pod'),\n    fill: '#8D99AB', font: '11px ' + MONO }, fit(cw - 32)) });\n  const pts = seriesOf(e);\n  const peak = Math.max(0, ...pts.map((p) => p[1] || 0));\n  const g = grid.length;\n  grid.push({ left: x + 16, width: cw - 32, top: y + 54, height: Math.max(30, ch - 54 - 58) });\n  xAxis.push({ type: 'time', gridIndex: g, show: false, min: from, max: to });\n  yAxis.push({ type: 'value', gridIndex: g, show: false, min: 0, max: Math.max(peak, req || 0, lim || 0) * 1.12 || 1 });\n  const marks = [];\n  if (req > 0) marks.push({ yAxis: req, lineStyle: { color: '#C9D2DE', type: [4, 4], width: 1 } });\n  if (lim > 0) marks.push({ yAxis: lim, lineStyle: { color: '#FB7185', type: 'solid', width: 1.2 } });\n  series.push({ type: 'line', name: title, xAxisIndex: g, yAxisIndex: g, data: pts, showSymbol: false, connectNulls: false,\n    lineStyle: { color: colour, width: 1.8 }, itemStyle: { color: colour }, areaStyle: { color: FILL[state] },\n    tooltip: { valueFormatter: f },\n    markLine: { silent: true, symbol: 'none', label: { show: false }, data: marks } });\n  const fy = y + ch - 54;\n  graphic.push({ type: 'text', left: x + 16, top: fy, silent: true, style: { text: req > 0 ? 'request ' + f(req) : 'no request', fill: '#8D99AB', font: '10px ' + MONO } });\n  graphic.push({ type: 'text', right: CW - (x + cw - 16), top: fy, silent: true, style: { text: lim > 0 ? 'limit ' + f(lim) : 'no limit', fill: lim > 0 ? '#FB7185' : '#8D99AB', font: '10px ' + MONO, align: 'right' } });\n  const fix = suggest(e.c).filter((t) => t.indexOf(isCpu ? 'cpu' : 'memory') === 0).map((t) => t.replace(/^(cpu|memory) /, ''));\n  if (isCpu && e.word === 'throttled') fix.push('lift the CPU limit');\n  const fixText = fix.join(' · ') || '—';\n  graphic.push({ type: 'text', left: x + 16, top: fy + 26, silent: true, style: { text: 'SUGGESTED', fill: '#8D99AB', font: '600 10px Inter, sans-serif' } });\n  const chipW = Math.min(cw - 110, fixText.length * 7.3 + 16);\n  graphic.push({ type: 'rect', left: x + 92, top: fy + 20, silent: true, shape: { width: chipW, height: 22, r: 6 }, style: { fill: '#131A23', stroke: '#243042', lineWidth: 1 } });\n  graphic.push({ type: 'text', left: x + 100, top: fy + 25, silent: true, style: Object.assign({ text: fixText, fill: '#E7ECF3', font: '12px ' + MONO }, fit(chipW - 16)) });\n});\nreturn { backgroundColor: 'transparent', animation: false, graphic, grid, xAxis, yAxis, series,\n  tooltip: { trigger: 'axis', backgroundColor: '#10151C', borderColor: '#1F2733', textStyle: { color: '#E7ECF3', fontSize: 12 } } };\n"
+      },
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Dashboard --"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "-- Dashboard --"
+          },
+          "panelId": 1,
+          "refId": "A",
+          "withTransforms": false
+        }
+      ]
+    }
+  ],
+  "refresh": "5m",
+  "schemaVersion": 41,
+  "tags": [
+    "0xc0",
+    "platform",
+    "rightsizing"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Right-sizing",
+  "uid": "rightsizing",
+  "version": 1,
+  "weekStart": ""
+}
