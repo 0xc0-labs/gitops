@@ -36,3 +36,8 @@ config:
     # Only passes the flag: the chart reads the address from the Secret's
     # OIDC_CALLBACK_URL.
     callbackURL: https://headlamp.int.0xc0.cc/oidc-callback
+    # The Access application is a public client, for kubectl too, and
+    # Cloudflare then requires a code challenge of every request to it.
+    # Only passes the flag: the chart reads the value from the Secret's
+    # OIDC_USE_PKCE.
+    usePKCE: true
