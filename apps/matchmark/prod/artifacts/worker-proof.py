@@ -46,7 +46,7 @@ PROXY_WAIT = 300
 TRACKER_WAIT = 300
 PROJECT = "PLAY"
 # The names the playground's mapping uses (matchmark-config).
-STATES = ("Backlog", "Todo", "In Progress", "In Review", "Blocked", "Done", "Cancelled")
+STATES = ("Backlog", "Todo", "In Progress", "In Review", "Blocked", "Done", "Cancelled", "Spec Review", "Approved")
 PERMISSIONS = {"metadata": "read", "contents": "write", "pull_requests": "write", "checks": "write"}
 
 failures = []
