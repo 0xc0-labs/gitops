@@ -22,6 +22,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from datetime import datetime, timezone
 from urllib.parse import urlsplit
 
 from s3 import Client, md5_header
@@ -517,6 +518,110 @@ def state_author_proof(workspace, project_id, key, own_id, state_ids):
         record(step, f"stopped: {type(error).__name__}")
 
 
+def moment(value):
+    """Seconds since the epoch of an ISO 8601 timestamp, or None when it is missing or not one."""
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.timestamp()
+
+
+def newest_moment(entries):
+    """The latest timestamp among the entries' `created_at`, or None."""
+    moments = [moment(entry.get("created_at")) for entry in entries if isinstance(entry, dict)]
+    moments = [value for value in moments if value is not None]
+    return max(moments) if moments else None
+
+
+COMMENT_WINDOW = 2.0
+
+
+def comment_clock_proof(workspace, project_id, key):
+    """Whether a comment moves a work item's updated_at, and how far updated_at is from the last state change. Prints counts and seconds only."""
+    step = "comment updated_at"
+    try:
+        base = f"/api/v1/workspaces/{workspace}/projects/{project_id}/work-items/"
+        status, body = tracker_call(base + "?order_by=-updated_at&per_page=10", key)
+        listed = [item for item in results(body) if item.get("id")][:10]
+        if status != 200 or not listed:
+            record(step, f"work items: status {status}, {len(listed)} items")
+            return
+        read, with_comments = 0, 0
+        moved = unmoved = neither = 0
+        differences = []
+        missing = {"updated_at": 0, "activities": 0, "comments": 0}
+        statuses = set()
+        for entry in listed:
+            item_path = f"{base}{entry['id']}/"
+            status, item = tracker_call(item_path, key)
+            if status != 200 or not isinstance(item, dict):
+                statuses.add(f"item {status}")
+                continue
+            status, body = tracker_call(f"{item_path}activities/?order_by=-created_at&per_page=100", key)
+            if status != 200:
+                statuses.add(f"activities {status}")
+                continue
+            activities = [activity for activity in results(body) if isinstance(activity, dict)]
+            status, body = tracker_call(f"{item_path}comments/?order_by=-created_at&per_page=100", key)
+            if status != 200:
+                statuses.add(f"comments {status}")
+                continue
+            comments = [comment for comment in results(body) if isinstance(comment, dict)]
+            read += 1
+            with_comments += 1 if comments else 0
+            updated = moment(item.get("updated_at"))
+            last_entry = newest_moment(activities)
+            last_comment = newest_moment(comments)
+            if updated is None:
+                missing["updated_at"] += 1
+                continue
+            if not activities or last_entry is None:
+                missing["activities"] += 1
+            if comments and last_comment is None:
+                missing["comments"] += 1
+            if last_comment is not None and last_entry is not None and last_comment > last_entry:
+                if abs(updated - last_comment) <= COMMENT_WINDOW:
+                    moved += 1
+                elif abs(updated - last_entry) <= COMMENT_WINDOW:
+                    unmoved += 1
+                else:
+                    neither += 1
+            newest = max(
+                (activity for activity in activities if moment(activity.get("created_at")) is not None),
+                key=lambda activity: moment(activity["created_at"]),
+                default=None,
+            )
+            if newest is not None and newest.get("field") == "state" and (last_comment is None or last_comment <= last_entry):
+                differences.append(updated - moment(newest["created_at"]))
+        if statuses:
+            record(step, f"calls not answered 200: {', '.join(sorted(statuses))}")
+        record(step, f"{read} items read, {with_comments} with at least one comment")
+        record(
+            step,
+            f"newest comment later than the newest listed entry: {moved + unmoved + neither} items; "
+            f"updated_at within {COMMENT_WINDOW:.0f}s of the comment: {moved}; "
+            f"of the entry: {unmoved}; of neither: {neither}",
+        )
+        if differences:
+            record(
+                step,
+                f"updated_at minus the last state change, {len(differences)} items with no later comment: "
+                f"smallest {min(differences):+.1f}s, largest {max(differences):+.1f}s",
+            )
+        else:
+            record(step, "no item whose newest listed entry is a state change with no later comment")
+        gaps = [f"{name} missing on {count} items" for name, count in missing.items() if count]
+        if gaps:
+            record(step, "; ".join(gaps))
+    except Exception as error:  # noqa: BLE001 - this step records; it never fails the Job
+        record(step, f"stopped: {type(error).__name__}")
+
+
 def tracker_proof():
     key_path = os.environ["MATCHMARK_TRACKER_API_KEY_FILE"]
     workspace = os.environ["MATCHMARK_TRACKER_WORKSPACE"]
@@ -555,6 +660,7 @@ def tracker_proof():
     missing = [name for name in STATES if name not in names]
     check(f"project {PROJECT} has every state the mapping uses", status == 200 and not missing, f"status {status}, missing: {', '.join(missing) or 'none'}")
     state_author_proof(workspace, project["id"], key, me.get("id") if isinstance(me, dict) else None, state_ids)
+    comment_clock_proof(workspace, project["id"], key)
 
 
 run(sandboxes_proof)
