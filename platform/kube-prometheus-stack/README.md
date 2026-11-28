@@ -94,7 +94,7 @@ defaults cover the Kubernetes ones; the rest are JSON files in
 `dashboards/<folder>/`, each turned by `kustomization.yaml` into a ConfigMap
 labelled `grafana_dashboard: "1"` with a `grafana_folder` annotation, which
 Grafana's sidecar loads into that folder: `Kubernetes`, `Platform`,
-`Applications`, `Traces`. `Estate` is the exception: Grafana's home dashboard,
+`Applications`, `Traces`, `Hetzner`. `Estate` is the exception: Grafana's home dashboard,
 mounted as a file (`values.yaml`). The component's `Prune=false` reaches the
 ConfigMaps: deleting a dashboard's entry leaves its ConfigMap to delete by
 hand.
@@ -117,6 +117,7 @@ last-applied annotation caps one near 256 KiB.
 | Argo CD, Traefik, Vault, Longhorn, CrowdSec, Kubernetes / Events | `argocd`, `traefik`, `vault`, `longhorn`, `crowdsec`, `kubernetes-events` | The platform, each trimmed to what this estate uses; the `Platform` menu lists them by the tag `platform` |
 | Right-sizing | `rightsizing` | What every workload asks for against what it used over the range (7 days by default): idle reservation, the pools, asked against used per workload, the memory reservation by namespace, and the containers closest to trouble with the change to make. In `Platform`, and linked from Estate's Pool capacity |
 | Cloudflare | `cloudflare` | The edge, every zone, over the range (24 hours by default): requests, edge 5xx, cache hits, threats blocked and connectors up; requests by zone and by status class; countries; WAF events by rule and action; each connector's connections, requests and errors. In `Platform`, and linked from Estate's Edge ([Cloudflare](#the-boards-1)) |
+| Hetzner auction | `hetzner-auction` | Hetzner's server auction as the auction watcher records it, over the range (90 days by default): the offers now against the operator's limits, prices since August, bargains and how long offers last, the market, and the live offers worth a look. In `Hetzner`, apart from every other board ([Hetzner auction](#hetzner-auction)) |
 
 #### Right-sizing
 
@@ -228,7 +229,7 @@ One look across every board, a control room (operator, 2026-11-25).
 |---|---|
 | Business Charts, `volkovlabs-echarts-panel` | Every board's strip of cards, the traffic sankey, the memory sunburst, the web vitals gauges, Apps' release comparison and slowest operations, which group by a label no stock panel can pivot on, and every block of Right-sizing |
 | Business Text, `marcusolsson-dynamictext-panel` | The estate's health ring, drawn in CSS: its sanitizer strips `<svg>` |
-| Infinity, `yesoreyeram-infinity-datasource` | The data source `cloudflare` (Cloudflare, below). Maintained by Grafana Labs; 4.1.8 supports Grafana 12.2.5 and later |
+| Infinity, `yesoreyeram-infinity-datasource` | The data sources `cloudflare` (Cloudflare, below) and `hetzner-auction` (Hetzner auction, below). Maintained by Grafana Labs; 4.1.8 supports Grafana 12.2.5 and later |
 
 The estate map is Grafana's Canvas: each node's CPU, memory, pods and Ready
 are field-bound values, coloured by threshold, since Canvas draws no bar.
@@ -365,6 +366,54 @@ connections to the edge: the alert `tunnel-short-of-connections` fires below
 four, or when its target is down. `up{job="cloudflared"}` should be 1 for the
 four hosts.
 
+## Hetzner auction
+
+The auction watcher's record (`platform/auction-watch`), read where it is
+rather than copied into Prometheus or Loki, which keep 30 days where the record
+keeps 400.
+
+### The data source
+
+`hetzner-auction` (`values.yaml`, `additionalDataSources`) is the Infinity
+data source pointed at the watcher's Service,
+`http://auction-watch.auction-watch.svc.cluster.local:8080`, with that URL as
+its only allowed host and no authentication: the watcher's NetworkPolicy
+admits Grafana's pods alone, and nothing of the network or of Vault changes
+for it. A query names a view by its path, `/views/<name>.csv`, read as CSV by
+the backend parser, its columns typed in the query so an empty field is no
+value rather than a zero. The views, what a row is and their columns, are
+described in [`platform/auction-watch/README.md`, The views][auction-views].
+A price is the feed's monthly price in EUR, without VAT, as the limits compare
+it.
+
+### The board
+
+`Hetzner auction`, `dashboards/hetzner/auction.json`, in the folder
+`Hetzner`. It stands apart from every other board (operator, 2026-11-28): it
+carries no board links and none of the estate's annotations, and no other
+board links to it, the `Platform` menu included (it has no `platform` tag). It
+follows Design for its look; Navigation and Annotations do not apply.
+
+Each view is asked once, in the strip of cards, as a query whose `refId` is
+the view's name with underscores (`groups_daily` for `groups-daily`); every
+other block reads those frames through `-- Dashboard --` and finds a view by
+that name, and the tables pick theirs with a `filterByRefId` transformation. A
+view that fails or comes back empty leaves its block saying so. A day is a UTC
+day, and the board's time zone is UTC.
+
+| Block | What, and from which view |
+|---|---|
+| The strip | Offers live now (`summary`); for each limit of `rules.json`, the cheapest live offer of its shape against the limit, green with `▼ under the limit` when under, and how many live offers have that shape (`limits`); how many offers met each limit in the last 7 days (`limits`); today's median for 64 GB with NVMe (`groups-daily`); the feed's age, fresh under 2 minutes, late under 15, stale past that (`summary`) |
+| Prices | For 64 GB and for 128 GB, each day's median and lowest price of the offers that went, with and without NVMe, and the limit for that size as a line (`groups-daily`, `limits`) |
+| Bargains | For each limit, how many offers went at a price that met it each day, and the lowest price of that shape against it (`limits-daily`); how long offers last, by price band and by limit: half gone within, three quarters within, and how many went in under two minutes (`lifetimes`) |
+| The market | Offers that appeared and went each day, and how many were live at its end (`flow-daily`); the datacenters (`datacenters`) |
+| Live now | The live offers, the ones furthest under their kind's usual price first, each opening the offer at Hetzner in a new tab (`live`); the kinds with the most offers (`kinds`) |
+
+Lifetimes and datacenters come only from the offers the pod itself saw, since
+2026-11-22: the older rows, the seed's, were sampled every five minutes. A
+day's `appeared` before that date comes from those samples. Each panel's
+description says so where it applies.
+
 ## Control plane
 
 RKE2 exposes the control plane's metrics on the node's address (the
@@ -402,3 +451,4 @@ VMs. A block is a handful of files every two hours, so the volume stays small
 in files. Grafana keeps nothing.
 
 [vault-write]: https://github.com/0xc0-labs/vault/blob/main/README.md#writing-or-rotating-a-secret
+[auction-views]: ../auction-watch/README.md#the-views

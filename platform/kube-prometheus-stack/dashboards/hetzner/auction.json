@@ -1,0 +1,1847 @@
+{
+  "uid": "hetzner-auction",
+  "title": "Hetzner auction",
+  "description": "Hetzner's server auction as the auction watcher records it, read from its views (README, Hetzner auction).",
+  "id": null,
+  "tags": [
+    "0xc0",
+    "hetzner",
+    "auction"
+  ],
+  "time": {
+    "from": "now-90d",
+    "to": "now"
+  },
+  "refresh": "5m",
+  "links": [],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "templating": {
+    "list": []
+  },
+  "graphTooltip": 0,
+  "schemaVersion": 41,
+  "editable": false,
+  "timezone": "utc",
+  "fiscalYearStartMonth": 0,
+  "weekStart": "",
+  "liveNow": null,
+  "panels": [
+    {
+      "type": "volkovlabs-echarts-panel",
+      "title": "",
+      "description": "The auction watcher's views, through the data source Hetzner auction (README, Hetzner auction); their columns are described in platform/auction-watch/README.md. Every view is asked here, once a refresh, and the other blocks read these frames. Live now: offers in the feed. One card per limit of rules.json: the cheapest live offer of its shape (RAM and NVMe), green with \u25bc when it is under the limit, otherwise how far over; and how many live offers have that shape. Met the limits: offers that went in the last 7 days at a price that met each limit. 64 GB NVMe, median today: the median price of the 64 GB offers with NVMe that went today, a UTC day. Feed: how long since the watcher last saw the feed answer, fresh under 2 minutes, late under 15, stale past that.",
+      "transparent": true,
+      "id": 1,
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        },
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst OK = '#34D399', WARN = '#FBBF24', CRIT = '#FB7185';\nconst num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));\n// Each view is one query of the strip, its refId the view's name (README, Hetzner auction): view[name] is its rows,\n// and a view that failed or never came is undefined, so its block says so instead of drawing a zero.\nconst failed = {};\n(context.panel.data.errors || []).forEach((e) => { if (e && e.refId) failed[e.refId] = true; });\nconst view = {};\nfor (const f of context.panel.data.series || []) {\n  const name = f.refId || f.name;\n  if (!name || failed[name]) continue;\n  const len = f.fields.length ? f.fields[0].values.length : 0;\n  const rows = view[name] || [];\n  for (let i = 0; i < len; i++) {\n    const r = {};\n    f.fields.forEach((x) => { r[x.name] = x.values[i]; });\n    rows.push(r);\n  }\n  view[name] = rows;\n}\nconst range = context.panel.data.timeRange;\nconst to = range ? range.to.valueOf() : Date.now();\nconst from = range ? range.from.valueOf() : to - 90 * 86400e3;\nconst DAY = 86400e3;\n// A day is a UTC day; it is in the range when any of it is.\nconst dayOf = (d) => Date.parse(d + 'T00:00:00Z');\nconst inRange = (rows) => rows.filter((r) => { const t = dayOf(r.day); return t + DAY > from && t <= to; })\n  .sort((a, b) => dayOf(a.day) - dayOf(b.day));\nconst span = (() => { const d = (to - from) / DAY; return d < 2 ? Math.round(d * 24) + ' h' : Math.round(d) + ' d'; })();\nconst count = (v) => Math.round(v).toLocaleString('en-US');\nconst price = (v) => (v === null ? '\u2014' : String(+v.toFixed(1)));\nconst eur = (v) => (v === null ? '\u2014' : price(v) + ' EUR');\nconst dur = (s) => (s === null ? '\u2014' : s < 60 ? Math.round(s) + ' s' : s < 3600 ? Math.round(s / 60) + ' min'\n  : s < 172800 ? +(s / 3600).toFixed(s < 36000 ? 1 : 0) + ' h' : +(s / 86400).toFixed(s < 864000 ? 1 : 0) + ' d');\nconst MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];\nconst dayLabel = (t) => { const d = new Date(t); return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()]; };\n// A limit's shape, short: \"64 GB+ NVMe\".\nconst shapeOf = (r) => num(r.min_ram_gb) + ' GB+' + (String(r.nvme_required) === 'true' ? ' NVMe' : '');\nconst chart = context.panel.chart;\nconst CW = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst CH = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\nconst empty = (text) => ({ backgroundColor: 'transparent', title: { text, left: 'center', top: 'middle',\n  textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } });\nconst missing = (name) => empty('the view ' + name + ' did not answer');\nconst TIP = { backgroundColor: '#10151C', borderColor: '#1F2733', textStyle: { color: '#E7ECF3', fontSize: 12 } };\nconst AXIS_LABEL = { color: '#8D99AB', fontFamily: MONO, fontSize: 10, hideOverlap: true };\nconst timeAxis = (extra) => Object.assign({ type: 'time', min: Math.floor(from / DAY) * DAY, max: to,\n  axisLine: { lineStyle: { color: '#1F2733' } }, axisTick: { show: false }, splitLine: { show: false },\n  axisLabel: Object.assign({ formatter: (t) => dayLabel(t) }, AXIS_LABEL) }, extra || {});\nconst valueAxis = (extra) => Object.assign({ type: 'value', min: 0, splitNumber: 4,\n  splitLine: { lineStyle: { color: '#1F2733' } }, axisLabel: AXIS_LABEL }, extra || {});\n// A plain legend wraps where a scroll legend would page and hide series: the grid starts below its last line.\nconst legendTop = (names) => {\n  let rows = 1, line = 0;\n  names.forEach((n) => {\n    const w = 13 + n.length * 7.4;\n    if (CW && line && line + 16 + w > CW) { rows += 1; line = w; } else line += (line ? 16 : 0) + w;\n  });\n  return 34 + (rows - 1) * 22;\n};\nconst LEGEND = { type: 'plain', top: 0, left: 0, right: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, itemGap: 16,\n  textStyle: { color: '#C9D2DE', fontFamily: MONO, fontSize: 12 } };\n\nconst surface = (x, w, h) => ({ type: 'rect', left: x, top: 0, z: -1, silent: true,\n  shape: { width: w, height: h - 1, r: 14 }, style: { fill: '#10151C', stroke: '#1F2733', lineWidth: 1 } });\nconst label = (x, y, text, w) => ({ type: 'text', left: x, top: y, silent: true,\n  style: { text: String(text).toUpperCase(), fill: '#8D99AB', font: '600 11px Inter, sans-serif', width: Math.max(10, w), overflow: 'truncate', ellipsis: '\u2026' } });\n\nconst cards = [];\nconst s = view.summary && view.summary[0];\nif (s) {\n  const live = num(s.live) || 0;\n  cards.push({ label: 'Live now', value: [count(live), live === 1 ? 'offer' : 'offers'],\n    sub: count(num(s.kinds) || 0) + ' kinds \u00b7 ' + count(num(s.days) || 0) + ' d kept' });\n} else cards.push({ label: 'Live now', value: null, sub: view.summary ? 'no record yet' : 'the view did not answer' });\n\nconst limits = view.limits;\nif (limits && limits.length) {\n  limits.forEach((r) => {\n    const max = num(r.max_price_eur), low = num(r.cheapest_live_eur);\n    const under = low !== null && max !== null && low < max;\n    cards.push({ label: shapeOf(r) + ' \u00b7 ' + count(num(r.live_of_that_shape) || 0) + ' live',\n      value: low === null ? null : [price(low), 'EUR \u00b7 limit ' + price(max)],\n      colour: under ? OK : null,\n      sub: low === null ? 'none live of that shape' : under ? '\u25bc under the limit' : price(low - max) + ' EUR over the limit',\n      subColour: under ? OK : null });\n  });\n  cards.push({ label: 'Met the limits \u00b7 7 d', value: [limits.map((r) => count(num(r.met_last_7_days) || 0)).join(' \u00b7 '), ''],\n    sub: limits.map((r) => num(r.min_ram_gb) + ' GB').join(' \u00b7 ') });\n} else cards.push({ label: 'Limits', value: null, sub: limits ? 'no limit in rules.json' : 'the view did not answer' });\n\nconst today = new Date(to).toISOString().slice(0, 10);\nconst g = view.groups_daily ? view.groups_daily.find((r) => r.group === '64 GB with NVMe' && r.day === today) : null;\nconst med = g ? num(g.median_eur) : null;\ncards.push({ label: '64 GB NVMe \u00b7 median today', value: med === null ? null : [price(med), 'EUR'],\n  sub: !view.groups_daily ? 'the view did not answer' : med === null ? 'none went today'\n    : count(num(g.offers) || 0) + ' went \u00b7 lowest ' + price(num(g.lowest_eur)) });\n\nconst age = s ? num(s.feed_age_seconds) : null;\nconst ageState = age === null ? null : age < 120 ? ['\u25cf fresh', OK] : age < 900 ? ['\u25cf late', WARN] : ['\u25cf stale', CRIT];\nconst readAt = s && s.feed_read_at ? new Date(Date.parse(s.feed_read_at)).toISOString().slice(11, 16) + ' UTC' : null;\ncards.push({ label: 'Feed', value: age === null ? null : [dur(age).split(' ')[0], dur(age).split(' ')[1] + ' old'],\n  colour: ageState ? ageState[1] : null,\n  sub: ageState ? ageState[0] + (readAt ? ' \u00b7 read ' + readAt : '') : view.summary ? 'never read' : 'the view did not answer',\n  subColour: ageState ? ageState[1] : null });\n\nconst n = cards.length;\nconst gap = 12;\nconst cw = CW ? (CW - gap * (n - 1)) / n : 0;\nconst graphic = [];\ncards.forEach((c, i) => {\n  const x = i * (cw + gap);\n  const fit = { width: Math.max(10, cw - 32), overflow: 'truncate', ellipsis: '\u2026' };\n  const v = c.value;\n  const colour = v === null ? '#8D99AB' : c.colour || '#E7ECF3';\n  graphic.push(surface(x, cw, CH));\n  graphic.push(label(x + 16, 12, c.label, cw - 32));\n  graphic.push({ type: 'text', left: x + 16, top: 28, silent: true,\n    style: { text: '{v|' + (v ? v[0] : '\u2014') + '}' + (v && v[1] ? '{u| ' + v[1] + '}' : ''),\n      rich: { v: { fill: colour, font: '600 30px ' + MONO }, u: { fill: '#8D99AB', font: '13px ' + MONO, padding: [12, 0, 0, 4] } } } });\n  graphic.push({ type: 'text', left: x + 16, top: 68, silent: true,\n    style: Object.assign({ text: c.sub, fill: c.subColour || '#8D99AB', font: '12px ' + MONO }, fit) });\n});\nreturn { backgroundColor: 'transparent', animation: false, graphic };\n"
+      },
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "hetzner-auction"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "hetzner-auction"
+          },
+          "refId": "summary",
+          "type": "csv",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "/views/summary.csv",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "record_from",
+              "text": "record_from",
+              "type": "string"
+            },
+            {
+              "selector": "record_to",
+              "text": "record_to",
+              "type": "string"
+            },
+            {
+              "selector": "days",
+              "text": "days",
+              "type": "number"
+            },
+            {
+              "selector": "offers",
+              "text": "offers",
+              "type": "number"
+            },
+            {
+              "selector": "offers_from_seed",
+              "text": "offers_from_seed",
+              "type": "number"
+            },
+            {
+              "selector": "kinds",
+              "text": "kinds",
+              "type": "number"
+            },
+            {
+              "selector": "live",
+              "text": "live",
+              "type": "number"
+            },
+            {
+              "selector": "feed_read_at",
+              "text": "feed_read_at",
+              "type": "string"
+            },
+            {
+              "selector": "feed_age_seconds",
+              "text": "feed_age_seconds",
+              "type": "number"
+            }
+          ],
+          "filters": []
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "hetzner-auction"
+          },
+          "refId": "limits",
+          "type": "csv",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "/views/limits.csv",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "name",
+              "text": "name",
+              "type": "string"
+            },
+            {
+              "selector": "min_ram_gb",
+              "text": "min_ram_gb",
+              "type": "number"
+            },
+            {
+              "selector": "nvme_required",
+              "text": "nvme_required",
+              "type": "string"
+            },
+            {
+              "selector": "max_price_eur",
+              "text": "max_price_eur",
+              "type": "number"
+            },
+            {
+              "selector": "live_of_that_shape",
+              "text": "live_of_that_shape",
+              "type": "number"
+            },
+            {
+              "selector": "cheapest_live_eur",
+              "text": "cheapest_live_eur",
+              "type": "number"
+            },
+            {
+              "selector": "live_under_limit",
+              "text": "live_under_limit",
+              "type": "number"
+            },
+            {
+              "selector": "met_last_7_days",
+              "text": "met_last_7_days",
+              "type": "number"
+            },
+            {
+              "selector": "met_last_30_days",
+              "text": "met_last_30_days",
+              "type": "number"
+            }
+          ],
+          "filters": []
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "hetzner-auction"
+          },
+          "refId": "groups_daily",
+          "type": "csv",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "/views/groups-daily.csv",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "day",
+              "text": "day",
+              "type": "string"
+            },
+            {
+              "selector": "group",
+              "text": "group",
+              "type": "string"
+            },
+            {
+              "selector": "offers",
+              "text": "offers",
+              "type": "number"
+            },
+            {
+              "selector": "median_eur",
+              "text": "median_eur",
+              "type": "number"
+            },
+            {
+              "selector": "lowest_eur",
+              "text": "lowest_eur",
+              "type": "number"
+            },
+            {
+              "selector": "live_at_end_of_day",
+              "text": "live_at_end_of_day",
+              "type": "number"
+            }
+          ],
+          "filters": []
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "hetzner-auction"
+          },
+          "refId": "flow_daily",
+          "type": "csv",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "/views/flow-daily.csv",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "day",
+              "text": "day",
+              "type": "string"
+            },
+            {
+              "selector": "appeared",
+              "text": "appeared",
+              "type": "number"
+            },
+            {
+              "selector": "gone",
+              "text": "gone",
+              "type": "number"
+            },
+            {
+              "selector": "live_at_end_of_day",
+              "text": "live_at_end_of_day",
+              "type": "number"
+            }
+          ],
+          "filters": []
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "hetzner-auction"
+          },
+          "refId": "limits_daily",
+          "type": "csv",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "/views/limits-daily.csv",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "day",
+              "text": "day",
+              "type": "string"
+            },
+            {
+              "selector": "limit",
+              "text": "limit",
+              "type": "string"
+            },
+            {
+              "selector": "offers",
+              "text": "offers",
+              "type": "number"
+            },
+            {
+              "selector": "lowest_eur",
+              "text": "lowest_eur",
+              "type": "number"
+            },
+            {
+              "selector": "shape_offers",
+              "text": "shape_offers",
+              "type": "number"
+            },
+            {
+              "selector": "lowest_of_shape_eur",
+              "text": "lowest_of_shape_eur",
+              "type": "number"
+            }
+          ],
+          "filters": []
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "hetzner-auction"
+          },
+          "refId": "lifetimes",
+          "type": "csv",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "/views/lifetimes.csv",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "group",
+              "text": "group",
+              "type": "string"
+            },
+            {
+              "selector": "offers",
+              "text": "offers",
+              "type": "number"
+            },
+            {
+              "selector": "half_within_seconds",
+              "text": "half_within_seconds",
+              "type": "number"
+            },
+            {
+              "selector": "three_quarters_within_seconds",
+              "text": "three_quarters_within_seconds",
+              "type": "number"
+            },
+            {
+              "selector": "slowest_seconds",
+              "text": "slowest_seconds",
+              "type": "number"
+            },
+            {
+              "selector": "under_two_minutes",
+              "text": "under_two_minutes",
+              "type": "number"
+            },
+            {
+              "selector": "live",
+              "text": "live",
+              "type": "number"
+            },
+            {
+              "selector": "section",
+              "text": "section",
+              "type": "string"
+            }
+          ],
+          "filters": []
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "hetzner-auction"
+          },
+          "refId": "live",
+          "type": "csv",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "/views/live.csv",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "id",
+              "text": "id",
+              "type": "string"
+            },
+            {
+              "selector": "cpu",
+              "text": "cpu",
+              "type": "string"
+            },
+            {
+              "selector": "ram_gb",
+              "text": "ram_gb",
+              "type": "number"
+            },
+            {
+              "selector": "nvme_gb",
+              "text": "nvme_gb",
+              "type": "number"
+            },
+            {
+              "selector": "sata_gb",
+              "text": "sata_gb",
+              "type": "number"
+            },
+            {
+              "selector": "hdd_gb",
+              "text": "hdd_gb",
+              "type": "number"
+            },
+            {
+              "selector": "gpu",
+              "text": "gpu",
+              "type": "string"
+            },
+            {
+              "selector": "ecc",
+              "text": "ecc",
+              "type": "string"
+            },
+            {
+              "selector": "datacenter",
+              "text": "datacenter",
+              "type": "string"
+            },
+            {
+              "selector": "price_eur",
+              "text": "price_eur",
+              "type": "number"
+            },
+            {
+              "selector": "first_seen",
+              "text": "first_seen",
+              "type": "string"
+            },
+            {
+              "selector": "age_seconds",
+              "text": "age_seconds",
+              "type": "number"
+            },
+            {
+              "selector": "baseline_eur",
+              "text": "baseline_eur",
+              "type": "number"
+            },
+            {
+              "selector": "under_baseline_pct",
+              "text": "under_baseline_pct",
+              "type": "number"
+            },
+            {
+              "selector": "limit",
+              "text": "limit",
+              "type": "string"
+            },
+            {
+              "selector": "url",
+              "text": "url",
+              "type": "string"
+            },
+            {
+              "selector": "kind",
+              "text": "kind",
+              "type": "string"
+            }
+          ],
+          "filters": []
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "hetzner-auction"
+          },
+          "refId": "kinds",
+          "type": "csv",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "/views/kinds.csv",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "kind",
+              "text": "kind",
+              "type": "string"
+            },
+            {
+              "selector": "cpu",
+              "text": "cpu",
+              "type": "string"
+            },
+            {
+              "selector": "ram_gb",
+              "text": "ram_gb",
+              "type": "number"
+            },
+            {
+              "selector": "baseline_eur",
+              "text": "baseline_eur",
+              "type": "number"
+            },
+            {
+              "selector": "offers_in_window",
+              "text": "offers_in_window",
+              "type": "number"
+            },
+            {
+              "selector": "live",
+              "text": "live",
+              "type": "number"
+            },
+            {
+              "selector": "cheapest_live_eur",
+              "text": "cheapest_live_eur",
+              "type": "number"
+            }
+          ],
+          "filters": []
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "hetzner-auction"
+          },
+          "refId": "datacenters",
+          "type": "csv",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "/views/datacenters.csv",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "datacenter",
+              "text": "datacenter",
+              "type": "string"
+            },
+            {
+              "selector": "live",
+              "text": "live",
+              "type": "number"
+            },
+            {
+              "selector": "median_live_eur",
+              "text": "median_live_eur",
+              "type": "number"
+            },
+            {
+              "selector": "gone_last_30_days",
+              "text": "gone_last_30_days",
+              "type": "number"
+            },
+            {
+              "selector": "median_gone_last_30_days_eur",
+              "text": "median_gone_last_30_days_eur",
+              "type": "number"
+            }
+          ],
+          "filters": []
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Prices \u00b7 EUR a month, without VAT",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 3
+      },
+      "collapsed": false,
+      "panels": [],
+      "id": 2
+    },
+    {
+      "type": "volkovlabs-echarts-panel",
+      "title": "64 GB \u00b7 median and lowest a day",
+      "description": "Each UTC day, the median and the lowest price of the 64 GB offers that went that day, with NVMe (cyan) and without (violet): the median solid, the lowest dashed (groups-daily). A day when none went is a gap. The dashed grey line is the operator's limit for 64 GB (limits).",
+      "transparent": true,
+      "id": 3,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        },
+        "getOption": "const SIZE = 64;\nconst MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst OK = '#34D399', WARN = '#FBBF24', CRIT = '#FB7185';\nconst num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));\n// Each view is one query of the strip, its refId the view's name (README, Hetzner auction): view[name] is its rows,\n// and a view that failed or never came is undefined, so its block says so instead of drawing a zero.\nconst failed = {};\n(context.panel.data.errors || []).forEach((e) => { if (e && e.refId) failed[e.refId] = true; });\nconst view = {};\nfor (const f of context.panel.data.series || []) {\n  const name = f.refId || f.name;\n  if (!name || failed[name]) continue;\n  const len = f.fields.length ? f.fields[0].values.length : 0;\n  const rows = view[name] || [];\n  for (let i = 0; i < len; i++) {\n    const r = {};\n    f.fields.forEach((x) => { r[x.name] = x.values[i]; });\n    rows.push(r);\n  }\n  view[name] = rows;\n}\nconst range = context.panel.data.timeRange;\nconst to = range ? range.to.valueOf() : Date.now();\nconst from = range ? range.from.valueOf() : to - 90 * 86400e3;\nconst DAY = 86400e3;\n// A day is a UTC day; it is in the range when any of it is.\nconst dayOf = (d) => Date.parse(d + 'T00:00:00Z');\nconst inRange = (rows) => rows.filter((r) => { const t = dayOf(r.day); return t + DAY > from && t <= to; })\n  .sort((a, b) => dayOf(a.day) - dayOf(b.day));\nconst span = (() => { const d = (to - from) / DAY; return d < 2 ? Math.round(d * 24) + ' h' : Math.round(d) + ' d'; })();\nconst count = (v) => Math.round(v).toLocaleString('en-US');\nconst price = (v) => (v === null ? '\u2014' : String(+v.toFixed(1)));\nconst eur = (v) => (v === null ? '\u2014' : price(v) + ' EUR');\nconst dur = (s) => (s === null ? '\u2014' : s < 60 ? Math.round(s) + ' s' : s < 3600 ? Math.round(s / 60) + ' min'\n  : s < 172800 ? +(s / 3600).toFixed(s < 36000 ? 1 : 0) + ' h' : +(s / 86400).toFixed(s < 864000 ? 1 : 0) + ' d');\nconst MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];\nconst dayLabel = (t) => { const d = new Date(t); return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()]; };\n// A limit's shape, short: \"64 GB+ NVMe\".\nconst shapeOf = (r) => num(r.min_ram_gb) + ' GB+' + (String(r.nvme_required) === 'true' ? ' NVMe' : '');\nconst chart = context.panel.chart;\nconst CW = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst CH = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\nconst empty = (text) => ({ backgroundColor: 'transparent', title: { text, left: 'center', top: 'middle',\n  textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } });\nconst missing = (name) => empty('the view ' + name + ' did not answer');\nconst TIP = { backgroundColor: '#10151C', borderColor: '#1F2733', textStyle: { color: '#E7ECF3', fontSize: 12 } };\nconst AXIS_LABEL = { color: '#8D99AB', fontFamily: MONO, fontSize: 10, hideOverlap: true };\nconst timeAxis = (extra) => Object.assign({ type: 'time', min: Math.floor(from / DAY) * DAY, max: to,\n  axisLine: { lineStyle: { color: '#1F2733' } }, axisTick: { show: false }, splitLine: { show: false },\n  axisLabel: Object.assign({ formatter: (t) => dayLabel(t) }, AXIS_LABEL) }, extra || {});\nconst valueAxis = (extra) => Object.assign({ type: 'value', min: 0, splitNumber: 4,\n  splitLine: { lineStyle: { color: '#1F2733' } }, axisLabel: AXIS_LABEL }, extra || {});\n// A plain legend wraps where a scroll legend would page and hide series: the grid starts below its last line.\nconst legendTop = (names) => {\n  let rows = 1, line = 0;\n  names.forEach((n) => {\n    const w = 13 + n.length * 7.4;\n    if (CW && line && line + 16 + w > CW) { rows += 1; line = w; } else line += (line ? 16 : 0) + w;\n  });\n  return 34 + (rows - 1) * 22;\n};\nconst LEGEND = { type: 'plain', top: 0, left: 0, right: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, itemGap: 16,\n  textStyle: { color: '#C9D2DE', fontFamily: MONO, fontSize: 12 } };\n\nif (!view.groups_daily) return missing('groups-daily');\nconst rows = inRange(view.groups_daily);\nconst limit = (view.limits || []).find((r) => num(r.min_ram_gb) === SIZE);\nconst max = limit ? num(limit.max_price_eur) : null;\n// With NVMe cyan, without violet; the median solid, the lowest dashed. A day when none went is a gap.\nconst GROUPS = [['with NVMe', 'NVMe', '#7DD3FC'], ['without NVMe', 'no NVMe', '#C4B5FD']];\nconst series = [];\nlet points = 0;\nGROUPS.forEach(([shape, short, colour]) => {\n  const list = rows.filter((r) => r.group === SIZE + ' GB ' + shape);\n  [['median', 'median_eur', 'solid', 2], ['lowest', 'lowest_eur', [4, 3], 1.2]].forEach(([what, col, type, width]) => {\n    const data = list.map((r) => [dayOf(r.day), num(r[col]), num(r.offers) || 0]);\n    points += data.filter((p) => p[1] !== null).length;\n    series.push({ name: what + ' \u00b7 ' + short, type: 'line', data, showSymbol: true, symbolSize: 3, connectNulls: false,\n      lineStyle: { width, type, color: colour }, itemStyle: { color: colour } });\n  });\n});\nif (!points) return empty('no ' + SIZE + ' GB offers went in ' + span);\nif (max !== null) series[0].markLine = { silent: true, symbol: 'none', data: [{ yAxis: max }],\n  lineStyle: { color: '#C9D2DE', type: [6, 4], width: 1 },\n  label: { formatter: 'limit ' + price(max), position: 'insideEndTop', color: '#C9D2DE', fontFamily: MONO, fontSize: 11 } };\nreturn {\n  backgroundColor: 'transparent', animation: false,\n  legend: LEGEND,\n  grid: { left: 44, right: 16, top: legendTop(series.map((s) => s.name)), bottom: 28 },\n  tooltip: Object.assign({ trigger: 'axis', axisPointer: { type: 'line', lineStyle: { color: '#1F2733' } },\n    formatter: (ps) => dayLabel(ps[0].value[0]) + ', what went that day<br/>' + ps.filter((p) => p.value[1] !== null)\n      .map((p) => p.marker + p.seriesName + ' ' + eur(p.value[1]) + (p.seriesName.indexOf('median') === 0 ? ' \u00b7 ' + count(p.value[2]) + ' went' : '')).join('<br/>')\n      + (max !== null ? '<br/>limit ' + eur(max) : '') }, TIP),\n  xAxis: timeAxis(),\n  yAxis: valueAxis({ max: (v) => Math.ceil((Math.max(v.max, max || 0) * 1.08) / 10) * 10 }),\n  series,\n};\n"
+      },
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Dashboard --"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "-- Dashboard --"
+          },
+          "panelId": 1,
+          "refId": "A",
+          "withTransforms": false
+        }
+      ]
+    },
+    {
+      "type": "volkovlabs-echarts-panel",
+      "title": "128 GB \u00b7 median and lowest a day",
+      "description": "Each UTC day, the median and the lowest price of the 128 GB offers that went that day, with NVMe (cyan) and without (violet): the median solid, the lowest dashed (groups-daily). A day when none went is a gap. The dashed grey line is the operator's limit for 128 GB (limits).",
+      "transparent": true,
+      "id": 4,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        },
+        "getOption": "const SIZE = 128;\nconst MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst OK = '#34D399', WARN = '#FBBF24', CRIT = '#FB7185';\nconst num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));\n// Each view is one query of the strip, its refId the view's name (README, Hetzner auction): view[name] is its rows,\n// and a view that failed or never came is undefined, so its block says so instead of drawing a zero.\nconst failed = {};\n(context.panel.data.errors || []).forEach((e) => { if (e && e.refId) failed[e.refId] = true; });\nconst view = {};\nfor (const f of context.panel.data.series || []) {\n  const name = f.refId || f.name;\n  if (!name || failed[name]) continue;\n  const len = f.fields.length ? f.fields[0].values.length : 0;\n  const rows = view[name] || [];\n  for (let i = 0; i < len; i++) {\n    const r = {};\n    f.fields.forEach((x) => { r[x.name] = x.values[i]; });\n    rows.push(r);\n  }\n  view[name] = rows;\n}\nconst range = context.panel.data.timeRange;\nconst to = range ? range.to.valueOf() : Date.now();\nconst from = range ? range.from.valueOf() : to - 90 * 86400e3;\nconst DAY = 86400e3;\n// A day is a UTC day; it is in the range when any of it is.\nconst dayOf = (d) => Date.parse(d + 'T00:00:00Z');\nconst inRange = (rows) => rows.filter((r) => { const t = dayOf(r.day); return t + DAY > from && t <= to; })\n  .sort((a, b) => dayOf(a.day) - dayOf(b.day));\nconst span = (() => { const d = (to - from) / DAY; return d < 2 ? Math.round(d * 24) + ' h' : Math.round(d) + ' d'; })();\nconst count = (v) => Math.round(v).toLocaleString('en-US');\nconst price = (v) => (v === null ? '\u2014' : String(+v.toFixed(1)));\nconst eur = (v) => (v === null ? '\u2014' : price(v) + ' EUR');\nconst dur = (s) => (s === null ? '\u2014' : s < 60 ? Math.round(s) + ' s' : s < 3600 ? Math.round(s / 60) + ' min'\n  : s < 172800 ? +(s / 3600).toFixed(s < 36000 ? 1 : 0) + ' h' : +(s / 86400).toFixed(s < 864000 ? 1 : 0) + ' d');\nconst MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];\nconst dayLabel = (t) => { const d = new Date(t); return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()]; };\n// A limit's shape, short: \"64 GB+ NVMe\".\nconst shapeOf = (r) => num(r.min_ram_gb) + ' GB+' + (String(r.nvme_required) === 'true' ? ' NVMe' : '');\nconst chart = context.panel.chart;\nconst CW = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst CH = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\nconst empty = (text) => ({ backgroundColor: 'transparent', title: { text, left: 'center', top: 'middle',\n  textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } });\nconst missing = (name) => empty('the view ' + name + ' did not answer');\nconst TIP = { backgroundColor: '#10151C', borderColor: '#1F2733', textStyle: { color: '#E7ECF3', fontSize: 12 } };\nconst AXIS_LABEL = { color: '#8D99AB', fontFamily: MONO, fontSize: 10, hideOverlap: true };\nconst timeAxis = (extra) => Object.assign({ type: 'time', min: Math.floor(from / DAY) * DAY, max: to,\n  axisLine: { lineStyle: { color: '#1F2733' } }, axisTick: { show: false }, splitLine: { show: false },\n  axisLabel: Object.assign({ formatter: (t) => dayLabel(t) }, AXIS_LABEL) }, extra || {});\nconst valueAxis = (extra) => Object.assign({ type: 'value', min: 0, splitNumber: 4,\n  splitLine: { lineStyle: { color: '#1F2733' } }, axisLabel: AXIS_LABEL }, extra || {});\n// A plain legend wraps where a scroll legend would page and hide series: the grid starts below its last line.\nconst legendTop = (names) => {\n  let rows = 1, line = 0;\n  names.forEach((n) => {\n    const w = 13 + n.length * 7.4;\n    if (CW && line && line + 16 + w > CW) { rows += 1; line = w; } else line += (line ? 16 : 0) + w;\n  });\n  return 34 + (rows - 1) * 22;\n};\nconst LEGEND = { type: 'plain', top: 0, left: 0, right: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, itemGap: 16,\n  textStyle: { color: '#C9D2DE', fontFamily: MONO, fontSize: 12 } };\n\nif (!view.groups_daily) return missing('groups-daily');\nconst rows = inRange(view.groups_daily);\nconst limit = (view.limits || []).find((r) => num(r.min_ram_gb) === SIZE);\nconst max = limit ? num(limit.max_price_eur) : null;\n// With NVMe cyan, without violet; the median solid, the lowest dashed. A day when none went is a gap.\nconst GROUPS = [['with NVMe', 'NVMe', '#7DD3FC'], ['without NVMe', 'no NVMe', '#C4B5FD']];\nconst series = [];\nlet points = 0;\nGROUPS.forEach(([shape, short, colour]) => {\n  const list = rows.filter((r) => r.group === SIZE + ' GB ' + shape);\n  [['median', 'median_eur', 'solid', 2], ['lowest', 'lowest_eur', [4, 3], 1.2]].forEach(([what, col, type, width]) => {\n    const data = list.map((r) => [dayOf(r.day), num(r[col]), num(r.offers) || 0]);\n    points += data.filter((p) => p[1] !== null).length;\n    series.push({ name: what + ' \u00b7 ' + short, type: 'line', data, showSymbol: true, symbolSize: 3, connectNulls: false,\n      lineStyle: { width, type, color: colour }, itemStyle: { color: colour } });\n  });\n});\nif (!points) return empty('no ' + SIZE + ' GB offers went in ' + span);\nif (max !== null) series[0].markLine = { silent: true, symbol: 'none', data: [{ yAxis: max }],\n  lineStyle: { color: '#C9D2DE', type: [6, 4], width: 1 },\n  label: { formatter: 'limit ' + price(max), position: 'insideEndTop', color: '#C9D2DE', fontFamily: MONO, fontSize: 11 } };\nreturn {\n  backgroundColor: 'transparent', animation: false,\n  legend: LEGEND,\n  grid: { left: 44, right: 16, top: legendTop(series.map((s) => s.name)), bottom: 28 },\n  tooltip: Object.assign({ trigger: 'axis', axisPointer: { type: 'line', lineStyle: { color: '#1F2733' } },\n    formatter: (ps) => dayLabel(ps[0].value[0]) + ', what went that day<br/>' + ps.filter((p) => p.value[1] !== null)\n      .map((p) => p.marker + p.seriesName + ' ' + eur(p.value[1]) + (p.seriesName.indexOf('median') === 0 ? ' \u00b7 ' + count(p.value[2]) + ' went' : '')).join('<br/>')\n      + (max !== null ? '<br/>limit ' + eur(max) : '') }, TIP),\n  xAxis: timeAxis(),\n  yAxis: valueAxis({ max: (v) => Math.ceil((Math.max(v.max, max || 0) * 1.08) / 10) * 10 }),\n  series,\n};\n"
+      },
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Dashboard --"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "-- Dashboard --"
+          },
+          "panelId": 1,
+          "refId": "A",
+          "withTransforms": false
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Bargains",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 13
+      },
+      "collapsed": false,
+      "panels": [],
+      "id": 5
+    },
+    {
+      "type": "volkovlabs-echarts-panel",
+      "title": "64 GB \u00b7 under the limit a day",
+      "description": "Each UTC day, how many offers went at a price that met the 64 GB limit (bars), and the lowest price an offer of its shape went for, whatever its price (line), against the limit (dashed). From limits-daily.",
+      "transparent": true,
+      "id": 6,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 14
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        },
+        "getOption": "const SIZE = 64;\nconst MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst OK = '#34D399', WARN = '#FBBF24', CRIT = '#FB7185';\nconst num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));\n// Each view is one query of the strip, its refId the view's name (README, Hetzner auction): view[name] is its rows,\n// and a view that failed or never came is undefined, so its block says so instead of drawing a zero.\nconst failed = {};\n(context.panel.data.errors || []).forEach((e) => { if (e && e.refId) failed[e.refId] = true; });\nconst view = {};\nfor (const f of context.panel.data.series || []) {\n  const name = f.refId || f.name;\n  if (!name || failed[name]) continue;\n  const len = f.fields.length ? f.fields[0].values.length : 0;\n  const rows = view[name] || [];\n  for (let i = 0; i < len; i++) {\n    const r = {};\n    f.fields.forEach((x) => { r[x.name] = x.values[i]; });\n    rows.push(r);\n  }\n  view[name] = rows;\n}\nconst range = context.panel.data.timeRange;\nconst to = range ? range.to.valueOf() : Date.now();\nconst from = range ? range.from.valueOf() : to - 90 * 86400e3;\nconst DAY = 86400e3;\n// A day is a UTC day; it is in the range when any of it is.\nconst dayOf = (d) => Date.parse(d + 'T00:00:00Z');\nconst inRange = (rows) => rows.filter((r) => { const t = dayOf(r.day); return t + DAY > from && t <= to; })\n  .sort((a, b) => dayOf(a.day) - dayOf(b.day));\nconst span = (() => { const d = (to - from) / DAY; return d < 2 ? Math.round(d * 24) + ' h' : Math.round(d) + ' d'; })();\nconst count = (v) => Math.round(v).toLocaleString('en-US');\nconst price = (v) => (v === null ? '\u2014' : String(+v.toFixed(1)));\nconst eur = (v) => (v === null ? '\u2014' : price(v) + ' EUR');\nconst dur = (s) => (s === null ? '\u2014' : s < 60 ? Math.round(s) + ' s' : s < 3600 ? Math.round(s / 60) + ' min'\n  : s < 172800 ? +(s / 3600).toFixed(s < 36000 ? 1 : 0) + ' h' : +(s / 86400).toFixed(s < 864000 ? 1 : 0) + ' d');\nconst MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];\nconst dayLabel = (t) => { const d = new Date(t); return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()]; };\n// A limit's shape, short: \"64 GB+ NVMe\".\nconst shapeOf = (r) => num(r.min_ram_gb) + ' GB+' + (String(r.nvme_required) === 'true' ? ' NVMe' : '');\nconst chart = context.panel.chart;\nconst CW = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst CH = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\nconst empty = (text) => ({ backgroundColor: 'transparent', title: { text, left: 'center', top: 'middle',\n  textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } });\nconst missing = (name) => empty('the view ' + name + ' did not answer');\nconst TIP = { backgroundColor: '#10151C', borderColor: '#1F2733', textStyle: { color: '#E7ECF3', fontSize: 12 } };\nconst AXIS_LABEL = { color: '#8D99AB', fontFamily: MONO, fontSize: 10, hideOverlap: true };\nconst timeAxis = (extra) => Object.assign({ type: 'time', min: Math.floor(from / DAY) * DAY, max: to,\n  axisLine: { lineStyle: { color: '#1F2733' } }, axisTick: { show: false }, splitLine: { show: false },\n  axisLabel: Object.assign({ formatter: (t) => dayLabel(t) }, AXIS_LABEL) }, extra || {});\nconst valueAxis = (extra) => Object.assign({ type: 'value', min: 0, splitNumber: 4,\n  splitLine: { lineStyle: { color: '#1F2733' } }, axisLabel: AXIS_LABEL }, extra || {});\n// A plain legend wraps where a scroll legend would page and hide series: the grid starts below its last line.\nconst legendTop = (names) => {\n  let rows = 1, line = 0;\n  names.forEach((n) => {\n    const w = 13 + n.length * 7.4;\n    if (CW && line && line + 16 + w > CW) { rows += 1; line = w; } else line += (line ? 16 : 0) + w;\n  });\n  return 34 + (rows - 1) * 22;\n};\nconst LEGEND = { type: 'plain', top: 0, left: 0, right: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, itemGap: 16,\n  textStyle: { color: '#C9D2DE', fontFamily: MONO, fontSize: 12 } };\n\nif (!view.limits) return missing('limits');\nif (!view.limits_daily) return missing('limits-daily');\nconst limit = view.limits.find((r) => num(r.min_ram_gb) === SIZE);\nif (!limit) return empty('no limit for ' + SIZE + ' GB in rules.json');\nconst max = num(limit.max_price_eur);\nconst rows = inRange(view.limits_daily.filter((r) => r.limit === limit.name));\nif (!rows.length) return empty('no offers in ' + span);\nconst met = rows.map((r) => [dayOf(r.day), num(r.offers) || 0]);\nconst lowest = rows.map((r) => [dayOf(r.day), num(r.lowest_of_shape_eur), num(r.shape_offers) || 0]);\nconst total = met.reduce((a, p) => a + p[1], 0);\nreturn {\n  backgroundColor: 'transparent', animation: false,\n  legend: Object.assign({}, LEGEND, { right: 'auto' }),\n  graphic: [{ type: 'text', right: 0, top: 1, silent: true,\n    style: { text: count(total) + ' under ' + price(max) + ' EUR in ' + span, fill: '#8D99AB', font: '12px ' + MONO, align: 'right' } }],\n  grid: { left: 36, right: 48, top: 34, bottom: 28 },\n  tooltip: Object.assign({ trigger: 'axis', axisPointer: { type: 'line', lineStyle: { color: '#1F2733' } },\n    formatter: (ps) => {\n      const i = ps[0].dataIndex;\n      return dayLabel(met[i][0]) + '<br/>' + ps[0].marker + 'went under the limit ' + count(met[i][1]) + '<br/>'\n        + (ps[1] ? ps[1].marker : '') + 'lowest of that shape ' + eur(lowest[i][1]) + ' \u00b7 ' + count(lowest[i][2]) + ' of that shape went'\n        + '<br/>limit ' + eur(max);\n    } }, TIP),\n  xAxis: timeAxis(),\n  yAxis: [valueAxis({ minInterval: 1 }),\n    valueAxis({ position: 'right', splitLine: { show: false },\n      max: (v) => Math.ceil((Math.max(v.max, max || 0) * 1.08) / 10) * 10 })],\n  series: [\n    { name: 'went under the limit', type: 'bar', data: met, yAxisIndex: 0, barMaxWidth: 8, itemStyle: { color: '#60A5FA', borderRadius: [2, 2, 0, 0] } },\n    { name: 'lowest of that shape', type: 'line', data: lowest, yAxisIndex: 1, showSymbol: true, symbolSize: 3, connectNulls: false,\n      lineStyle: { width: 1.5, color: '#7DD3FC' }, itemStyle: { color: '#7DD3FC' },\n      markLine: max === null ? undefined : { silent: true, symbol: 'none', data: [{ yAxis: max }],\n        lineStyle: { color: '#C9D2DE', type: [6, 4], width: 1 },\n        label: { formatter: 'limit ' + price(max), position: 'insideEndTop', color: '#C9D2DE', fontFamily: MONO, fontSize: 11 } } },\n  ],\n};\n"
+      },
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Dashboard --"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "-- Dashboard --"
+          },
+          "panelId": 1,
+          "refId": "A",
+          "withTransforms": false
+        }
+      ]
+    },
+    {
+      "type": "volkovlabs-echarts-panel",
+      "title": "128 GB \u00b7 under the limit a day",
+      "description": "Each UTC day, how many offers went at a price that met the 128 GB limit (bars), and the lowest price an offer of its shape went for, whatever its price (line), against the limit (dashed). From limits-daily.",
+      "transparent": true,
+      "id": 7,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 14
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        },
+        "getOption": "const SIZE = 128;\nconst MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst OK = '#34D399', WARN = '#FBBF24', CRIT = '#FB7185';\nconst num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));\n// Each view is one query of the strip, its refId the view's name (README, Hetzner auction): view[name] is its rows,\n// and a view that failed or never came is undefined, so its block says so instead of drawing a zero.\nconst failed = {};\n(context.panel.data.errors || []).forEach((e) => { if (e && e.refId) failed[e.refId] = true; });\nconst view = {};\nfor (const f of context.panel.data.series || []) {\n  const name = f.refId || f.name;\n  if (!name || failed[name]) continue;\n  const len = f.fields.length ? f.fields[0].values.length : 0;\n  const rows = view[name] || [];\n  for (let i = 0; i < len; i++) {\n    const r = {};\n    f.fields.forEach((x) => { r[x.name] = x.values[i]; });\n    rows.push(r);\n  }\n  view[name] = rows;\n}\nconst range = context.panel.data.timeRange;\nconst to = range ? range.to.valueOf() : Date.now();\nconst from = range ? range.from.valueOf() : to - 90 * 86400e3;\nconst DAY = 86400e3;\n// A day is a UTC day; it is in the range when any of it is.\nconst dayOf = (d) => Date.parse(d + 'T00:00:00Z');\nconst inRange = (rows) => rows.filter((r) => { const t = dayOf(r.day); return t + DAY > from && t <= to; })\n  .sort((a, b) => dayOf(a.day) - dayOf(b.day));\nconst span = (() => { const d = (to - from) / DAY; return d < 2 ? Math.round(d * 24) + ' h' : Math.round(d) + ' d'; })();\nconst count = (v) => Math.round(v).toLocaleString('en-US');\nconst price = (v) => (v === null ? '\u2014' : String(+v.toFixed(1)));\nconst eur = (v) => (v === null ? '\u2014' : price(v) + ' EUR');\nconst dur = (s) => (s === null ? '\u2014' : s < 60 ? Math.round(s) + ' s' : s < 3600 ? Math.round(s / 60) + ' min'\n  : s < 172800 ? +(s / 3600).toFixed(s < 36000 ? 1 : 0) + ' h' : +(s / 86400).toFixed(s < 864000 ? 1 : 0) + ' d');\nconst MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];\nconst dayLabel = (t) => { const d = new Date(t); return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()]; };\n// A limit's shape, short: \"64 GB+ NVMe\".\nconst shapeOf = (r) => num(r.min_ram_gb) + ' GB+' + (String(r.nvme_required) === 'true' ? ' NVMe' : '');\nconst chart = context.panel.chart;\nconst CW = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst CH = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\nconst empty = (text) => ({ backgroundColor: 'transparent', title: { text, left: 'center', top: 'middle',\n  textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } });\nconst missing = (name) => empty('the view ' + name + ' did not answer');\nconst TIP = { backgroundColor: '#10151C', borderColor: '#1F2733', textStyle: { color: '#E7ECF3', fontSize: 12 } };\nconst AXIS_LABEL = { color: '#8D99AB', fontFamily: MONO, fontSize: 10, hideOverlap: true };\nconst timeAxis = (extra) => Object.assign({ type: 'time', min: Math.floor(from / DAY) * DAY, max: to,\n  axisLine: { lineStyle: { color: '#1F2733' } }, axisTick: { show: false }, splitLine: { show: false },\n  axisLabel: Object.assign({ formatter: (t) => dayLabel(t) }, AXIS_LABEL) }, extra || {});\nconst valueAxis = (extra) => Object.assign({ type: 'value', min: 0, splitNumber: 4,\n  splitLine: { lineStyle: { color: '#1F2733' } }, axisLabel: AXIS_LABEL }, extra || {});\n// A plain legend wraps where a scroll legend would page and hide series: the grid starts below its last line.\nconst legendTop = (names) => {\n  let rows = 1, line = 0;\n  names.forEach((n) => {\n    const w = 13 + n.length * 7.4;\n    if (CW && line && line + 16 + w > CW) { rows += 1; line = w; } else line += (line ? 16 : 0) + w;\n  });\n  return 34 + (rows - 1) * 22;\n};\nconst LEGEND = { type: 'plain', top: 0, left: 0, right: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, itemGap: 16,\n  textStyle: { color: '#C9D2DE', fontFamily: MONO, fontSize: 12 } };\n\nif (!view.limits) return missing('limits');\nif (!view.limits_daily) return missing('limits-daily');\nconst limit = view.limits.find((r) => num(r.min_ram_gb) === SIZE);\nif (!limit) return empty('no limit for ' + SIZE + ' GB in rules.json');\nconst max = num(limit.max_price_eur);\nconst rows = inRange(view.limits_daily.filter((r) => r.limit === limit.name));\nif (!rows.length) return empty('no offers in ' + span);\nconst met = rows.map((r) => [dayOf(r.day), num(r.offers) || 0]);\nconst lowest = rows.map((r) => [dayOf(r.day), num(r.lowest_of_shape_eur), num(r.shape_offers) || 0]);\nconst total = met.reduce((a, p) => a + p[1], 0);\nreturn {\n  backgroundColor: 'transparent', animation: false,\n  legend: Object.assign({}, LEGEND, { right: 'auto' }),\n  graphic: [{ type: 'text', right: 0, top: 1, silent: true,\n    style: { text: count(total) + ' under ' + price(max) + ' EUR in ' + span, fill: '#8D99AB', font: '12px ' + MONO, align: 'right' } }],\n  grid: { left: 36, right: 48, top: 34, bottom: 28 },\n  tooltip: Object.assign({ trigger: 'axis', axisPointer: { type: 'line', lineStyle: { color: '#1F2733' } },\n    formatter: (ps) => {\n      const i = ps[0].dataIndex;\n      return dayLabel(met[i][0]) + '<br/>' + ps[0].marker + 'went under the limit ' + count(met[i][1]) + '<br/>'\n        + (ps[1] ? ps[1].marker : '') + 'lowest of that shape ' + eur(lowest[i][1]) + ' \u00b7 ' + count(lowest[i][2]) + ' of that shape went'\n        + '<br/>limit ' + eur(max);\n    } }, TIP),\n  xAxis: timeAxis(),\n  yAxis: [valueAxis({ minInterval: 1 }),\n    valueAxis({ position: 'right', splitLine: { show: false },\n      max: (v) => Math.ceil((Math.max(v.max, max || 0) * 1.08) / 10) * 10 })],\n  series: [\n    { name: 'went under the limit', type: 'bar', data: met, yAxisIndex: 0, barMaxWidth: 8, itemStyle: { color: '#60A5FA', borderRadius: [2, 2, 0, 0] } },\n    { name: 'lowest of that shape', type: 'line', data: lowest, yAxisIndex: 1, showSymbol: true, symbolSize: 3, connectNulls: false,\n      lineStyle: { width: 1.5, color: '#7DD3FC' }, itemStyle: { color: '#7DD3FC' },\n      markLine: max === null ? undefined : { silent: true, symbol: 'none', data: [{ yAxis: max }],\n        lineStyle: { color: '#C9D2DE', type: [6, 4], width: 1 },\n        label: { formatter: 'limit ' + price(max), position: 'insideEndTop', color: '#C9D2DE', fontFamily: MONO, fontSize: 11 } } },\n  ],\n};\n"
+      },
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Dashboard --"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "-- Dashboard --"
+          },
+          "panelId": 1,
+          "refId": "A",
+          "withTransforms": false
+        }
+      ]
+    },
+    {
+      "type": "volkovlabs-echarts-panel",
+      "title": "How long offers last",
+      "description": "Of the offers that went, by when half and three quarters of them had gone, and how many went in under two minutes, by the price they went for and by the operator's limits (price and shape; the datacenter filters are not applied). From lifetimes, which counts only the offers the pod itself saw appear, since 2026-11-22: the older rows, the seed's, were sampled every five minutes, too coarse for a lifetime, and the offers already in the feed at the pod's first read are left out.",
+      "transparent": true,
+      "id": 8,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 23
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        },
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst OK = '#34D399', WARN = '#FBBF24', CRIT = '#FB7185';\nconst num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));\n// Each view is one query of the strip, its refId the view's name (README, Hetzner auction): view[name] is its rows,\n// and a view that failed or never came is undefined, so its block says so instead of drawing a zero.\nconst failed = {};\n(context.panel.data.errors || []).forEach((e) => { if (e && e.refId) failed[e.refId] = true; });\nconst view = {};\nfor (const f of context.panel.data.series || []) {\n  const name = f.refId || f.name;\n  if (!name || failed[name]) continue;\n  const len = f.fields.length ? f.fields[0].values.length : 0;\n  const rows = view[name] || [];\n  for (let i = 0; i < len; i++) {\n    const r = {};\n    f.fields.forEach((x) => { r[x.name] = x.values[i]; });\n    rows.push(r);\n  }\n  view[name] = rows;\n}\nconst range = context.panel.data.timeRange;\nconst to = range ? range.to.valueOf() : Date.now();\nconst from = range ? range.from.valueOf() : to - 90 * 86400e3;\nconst DAY = 86400e3;\n// A day is a UTC day; it is in the range when any of it is.\nconst dayOf = (d) => Date.parse(d + 'T00:00:00Z');\nconst inRange = (rows) => rows.filter((r) => { const t = dayOf(r.day); return t + DAY > from && t <= to; })\n  .sort((a, b) => dayOf(a.day) - dayOf(b.day));\nconst span = (() => { const d = (to - from) / DAY; return d < 2 ? Math.round(d * 24) + ' h' : Math.round(d) + ' d'; })();\nconst count = (v) => Math.round(v).toLocaleString('en-US');\nconst price = (v) => (v === null ? '\u2014' : String(+v.toFixed(1)));\nconst eur = (v) => (v === null ? '\u2014' : price(v) + ' EUR');\nconst dur = (s) => (s === null ? '\u2014' : s < 60 ? Math.round(s) + ' s' : s < 3600 ? Math.round(s / 60) + ' min'\n  : s < 172800 ? +(s / 3600).toFixed(s < 36000 ? 1 : 0) + ' h' : +(s / 86400).toFixed(s < 864000 ? 1 : 0) + ' d');\nconst MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];\nconst dayLabel = (t) => { const d = new Date(t); return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()]; };\n// A limit's shape, short: \"64 GB+ NVMe\".\nconst shapeOf = (r) => num(r.min_ram_gb) + ' GB+' + (String(r.nvme_required) === 'true' ? ' NVMe' : '');\nconst chart = context.panel.chart;\nconst CW = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst CH = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\nconst empty = (text) => ({ backgroundColor: 'transparent', title: { text, left: 'center', top: 'middle',\n  textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } });\nconst missing = (name) => empty('the view ' + name + ' did not answer');\nconst TIP = { backgroundColor: '#10151C', borderColor: '#1F2733', textStyle: { color: '#E7ECF3', fontSize: 12 } };\nconst AXIS_LABEL = { color: '#8D99AB', fontFamily: MONO, fontSize: 10, hideOverlap: true };\nconst timeAxis = (extra) => Object.assign({ type: 'time', min: Math.floor(from / DAY) * DAY, max: to,\n  axisLine: { lineStyle: { color: '#1F2733' } }, axisTick: { show: false }, splitLine: { show: false },\n  axisLabel: Object.assign({ formatter: (t) => dayLabel(t) }, AXIS_LABEL) }, extra || {});\nconst valueAxis = (extra) => Object.assign({ type: 'value', min: 0, splitNumber: 4,\n  splitLine: { lineStyle: { color: '#1F2733' } }, axisLabel: AXIS_LABEL }, extra || {});\n// A plain legend wraps where a scroll legend would page and hide series: the grid starts below its last line.\nconst legendTop = (names) => {\n  let rows = 1, line = 0;\n  names.forEach((n) => {\n    const w = 13 + n.length * 7.4;\n    if (CW && line && line + 16 + w > CW) { rows += 1; line = w; } else line += (line ? 16 : 0) + w;\n  });\n  return 34 + (rows - 1) * 22;\n};\nconst LEGEND = { type: 'plain', top: 0, left: 0, right: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, itemGap: 16,\n  textStyle: { color: '#C9D2DE', fontFamily: MONO, fontSize: 12 } };\n\nif (!view.lifetimes) return missing('lifetimes');\n// Two of the view's three tables: by price band and by the operator's limits.\nconst SECTIONS = [['by price band', /^by price band/], ['by limit', /^by the operator's limits/]];\nconst shortName = {};\n(view.limits || []).forEach((r) => { shortName[r.name] = shapeOf(r) + ' under ' + price(num(r.max_price_eur)); });\nconst blocks = SECTIONS.map(([title, test]) => ({ title, rows: view.lifetimes.filter((r) => test.test(r.section || '')) }))\n  .filter((b) => b.rows.length);\nif (!blocks.some((b) => b.rows.some((r) => num(r.offers) > 0))) return empty('no offers went since the pod began');\nconst gap = 24;\nconst bw = CW ? (CW - gap * (blocks.length - 1)) / blocks.length : 0;\nconst LEFT = 200;\nconst graphic = [], grid = [], xAxis = [], yAxis = [], series = [];\nconst bar = (name, colour) => ({ name, colour });\nconst BARS = [bar('half gone within', '#7DD3FC'), bar('three quarters within', '#C4B5FD')];\nblocks.forEach((b, i) => {\n  const x = i * (bw + gap);\n  const rows = b.rows.slice().reverse();\n  graphic.push({ type: 'text', left: x, top: 0, silent: true,\n    style: { text: b.title.toUpperCase(), fill: '#8D99AB', font: '600 11px Inter, sans-serif' } });\n  grid.push({ left: x + LEFT, width: Math.max(40, bw - LEFT - 56), top: 26, bottom: 24 });\n  xAxis.push({ type: 'log', gridIndex: i, logBase: 60, min: 1, max: (v) => Math.pow(60, Math.max(2, Math.ceil(Math.log(v.max * 1.5) / Math.log(60)))),\n    splitLine: { lineStyle: { color: '#1F2733' } }, axisLabel: Object.assign({}, AXIS_LABEL, { formatter: (v) => dur(v) }) });\n  yAxis.push({ type: 'category', gridIndex: i, data: rows.map((r) => r.group), axisTick: { show: false },\n    axisLine: { lineStyle: { color: '#1F2733' } },\n    axisLabel: { formatter: (g, k) => {\n      const r = rows[k];\n      const went = num(r.offers) || 0;\n      return '{n|' + (shortName[g] || g) + '}\\n{s|' + (went ? count(went) + ' went \u00b7 ' + count(num(r.under_two_minutes) || 0) + ' in under 2 min' : 'none went') + '}';\n    }, rich: { n: { color: '#C9D2DE', fontFamily: MONO, fontSize: 12, width: LEFT - 16, overflow: 'truncate', ellipsis: '\u2026' },\n      s: { color: '#8D99AB', fontFamily: MONO, fontSize: 10, padding: [3, 0, 0, 0] } } } });\n  BARS.forEach((s, k) => series.push({ name: s.name, type: 'bar', xAxisIndex: i, yAxisIndex: i, barMaxWidth: 9, barGap: '30%',\n    data: rows.map((r) => num(r[k ? 'three_quarters_within_seconds' : 'half_within_seconds'])),\n    itemStyle: { color: s.colour, borderRadius: [0, 2, 2, 0] },\n    label: { show: true, position: 'right', color: '#C9D2DE', fontFamily: MONO, fontSize: 10, formatter: (p) => dur(p.value) } }));\n});\nreturn { backgroundColor: 'transparent', animation: false, graphic, grid, xAxis, yAxis, series,\n  legend: Object.assign({}, LEGEND, { left: 'auto', right: 0, data: BARS.map((s) => s.name) }),\n  tooltip: Object.assign({ trigger: 'axis', axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(31,39,51,.35)' } },\n    formatter: (ps) => {\n      const blk = blocks[Math.floor(ps[0].seriesIndex / BARS.length)];\n      const r = blk.rows.slice().reverse()[ps[0].dataIndex];\n      return (shortName[r.group] || r.group) + '<br/>' + count(num(r.offers) || 0) + ' went \u00b7 ' + count(num(r.live) || 0) + ' still live<br/>'\n        + 'half gone within ' + dur(num(r.half_within_seconds)) + '<br/>three quarters within ' + dur(num(r.three_quarters_within_seconds))\n        + '<br/>the slowest ' + dur(num(r.slowest_seconds)) + '<br/>in under 2 min ' + count(num(r.under_two_minutes) || 0);\n    } }, TIP) };\n"
+      },
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Dashboard --"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "-- Dashboard --"
+          },
+          "panelId": 1,
+          "refId": "A",
+          "withTransforms": false
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "The market",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 31
+      },
+      "collapsed": false,
+      "panels": [],
+      "id": 9
+    },
+    {
+      "type": "volkovlabs-echarts-panel",
+      "title": "Appeared and gone a day",
+      "description": "Offers that appeared and offers that went each UTC day, and how many were live at its end (flow-daily). Before 2026-11-22 a day's appeared comes from the seed's rows, sampled every five minutes, so an offer that came and went between two samples is missing; the record's first day and the pod's first read count what was already in the feed.",
+      "transparent": true,
+      "id": 10,
+      "gridPos": {
+        "h": 9,
+        "w": 16,
+        "x": 0,
+        "y": 32
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "renderer": "canvas",
+        "map": "none",
+        "themeEditor": {
+          "name": "dark",
+          "config": "{}"
+        },
+        "editor": {
+          "format": "auto"
+        },
+        "editorMode": "code",
+        "baidu": {
+          "callback": "bmapReady",
+          "key": ""
+        },
+        "gaode": {
+          "key": "",
+          "plugin": "AMap.Scale,AMap.ToolBar"
+        },
+        "google": {
+          "callback": "gmapReady",
+          "key": ""
+        },
+        "visualEditor": {
+          "code": "return {}",
+          "dataset": [],
+          "series": []
+        },
+        "getOption": "const MONO = \"'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace\";\nconst OK = '#34D399', WARN = '#FBBF24', CRIT = '#FB7185';\nconst num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));\n// Each view is one query of the strip, its refId the view's name (README, Hetzner auction): view[name] is its rows,\n// and a view that failed or never came is undefined, so its block says so instead of drawing a zero.\nconst failed = {};\n(context.panel.data.errors || []).forEach((e) => { if (e && e.refId) failed[e.refId] = true; });\nconst view = {};\nfor (const f of context.panel.data.series || []) {\n  const name = f.refId || f.name;\n  if (!name || failed[name]) continue;\n  const len = f.fields.length ? f.fields[0].values.length : 0;\n  const rows = view[name] || [];\n  for (let i = 0; i < len; i++) {\n    const r = {};\n    f.fields.forEach((x) => { r[x.name] = x.values[i]; });\n    rows.push(r);\n  }\n  view[name] = rows;\n}\nconst range = context.panel.data.timeRange;\nconst to = range ? range.to.valueOf() : Date.now();\nconst from = range ? range.from.valueOf() : to - 90 * 86400e3;\nconst DAY = 86400e3;\n// A day is a UTC day; it is in the range when any of it is.\nconst dayOf = (d) => Date.parse(d + 'T00:00:00Z');\nconst inRange = (rows) => rows.filter((r) => { const t = dayOf(r.day); return t + DAY > from && t <= to; })\n  .sort((a, b) => dayOf(a.day) - dayOf(b.day));\nconst span = (() => { const d = (to - from) / DAY; return d < 2 ? Math.round(d * 24) + ' h' : Math.round(d) + ' d'; })();\nconst count = (v) => Math.round(v).toLocaleString('en-US');\nconst price = (v) => (v === null ? '\u2014' : String(+v.toFixed(1)));\nconst eur = (v) => (v === null ? '\u2014' : price(v) + ' EUR');\nconst dur = (s) => (s === null ? '\u2014' : s < 60 ? Math.round(s) + ' s' : s < 3600 ? Math.round(s / 60) + ' min'\n  : s < 172800 ? +(s / 3600).toFixed(s < 36000 ? 1 : 0) + ' h' : +(s / 86400).toFixed(s < 864000 ? 1 : 0) + ' d');\nconst MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];\nconst dayLabel = (t) => { const d = new Date(t); return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()]; };\n// A limit's shape, short: \"64 GB+ NVMe\".\nconst shapeOf = (r) => num(r.min_ram_gb) + ' GB+' + (String(r.nvme_required) === 'true' ? ' NVMe' : '');\nconst chart = context.panel.chart;\nconst CW = chart && typeof chart.getWidth === 'function' ? chart.getWidth() : 0;\nconst CH = chart && typeof chart.getHeight === 'function' ? chart.getHeight() : 0;\nconst empty = (text) => ({ backgroundColor: 'transparent', title: { text, left: 'center', top: 'middle',\n  textStyle: { color: '#8D99AB', fontSize: 13, fontWeight: 'normal' } } });\nconst missing = (name) => empty('the view ' + name + ' did not answer');\nconst TIP = { backgroundColor: '#10151C', borderColor: '#1F2733', textStyle: { color: '#E7ECF3', fontSize: 12 } };\nconst AXIS_LABEL = { color: '#8D99AB', fontFamily: MONO, fontSize: 10, hideOverlap: true };\nconst timeAxis = (extra) => Object.assign({ type: 'time', min: Math.floor(from / DAY) * DAY, max: to,\n  axisLine: { lineStyle: { color: '#1F2733' } }, axisTick: { show: false }, splitLine: { show: false },\n  axisLabel: Object.assign({ formatter: (t) => dayLabel(t) }, AXIS_LABEL) }, extra || {});\nconst valueAxis = (extra) => Object.assign({ type: 'value', min: 0, splitNumber: 4,\n  splitLine: { lineStyle: { color: '#1F2733' } }, axisLabel: AXIS_LABEL }, extra || {});\n// A plain legend wraps where a scroll legend would page and hide series: the grid starts below its last line.\nconst legendTop = (names) => {\n  let rows = 1, line = 0;\n  names.forEach((n) => {\n    const w = 13 + n.length * 7.4;\n    if (CW && line && line + 16 + w > CW) { rows += 1; line = w; } else line += (line ? 16 : 0) + w;\n  });\n  return 34 + (rows - 1) * 22;\n};\nconst LEGEND = { type: 'plain', top: 0, left: 0, right: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, itemGap: 16,\n  textStyle: { color: '#C9D2DE', fontFamily: MONO, fontSize: 12 } };\n\nif (!view.flow_daily) return missing('flow-daily');\nconst rows = inRange(view.flow_daily);\nif (!rows.length) return empty('no offers in ' + span);\nconst at = (col) => rows.map((r) => [dayOf(r.day), num(r[col])]);\nconst SERIES = [['appeared', 'bar', '#60A5FA'], ['gone', 'bar', '#C4B5FD'], ['live at the end of the day', 'line', '#7DD3FC']];\nconst cols = { appeared: 'appeared', gone: 'gone', 'live at the end of the day': 'live_at_end_of_day' };\nreturn {\n  backgroundColor: 'transparent', animation: false,\n  legend: LEGEND,\n  grid: { left: 44, right: 16, top: legendTop(SERIES.map((s) => s[0])), bottom: 28 },\n  tooltip: Object.assign({ trigger: 'axis', axisPointer: { type: 'line', lineStyle: { color: '#1F2733' } },\n    formatter: (ps) => dayLabel(ps[0].value[0]) + '<br/>' + ps.filter((p) => p.value[1] !== null)\n      .map((p) => p.marker + p.seriesName + ' ' + count(p.value[1])).join('<br/>') }, TIP),\n  xAxis: timeAxis(),\n  yAxis: valueAxis({ minInterval: 1 }),\n  series: SERIES.map(([name, type, colour]) => Object.assign({ name, type, data: at(cols[name]), itemStyle: { color: colour } },\n    type === 'bar' ? { barMaxWidth: 6, barGap: '10%' } : { showSymbol: false, connectNulls: false, lineStyle: { width: 1.5, color: colour } })),\n};\n"
+      },
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Dashboard --"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "-- Dashboard --"
+          },
+          "panelId": 1,
+          "refId": "A",
+          "withTransforms": false
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Datacenters",
+      "description": "Live offers and the offers that went in the last 30 days, with their median price, by datacenter (datacenters). Only from the offers whose body the record kept, the ones the pod itself saw since 2026-11-22: the older rows, the seed's, were sampled every five minutes and carry no datacenter.",
+      "transparent": true,
+      "id": 11,
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 16,
+        "y": 32
+      },
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Dashboard --"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "-- Dashboard --"
+          },
+          "panelId": 1,
+          "refId": "A",
+          "withTransforms": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "no offers with a datacenter yet",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Median live"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: EUR"
+              },
+              {
+                "id": "noValue",
+                "value": "\u2014"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Median gone"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: EUR"
+              },
+              {
+                "id": "noValue",
+                "value": "\u2014"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        },
+        "sortBy": [
+          {
+            "displayName": "Live",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "filterByRefId",
+          "options": {
+            "include": "datacenters"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "indexByName": {
+              "datacenter": 0,
+              "live": 1,
+              "median_live_eur": 2,
+              "gone_last_30_days": 3,
+              "median_gone_last_30_days_eur": 4
+            },
+            "renameByName": {
+              "datacenter": "Datacenter",
+              "live": "Live",
+              "median_live_eur": "Median live",
+              "gone_last_30_days": "Gone \u00b7 30 d",
+              "median_gone_last_30_days_eur": "Median gone"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Live now",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 41
+      },
+      "collapsed": false,
+      "panels": [],
+      "id": 12
+    },
+    {
+      "type": "table",
+      "title": "Live offers, furthest under their usual price first",
+      "description": "Every offer in the feed now (live). Usual: its kind's usual price, the median over the watcher's window; under usual: how far under it, \u25bc under, \u25b2 over, green at 20 % or more, the watcher's own threshold for a bargain. Limit: the operator's limits it meets. The offer's number opens it at Hetzner, in a new tab.",
+      "transparent": true,
+      "id": 13,
+      "gridPos": {
+        "h": 13,
+        "w": 24,
+        "x": 0,
+        "y": 42
+      },
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Dashboard --"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "-- Dashboard --"
+          },
+          "panelId": 1,
+          "refId": "A",
+          "withTransforms": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "no live offers",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Offer"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open the offer at Hetzner",
+                    "url": "${__data.fields.url}",
+                    "targetBlank": true
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "url"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "RAM"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "decgbytes"
+              },
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "NVMe"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "decgbytes"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "\u2014",
+                        "color": "#8D99AB",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "HDD"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "decgbytes"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "\u2014",
+                        "color": "#8D99AB",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Datacenter"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Price"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: EUR"
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Usual"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: EUR"
+              },
+              {
+                "id": "noValue",
+                "value": "\u2014"
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Under usual"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "noValue",
+                "value": "\u2014"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#8D99AB",
+                      "value": null
+                    },
+                    {
+                      "color": "#E7ECF3",
+                      "value": 0
+                    },
+                    {
+                      "color": "#34D399",
+                      "value": 20
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "vs usual"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "special",
+                    "options": {
+                      "match": "null",
+                      "result": {
+                        "text": "no usual price",
+                        "color": "#8D99AB",
+                        "index": 0
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "= usual",
+                        "color": "#E7ECF3",
+                        "index": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "range",
+                    "options": {
+                      "from": -1000000,
+                      "to": -0.0001,
+                      "result": {
+                        "text": "\u25b2 over",
+                        "color": "#8D99AB",
+                        "index": 2
+                      }
+                    }
+                  },
+                  {
+                    "type": "range",
+                    "options": {
+                      "from": 0.0001,
+                      "to": 19.9999,
+                      "result": {
+                        "text": "\u25bc under",
+                        "color": "#E7ECF3",
+                        "index": 3
+                      }
+                    }
+                  },
+                  {
+                    "type": "range",
+                    "options": {
+                      "from": 20,
+                      "to": 1000000,
+                      "result": {
+                        "text": "\u25bc far under",
+                        "color": "#34D399",
+                        "index": 4
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Age"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dtdurations"
+              },
+              {
+                "id": "custom.width",
+                "value": 170
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Limit"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "special",
+                    "options": {
+                      "match": "empty",
+                      "result": {
+                        "text": "\u2014",
+                        "color": "#8D99AB",
+                        "index": 0
+                      }
+                    }
+                  },
+                  {
+                    "type": "regex",
+                    "options": {
+                      "pattern": "^(.+)$",
+                      "result": {
+                        "text": "\u25cf $1",
+                        "color": "#34D399",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        },
+        "sortBy": [
+          {
+            "displayName": "Under usual",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "filterByRefId",
+          "options": {
+            "include": "live"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "reduceRow",
+            "alias": "vs usual",
+            "reduce": {
+              "include": [
+                "under_baseline_pct"
+              ],
+              "reducer": "lastNotNull"
+            },
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "kind": true,
+              "gpu": true,
+              "ecc": true,
+              "sata_gb": true,
+              "first_seen": true
+            },
+            "indexByName": {
+              "id": 0,
+              "cpu": 1,
+              "ram_gb": 2,
+              "nvme_gb": 3,
+              "hdd_gb": 4,
+              "datacenter": 5,
+              "price_eur": 6,
+              "baseline_eur": 7,
+              "under_baseline_pct": 8,
+              "vs usual": 9,
+              "age_seconds": 10,
+              "limit": 11,
+              "url": 12
+            },
+            "renameByName": {
+              "id": "Offer",
+              "cpu": "CPU",
+              "ram_gb": "RAM",
+              "nvme_gb": "NVMe",
+              "hdd_gb": "HDD",
+              "datacenter": "Datacenter",
+              "price_eur": "Price",
+              "baseline_eur": "Usual",
+              "under_baseline_pct": "Under usual",
+              "age_seconds": "Age",
+              "limit": "Limit"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Kinds with the most offers",
+      "description": "The kinds with a usual price (kinds), the most offers in the watcher's window first: the usual price, the median of the window; how many offers of the kind it holds; how many are live; and the cheapest live one.",
+      "transparent": true,
+      "id": 14,
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 55
+      },
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Dashboard --"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "-- Dashboard --"
+          },
+          "panelId": 1,
+          "refId": "A",
+          "withTransforms": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "no kind with a usual price yet",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#E7ECF3",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Usual price"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: EUR"
+              },
+              {
+                "id": "noValue",
+                "value": "\u2014"
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Offers in the window"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 170
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Live"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Cheapest live"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: EUR"
+              },
+              {
+                "id": "noValue",
+                "value": "\u2014"
+              },
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        },
+        "sortBy": [
+          {
+            "displayName": "Offers in the window",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "filterByRefId",
+          "options": {
+            "include": "kinds"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "cpu": true,
+              "ram_gb": true
+            },
+            "indexByName": {
+              "kind": 0,
+              "baseline_eur": 1,
+              "offers_in_window": 2,
+              "live": 3,
+              "cheapest_live_eur": 4
+            },
+            "renameByName": {
+              "kind": "Kind",
+              "baseline_eur": "Usual price",
+              "offers_in_window": "Offers in the window",
+              "live": "Live",
+              "cheapest_live_eur": "Cheapest live"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "version": 1
+}
