@@ -11,6 +11,7 @@ namespace: auction-watch
 resources:
   - namespace.yaml
   - network-policy.yaml
+  - service.yaml
   - vault-secrets.yaml
   - deployment.yaml
 configMapGenerator:

@@ -69,6 +69,10 @@ spec:
                   key: to
             - name: PYTHONDONTWRITEBYTECODE
               value: "1"
+          # The views of the record (README.md, The views), served by a thread of this process.
+          ports:
+            - name: views
+              containerPort: 8080
           # The loop touches /tmp/alive after each ask of the feed, every 10
           # seconds: five minutes without it is a hung loop.
           livenessProbe:

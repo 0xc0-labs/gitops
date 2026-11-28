@@ -16,6 +16,8 @@ meet his limits or that are far under what their kind usually went for.
   times a day.
 - The mail goes through [Resend's Send Email API][resend], from
   `auction-watch@0xc0.cc`.
+- The record is also served read-only, as CSV, to Grafana's pods inside the
+  cluster (The views).
 
 ## How often
 
@@ -235,6 +237,88 @@ To copy the file out, a consistent snapshot, not the live file with its log:
 ```sh
 kubectl -n auction-watch exec deploy/auction-watch -- python3 /opt/auction-watch/watch.py --snapshot /tmp/record.db
 kubectl -n auction-watch cp $(kubectl -n auction-watch get pod -l app.kubernetes.io/name=auction-watch -o name | cut -d/ -f2):/tmp/record.db ./record.db
+```
+
+## The views
+
+The record can be read over HTTP from inside the cluster, as CSV, so that
+Grafana reads it where it is instead of a copy in another store (Prometheus and
+Loki keep 30 days; the record keeps 400).
+
+- **Where**: `http://auction-watch.auction-watch.svc.cluster.local:8080`, a
+  ClusterIP `Service` (`service.yaml`). There is no route and no Ingress, and
+  `auction-watch-views-from-grafana` (`network-policy.yaml`) admits to port 8080
+  only the pods `app.kubernetes.io/name: grafana` of the namespace `monitoring`.
+  Nothing else is open, and the egress is as before. There is no authentication:
+  the network policy is the door.
+- **Only these**: `GET` and `HEAD` are answered; any other method is `405`, any
+  other path `404`. A path is looked up in a fixed table and a query string is
+  ignored: no part of a request reaches SQL or the filesystem as text.
+- **Format**: `200`, `text/csv; charset=utf-8`, RFC 4180 (CRLF, a field quoted
+  only when it holds a comma, a quote or a line break): a header row, then the
+  rows; an empty result is the header alone. Column names are lowercase with
+  underscores and carry their unit (`_eur`, `_seconds`, `_gb`, `_pct`). Times are
+  RFC 3339 in UTC. A boolean is `true` or `false`; no value is an empty field.
+- **A price is the record's own**: the feed's `Prices.monthly.EUR`, a month
+  **without VAT**, the price the limits are compared with (`meets` in
+  `watch.py`, and the mail says so). The IPv4 address and the 21% VAT are not
+  in any view.
+- **Cheap**: a version of the feed (its `last-modified`, in `meta`) is read
+  once into memory in one read transaction, and every view is computed from that
+  until the next version: at most once for each. The response carries the
+  version's date as `Last-Modified` and `Cache-Control: max-age=60`. Two columns
+  depend on the clock, `feed_age_seconds` and `age_seconds`, so `summary` and
+  `live` are rendered at each request from what was read. A feed that sends no
+  `Last-Modified` has no version: then they are read again after a minute.
+- **Apart from the watching**: a thread of the same process (`serve`), not a
+  second container on the same script. The isolation a pass needs is in the
+  connection and the bounds, which a container would not add: the views read
+  through a connection of their own, opened `mode=ro` with `query_only`, so they
+  cannot write, and, the record being in WAL mode, neither wait for the loop's
+  writes nor make it wait. A second container would only be a second Python
+  inside the same 128Mi. The thread is a daemon and every request ends in its
+  own handler: a view that fails is a `500` and a log line (`view failed`, the
+  exception's name and the path), never an exception in the loop. A port that
+  cannot be bound is logged and the pod goes on watching. The bounds: at most 8
+  requests at once (a ninth is closed with a `503`), and a client that sends
+  nothing is dropped after 10 seconds. The heartbeat file, the liveness probe
+  and the passes are as before.
+- **What a full set costs**: measured on a record of the size of 2026-11-28
+  (20,044 offers, 1,130 kinds, 96 days, 29 MB with the offers' bodies): reading
+  the version takes 0.04 s, the nine views 0.2 s together, the resident memory
+  of the process rises by about 24 MB while they are held (the offers' columns,
+  not their bodies, and 0.14 MB of CSV), and that is released when the next
+  version replaces them. The pod's limit is 128Mi.
+
+Every view reads the offers as they are: the datacenter filters (`FSN`, `NBG`)
+do not apply to any of them, only to the mail. A day is a UTC day. An offer
+"went" on the day of its `last_seen`, at its `last_price`, as `--history`
+counts it. The record's first day and the pod's first read carry what was
+already in the feed, so `appeared` is too high there.
+
+| Path | A row is | Columns |
+|---|---|---|
+| `/views/summary.csv` | the record, one row | `record_from`, `record_to`, `days`, `offers`, `offers_from_seed`, `kinds`, `live`, `feed_read_at` (the last sighting of a live offer), `feed_age_seconds` |
+| `/views/limits.csv` | a limit of `rules.json` | `name`, `min_ram_gb`, `nvme_required`, `max_price_eur`, `live_of_that_shape`, `cheapest_live_eur`, `live_under_limit`, `met_last_7_days`, `met_last_30_days` (offers that went at a price that met it) |
+| `/views/groups-daily.csv` | a day and a group of `--history --groups` (64 and 128 GB, with and without NVMe), every day of the record | `day`, `group`, `offers` (that went that day), `median_eur`, `lowest_eur`, `live_at_end_of_day` |
+| `/views/flow-daily.csv` | a day | `day`, `appeared`, `gone`, `live_at_end_of_day` |
+| `/views/limits-daily.csv` | a day and a limit | `day`, `limit`, `offers` (that went meeting it), `lowest_eur`, plus `shape_offers` and `lowest_of_shape_eur`: the same for every offer of its shape that went, whatever its price |
+| `/views/lifetimes.csv` | a row of `--lifetimes` | `group`, `offers` (that went), `half_within_seconds`, `three_quarters_within_seconds`, `slowest_seconds`, `under_two_minutes`, `live`, plus `section`: which of its three tables the row is from |
+| `/views/live.csv` | an offer in the feed now, the cheapest first | `id`, `cpu`, `ram_gb`, `nvme_gb`, `sata_gb`, `hdd_gb` (the total of that type's drives), `gpu`, `ecc`, `datacenter`, `price_eur`, `first_seen`, `age_seconds`, `baseline_eur` (its kind's, empty when it has none), `under_baseline_pct` (negative when over it), `limit` (the limits it meets, joined with `; `, or empty), `url` (`https://www.hetzner.com/sb/?freetext=<id>`), plus `kind` |
+| `/views/kinds.csv` | a kind with a baseline, as `--kinds` | `kind`, `cpu`, `ram_gb`, `baseline_eur`, `offers_in_window`, `live`, `cheapest_live_eur` |
+| `/views/datacenters.csv` | a datacenter prefix, from the offers whose body the record kept (not the seed's) | `datacenter`, `live`, `median_live_eur`, `gone_last_30_days`, `median_gone_last_30_days_eur` |
+| `/healthz` | `200` when the record can be read, else `503` | |
+
+`live_at_end_of_day` is the offers that had appeared by the end of that day and
+had not yet gone; the record's own day, today, counts the offers still in the
+feed. A row of `groups-daily` or `limits-daily` for a day when nothing went has
+`offers` at `0` and no median or lowest.
+
+To read one by hand, with the pod's own `wget`, which reaches the loopback port
+the network policy does not govern:
+
+```sh
+kubectl -n auction-watch exec deploy/auction-watch -- wget -qO- http://127.0.0.1:8080/views/summary.csv
 ```
 
 ## How to read a pass

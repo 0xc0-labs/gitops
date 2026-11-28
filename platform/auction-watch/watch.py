@@ -7,7 +7,7 @@ mail. The pod makes a pass every minute. Standard library only. Logs one JSON
 line a pass and never the API key or the address the mail goes to: errors
 carry an HTTP status, not a response.
 
-    python watch.py                          the loop the pod runs
+    python watch.py                          the loop the pod runs, and the views of the record on :8080
     python watch.py --self-test              the assertions
     python watch.py --dry-run FEED [--rules FILE] [--first-pass]
                                              print the mail a saved feed would send,
@@ -22,18 +22,26 @@ carry an HTTP status, not a response.
 
 import calendar
 import contextlib
+import csv
 import datetime
+import email.utils
 import gzip
+import http.client
+import http.server
 import io
 import json
 import math
 import os
+import re
+import socket
 import sqlite3
 import statistics
 import sys
 import tempfile
+import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 FEED_URL = "https://www.hetzner.com/_resources/app/data/app/live_data_sb.json"
@@ -56,6 +64,12 @@ RETENTION_DAYS = 400
 HISTORY_KINDS = 10
 # An offer that went in less than this was there for one read of the feed or two.
 QUICK_SECONDS = 120
+# The views of the record (README.md, The views): the port, how long a client may cache one, how many
+# requests are answered at once, and how long a silent client is waited for.
+SERVE_PORT = int(os.environ.get("AUCTION_WATCH_PORT", "8080"))
+VIEW_CACHE_SECONDS = 60
+MAX_CONNECTIONS = 8
+REQUEST_TIMEOUT = 10
 HERE = os.path.dirname(os.path.abspath(__file__))
 RULES_FILE = os.path.join(HERE, "rules.json")
 SEED_FILE = os.environ.get("AUCTION_WATCH_SEED", os.path.join(HERE, "seed.jsonl.gz"))
@@ -578,16 +592,21 @@ def coverage(record):
     return f"the record covers {days} days, {first[:10]} to {last[:10]}; {seed} of its {total} offers came from the seed"
 
 
+def kind_rows(baselines, cheapest_live):
+    """[(kind, baseline, offers in the window, cheapest live or None)], the kinds with the most offers first."""
+    return [(kind, median, count, cheapest_live.get(kind))
+            for kind, (median, count, _, _) in sorted(baselines.items(), key=lambda kv: (-kv[1][1], kv[0]))]
+
+
 def show_kinds(record, now):
     live = dict(record.db.execute("SELECT kind, min(last_price) FROM offers WHERE gone=0 GROUP BY kind"))
-    rows = sorted(record.baselines(now).items(), key=lambda kv: (-kv[1][1], kv[0]))
+    rows = kind_rows(record.baselines(now), live)
     print(coverage(record))
     print(f"{len(rows)} kinds with a baseline (the median last price of the offers of the kind that went in the last "
           f"{record.history['window_days']} days, from at least {record.history['min_offers']})")
     print("baseline_eur\toffers\tcheapest_now_eur\tkind")
-    for kind, (median, count, _, _) in rows:
-        cheapest = f"{live[kind]:g}" if kind in live else "-"
-        print(f"{median:g}\t{count}\t{cheapest}\t{kind}")
+    for kind, median, count, cheapest in rows:
+        print(f"{median:g}\t{count}\t{'-' if cheapest is None else format(cheapest, 'g')}\t{kind}")
 
 
 def show_offer(record, offer_id, now):
@@ -612,6 +631,25 @@ def kind_shape(kind):
     return float(ram[:-2]), nvme != "nvme:"
 
 
+def kind_parts(kind):
+    """A kind's name taken apart: CPU, RAM, the total of each type's drives in GB, GPU."""
+    cpu, ram, nvme, sata, hdd, gpu = kind.rsplit("|", 5)
+    total = lambda drives_: sum(int(size) for size in drives_.partition(":")[2].split("+") if size)
+    return {"cpu": cpu, "ram_gb": float(ram[:-2]), "nvme_gb": total(nvme), "sata_gb": total(sata),
+            "hdd_gb": total(hdd), "gpu": gpu == "gpu"}
+
+
+def kind_meets(kind, price, rule):
+    """`meets`, for a kind's name and a price."""
+    ram, nvme = kind_shape(kind)
+    return ram >= rule["min_ram_gb"] and (not rule["nvme_required"] or nvme) and price < rule["max_price_eur"]
+
+
+def group_names(rams):
+    """{(RAM, has NVMe): name} for the groups of `--history --groups`."""
+    return {(ram, nvme): f"{ram:g} GB {'with' if nvme else 'without'} NVMe" for ram in rams for nvme in (True, False)}
+
+
 def period_of(stamp, by):
     """The month of a time, `2026-11`, or the Monday of its week."""
     if by == "month":
@@ -625,7 +663,7 @@ def show_history(record, text, by, groups):
     By kind (those holding `text`, else every kind of a watched RAM) or by four groups."""
     rams = record.history["ram_gb"]
     if groups:
-        names = {(ram, nvme): f"{ram:g} GB {'with' if nvme else 'without'} NVMe" for ram in rams for nvme in (True, False)}
+        names = group_names(rams)
         wanted = lambda kind: names.get(kind_shape(kind))
     else:
         wanted = lambda kind: kind if (text.casefold() in kind.casefold() if text else kind_shape(kind)[0] in rams) else None
@@ -659,29 +697,34 @@ def nearest_rank(sorted_values, fraction):
     return sorted_values[math.ceil(fraction * len(sorted_values)) - 1]
 
 
-def lifetime_line(label, rows):
+def lifetime_stats(rows):
+    """(went, half within, three quarters within, slowest, went in under two minutes, live) of a group's
+    offers; the three times and the count under two minutes are None when none went."""
     went = sorted(r["life"] for r in rows if r["gone"])
     live = sum(1 for r in rows if not r["gone"])
     if not went:
+        return 0, None, None, None, None, live
+    return (len(went), nearest_rank(went, 0.5), nearest_rank(went, 0.75), went[-1],
+            sum(1 for w in went if w < QUICK_SECONDS), live)
+
+
+def lifetime_line(label, rows):
+    count, half, three_quarters, slowest, quick, live = lifetime_stats(rows)
+    if not count:
         return f"{label}\t0\t-\t-\t-\t-\t{live}"
-    return (f"{label}\t{len(went)}\t{span(nearest_rank(went, 0.5))}\t{span(nearest_rank(went, 0.75))}\t{span(went[-1])}"
-            f"\t{sum(1 for w in went if w < QUICK_SECONDS)}\t{live}")
+    return f"{label}\t{count}\t{span(half)}\t{span(three_quarters)}\t{span(slowest)}\t{quick}\t{live}"
 
 
 def epoch(stamp):
     return calendar.timegm(time.strptime(stamp, "%Y-%m-%dT%H:%M:%SZ"))
 
 
-def show_lifetimes(record, limits, text, now):
-    """How long offers stayed in the feed, from the rows this pod saw appear. A seed
-    row has no sighting of its own (the seed was sampled every five minutes), and the
-    offers of the pod's first read were there before it began: neither counts."""
-    rows = record.db.execute(
-        "SELECT kind, first_seen, last_seen, last_price, gone FROM offers"
-        " WHERE seed=0 AND (pod_first_seen IS NULL OR first_seen=pod_first_seen)").fetchall()
+def lifetime_sections(rows, baselines, limits, text):
+    """(the offers counted, [(title, [(group, its offers)])]) from (kind, first, last, last price, gone) rows
+    of the offers this pod saw appear. A seed row has no sighting of its own (the seed was sampled
+    every five minutes), and the offers of the pod's first read were there before it began: neither counts."""
     began = min((r[1] for r in rows), default=None)
     seen = [r for r in rows if r[1] != began and text.casefold() in r[0].casefold()]
-    baselines = record.baselines(now)
 
     def under(kind, price):
         base = baselines.get(kind)
@@ -689,32 +732,35 @@ def show_lifetimes(record, limits, text, now):
 
     offers = [{"kind": k, "price": price, "gone": bool(gone), "life": epoch(last) - epoch(first), "under": under(k, price)}
               for k, first, last, price, gone in seen]
-    print(coverage(record))
-    print(f"lifetimes of {len(offers)} offers this pod saw appear" + (f" in a kind holding '{text}'" if text else "")
-          + "; the offers of its first read and the seed's rows are not counted")
-    print(f"time in the feed, from first to last sighting: the feed changes once a minute, so a time under "
-          f"{QUICK_SECONDS}s is one or two reads")
-    header = "went\thalf_within\tthree_quarters_within\tslowest\tunder_2min\tstill_live"
     bands = [("under 50 EUR", lambda o: o["price"] < 50), ("50 to 60 EUR", lambda o: 50 <= o["price"] < 60),
              ("60 to 100 EUR", lambda o: 60 <= o["price"] < 100), ("100 EUR or more", lambda o: o["price"] >= 100)]
     depth = [("20% or more under its usual price", lambda o: o["under"] is not None and o["under"] >= 20),
              ("10 to 20% under", lambda o: o["under"] is not None and 10 <= o["under"] < 20),
              ("under 10% under, or over", lambda o: o["under"] is not None and o["under"] < 10),
              ("no baseline for its kind", lambda o: o["under"] is None)]
-
-    def within(rule):
-        def test(o):
-            ram, nvme = kind_shape(o["kind"])
-            return ram >= rule["min_ram_gb"] and (not rule["nvme_required"] or nvme) and o["price"] < rule["max_price_eur"]
-        return test
     sections = [("by price band (the price it went for)", bands),
                 ("by how far under its kind's usual price (the baseline of today)", depth),
                 ("by the operator's limits (price and shape; the datacenter filters are not applied)",
-                 [(rule["name"], within(rule)) for rule in limits])]
+                 [(rule["name"], lambda o, rule=rule: kind_meets(o["kind"], o["price"], rule)) for rule in limits])]
+    return offers, [(title, [(label, [o for o in offers if test(o)]) for label, test in groups]) for title, groups in sections]
+
+
+def show_lifetimes(record, limits, text, now):
+    """How long offers stayed in the feed, from the rows this pod saw appear."""
+    rows = record.db.execute(
+        "SELECT kind, first_seen, last_seen, last_price, gone FROM offers"
+        " WHERE seed=0 AND (pod_first_seen IS NULL OR first_seen=pod_first_seen)").fetchall()
+    offers, sections = lifetime_sections(rows, record.baselines(now), limits, text)
+    print(coverage(record))
+    print(f"lifetimes of {len(offers)} offers this pod saw appear" + (f" in a kind holding '{text}'" if text else "")
+          + "; the offers of its first read and the seed's rows are not counted")
+    print(f"time in the feed, from first to last sighting: the feed changes once a minute, so a time under "
+          f"{QUICK_SECONDS}s is one or two reads")
+    header = "went\thalf_within\tthree_quarters_within\tslowest\tunder_2min\tstill_live"
     for title, groups in sections:
         print(f"\n{title}\n{'group'}\t{header}")
-        for label, test in groups:
-            print(lifetime_line(label, [o for o in offers if test(o)]))
+        for label, group in groups:
+            print(lifetime_line(label, group))
     return 0
 
 
@@ -732,6 +778,352 @@ def parse_history_args(args):
         else:
             return None
     return None if groups and text else (text, by, groups)
+
+
+# --- Serving the record: read-only views as CSV -------------------------------
+
+class ReadRecord(Record):
+    """The record through a connection that cannot write: opened read-only and
+    with `query_only`, so a bug in a view cannot touch what the watching writes."""
+
+    def __init__(self, path, history):
+        self.history = history
+        self.db = sqlite3.connect(f"file:{urllib.parse.quote(path)}?mode=ro", uri=True, timeout=TIMEOUT,
+                                  isolation_level=None, check_same_thread=False)
+        self.db.execute("PRAGMA query_only=ON")
+
+
+def cell(value):
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, float):
+        return str(int(value)) if value.is_integer() else str(round(value, 4))
+    return str(value)
+
+
+def csv_bytes(header, rows):
+    """RFC 4180: CRLF line ends, a field quoted only when it has to be."""
+    out = io.StringIO()
+    # The reader is Grafana, not a spreadsheet; defusedcsv would break "standard library only" and
+    # prefix a CPU name that starts with a sign.
+    writer = csv.writer(out, lineterminator="\r\n")  # nosemgrep: use-defusedcsv
+    writer.writerow(header)
+    writer.writerows([cell(v) for v in row] for row in rows)
+    return out.getvalue().encode()
+
+
+def median_or_none(prices):
+    return statistics.median(prices) if prices else None
+
+
+def days_between(first, last):
+    """Every day, as YYYY-MM-DD, from one to the other."""
+    start = datetime.date.fromisoformat(first)
+    return [(start + datetime.timedelta(days=n)).isoformat()
+            for n in range((datetime.date.fromisoformat(last) - start).days + 1)]
+
+
+def live_at_end_of_day(spans, days):
+    """{day: offers live at its end} from (first day, last day or None) spans: an offer is live at the
+    end of every day from the one it appeared to the one before it went; one still in the feed never goes."""
+    change = {}
+    for first, last in spans:
+        change[first] = change.get(first, 0) + 1
+        if last is not None:
+            change[last] = change.get(last, 0) - 1
+    live, counts = 0, {}
+    for day in days:
+        live += change.get(day, 0)
+        counts[day] = live
+    return counts
+
+
+class Snapshot:
+    """What the views are computed from: the record as of one version of the feed, read in one
+    transaction. The offers' bodies stay in the file: only the datacenter of the ones a view needs is read."""
+
+    def __init__(self, record, rules, now):
+        self.rules, self.history, self.now = rules, rules["history"], now
+        record.db.execute("BEGIN")
+        try:
+            self.version = record._meta("last_modified") or ""
+            self.rows = record.db.execute(
+                "SELECT id, kind, ecc, first_seen, last_seen, last_price, gone, seed, pod_first_seen FROM offers").fetchall()
+            self.datacenters = record.db.execute(
+                "SELECT id, json_extract(offer, '$.Details.Datacenter.Name'), gone, last_price, last_seen FROM offers"
+                " WHERE offer IS NOT NULL AND (gone=0 OR last_seen>=?)", (iso(now - 30 * 86400),)).fetchall()
+            self.baselines = record.baselines(now)
+        finally:
+            record.db.execute("COMMIT")
+        self.live = [r for r in self.rows if not r[6]]
+        self.went = [r for r in self.rows if r[6]]
+        self.days = days_between(min(r[3] for r in self.rows)[:10], max(r[4] for r in self.rows)[:10]) if self.rows else []
+
+
+def view_summary(s, now):
+    header = ["record_from", "record_to", "days", "offers", "offers_from_seed", "kinds", "live", "feed_read_at", "feed_age_seconds"]
+    if not s.rows:
+        return header, []
+    last = max(r[4] for r in s.rows)
+    read = max((r[4] for r in s.live), default=last)
+    return header, [[min(r[3] for r in s.rows), last, len(s.days), len(s.rows), sum(r[7] for r in s.rows),
+                     len({r[1] for r in s.rows}), len(s.live), read, max(0, round(now - epoch(read)))]]
+
+
+def view_limits(s, now):
+    header = ["name", "min_ram_gb", "nvme_required", "max_price_eur", "live_of_that_shape", "cheapest_live_eur",
+              "live_under_limit", "met_last_7_days", "met_last_30_days"]
+    rows = []
+    for rule in s.rules["limits"]:
+        shaped = [r[5] for r in s.live if kind_meets(r[1], 0, rule)]
+        met = lambda days: sum(1 for r in s.went if r[4] >= iso(s.now - days * 86400) and kind_meets(r[1], r[5], rule))
+        rows.append([rule["name"], rule["min_ram_gb"], rule["nvme_required"], rule["max_price_eur"], len(shaped), min(shaped, default=None),
+                     sum(1 for p in shaped if p < rule["max_price_eur"]), met(7), met(30)])
+    return header, rows
+
+
+def view_groups_daily(s, now):
+    header = ["day", "group", "offers", "median_eur", "lowest_eur", "live_at_end_of_day"]
+    names = group_names(s.history["ram_gb"])
+    prices, spans = {}, {name: [] for name in names.values()}
+    for _, kind, _, first, last, price, gone, _, _ in s.rows:
+        if (name := names.get(kind_shape(kind))) is not None:
+            spans[name].append((first[:10], last[:10] if gone else None))
+            if gone:
+                prices.setdefault((last[:10], name), []).append(price)
+    live = {name: live_at_end_of_day(group, s.days) for name, group in spans.items()}
+    return header, [[day, name, len(prices.get((day, name), [])), median_or_none(prices.get((day, name), [])),
+                     min(prices.get((day, name), []), default=None), live[name][day]]
+                    for day in s.days for name in names.values()]
+
+
+def view_flow_daily(s, now):
+    header = ["day", "appeared", "gone", "live_at_end_of_day"]
+    appeared, gone = {}, {}
+    for r in s.rows:
+        appeared[r[3][:10]] = appeared.get(r[3][:10], 0) + 1
+        if r[6]:
+            gone[r[4][:10]] = gone.get(r[4][:10], 0) + 1
+    live = live_at_end_of_day([(r[3][:10], r[4][:10] if r[6] else None) for r in s.rows], s.days)
+    return header, [[day, appeared.get(day, 0), gone.get(day, 0), live[day]] for day in s.days]
+
+
+def view_limits_daily(s, now):
+    header = ["day", "limit", "offers", "lowest_eur", "shape_offers", "lowest_of_shape_eur"]
+    shaped, met = {}, {}
+    for r in s.went:
+        for rule in s.rules["limits"]:
+            if kind_meets(r[1], 0, rule):
+                shaped.setdefault((r[4][:10], rule["name"]), []).append(r[5])
+                if r[5] < rule["max_price_eur"]:
+                    met.setdefault((r[4][:10], rule["name"]), []).append(r[5])
+    return header, [[day, rule["name"], len(met.get((day, rule["name"]), [])), min(met.get((day, rule["name"]), []), default=None),
+                     len(shaped.get((day, rule["name"]), [])), min(shaped.get((day, rule["name"]), []), default=None)]
+                    for day in s.days for rule in s.rules["limits"]]
+
+
+def view_lifetimes(s, now):
+    header = ["group", "offers", "half_within_seconds", "three_quarters_within_seconds", "slowest_seconds",
+              "under_two_minutes", "live", "section"]
+    rows = [(r[1], r[3], r[4], r[5], r[6]) for r in s.rows if not r[7] and (r[8] is None or r[3] == r[8])]
+    _, sections = lifetime_sections(rows, s.baselines, s.rules["limits"], "")
+    return header, [[label, *lifetime_stats(group), title] for title, groups in sections for label, group in groups]
+
+
+def view_live(s, now):
+    header = ["id", "cpu", "ram_gb", "nvme_gb", "sata_gb", "hdd_gb", "gpu", "ecc", "datacenter", "price_eur", "first_seen",
+              "age_seconds", "baseline_eur", "under_baseline_pct", "limit", "url", "kind"]
+    datacenter = {r[0]: r[1] for r in s.datacenters}
+    rows = []
+    for id_, kind, ecc, first, _, price, _, _, _ in sorted(s.live, key=lambda r: (r[5], r[0])):
+        parts, base = kind_parts(kind), s.baselines.get(kind)
+        rows.append([id_, parts["cpu"], parts["ram_gb"], parts["nvme_gb"], parts["sata_gb"], parts["hdd_gb"], parts["gpu"], bool(ecc),
+                     datacenter.get(id_), price, first, max(0, round(now - epoch(first))), base[0] if base else None,
+                     round((1 - price / base[0]) * 100, 1) if base else None,
+                     "; ".join(rule["name"] for rule in s.rules["limits"] if kind_meets(kind, price, rule)),
+                     f"{AUCTION_PAGE}?freetext={id_}", kind])
+    return header, rows
+
+
+def view_kinds(s, now):
+    header = ["kind", "cpu", "ram_gb", "baseline_eur", "offers_in_window", "live", "cheapest_live_eur"]
+    cheapest, live = {}, {}
+    for r in s.live:
+        live[r[1]] = live.get(r[1], 0) + 1
+        cheapest[r[1]] = min(cheapest.get(r[1], r[5]), r[5])
+    return header, [[kind, (parts := kind_parts(kind))["cpu"], parts["ram_gb"], median, count, live.get(kind, 0), cheapest_now]
+                    for kind, median, count, cheapest_now in kind_rows(s.baselines, cheapest)]
+
+
+def view_datacenters(s, now):
+    header = ["datacenter", "live", "median_live_eur", "gone_last_30_days", "median_gone_last_30_days_eur"]
+    live, gone = {}, {}
+    for _, name, is_gone, price, _ in s.datacenters:
+        if name:
+            (gone if is_gone else live).setdefault(re.match(r"[A-Za-z]*", name).group(), []).append(price)
+    return header, [[prefix, len(live.get(prefix, [])), median_or_none(live.get(prefix, [])), len(gone.get(prefix, [])),
+                     median_or_none(gone.get(prefix, []))] for prefix in sorted(set(live) | set(gone))]
+
+
+# What a path answers; `timed` views have a column that depends on the clock, so they are rendered at each
+# request from the snapshot, which is what is computed once for a version of the feed.
+VIEWS = {
+    "/views/summary.csv": (view_summary, True),
+    "/views/limits.csv": (view_limits, False),
+    "/views/groups-daily.csv": (view_groups_daily, False),
+    "/views/flow-daily.csv": (view_flow_daily, False),
+    "/views/limits-daily.csv": (view_limits_daily, False),
+    "/views/lifetimes.csv": (view_lifetimes, False),
+    "/views/live.csv": (view_live, True),
+    "/views/kinds.csv": (view_kinds, False),
+    "/views/datacenters.csv": (view_datacenters, False),
+}
+
+
+class Views:
+    """The views of the record, computed once for each version of the feed and answered from that
+    until the next. A feed that sends no Last-Modified has no version: the views are then computed again after a minute."""
+
+    def __init__(self, path, rules, clock=time.time):
+        self.path, self.rules, self.clock = path, rules, clock
+        self.lock = threading.Lock()
+        self.record = None
+        self.key = None
+        self.snapshot = None
+        self.bodies = {}
+        self.computed = 0
+
+    def _open(self):
+        if self.record is None:
+            self.record = ReadRecord(self.path, self.rules["history"])
+        return self.record
+
+    def healthy(self):
+        with self.lock:
+            try:
+                self._open().db.execute("SELECT 1 FROM meta LIMIT 1").fetchone()
+                return True
+            except sqlite3.Error:
+                self.record = None
+                return False
+
+    def get(self, path):
+        """(body, version's date as an HTTP date), or None for a path that is not a view. Raises sqlite3.Error."""
+        if path not in VIEWS:
+            return None
+        function, timed = VIEWS[path]
+        with self.lock:
+            try:
+                now = self.clock()
+                version = self._open()._meta("last_modified") or ""
+                key = version or int(now // 60)
+                if key != self.key or self.snapshot is None:
+                    self.snapshot, self.key, self.bodies = Snapshot(self.record, self.rules, now), key, {}
+                    self.computed += 1
+                snapshot = self.snapshot
+                if timed:
+                    body = csv_bytes(*function(snapshot, now))
+                else:
+                    if path not in self.bodies:
+                        self.bodies[path] = csv_bytes(*function(snapshot, now))
+                    body = self.bodies[path]
+            except sqlite3.Error:
+                self.record = None
+                raise
+        return body, version or email.utils.formatdate(snapshot.now, usegmt=True)
+
+
+class ViewHandler(http.server.BaseHTTPRequestHandler):
+    server_version = "auction-watch"
+    sys_version = ""
+    timeout = REQUEST_TIMEOUT
+
+    def log_message(self, *_):
+        pass
+
+    def _send(self, status, body=b"", content_type="text/plain; charset=utf-8", head=False, **headers):
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        for name, value in headers.items():
+            self.send_header(name.replace("_", "-"), value)
+        self.end_headers()
+        if not head:
+            self.wfile.write(body)
+
+    def _answer(self, head):
+        path = self.path.partition("?")[0]
+        views = self.server.views
+        try:
+            if path == "/healthz":
+                ok = views.healthy()
+                return self._send(200 if ok else 503, b"ok\n" if ok else b"the record cannot be read\n", head=head, Cache_Control="no-store")
+            found = views.get(path)
+        except Exception as e:                        # a request never ends anything but itself
+            log(level="error", msg="view failed", error=type(e).__name__, path=path[:80])
+            return self._send(500, b"error\n", head=head)
+        if found is None:
+            return self._send(404, b"not found\n", head=head)
+        body, modified = found
+        self._send(200, body, "text/csv; charset=utf-8", head, Last_Modified=modified, Cache_Control=f"max-age={VIEW_CACHE_SECONDS}")
+
+    def do_GET(self):
+        self._answer(head=False)
+
+    def do_HEAD(self):
+        self._answer(head=True)
+
+    def _refuse(self):
+        self._send(405, b"only GET and HEAD\n", Allow="GET, HEAD")
+
+    def __getattr__(self, name):
+        if name.startswith("do_"):                     # any other method, known or not
+            return self._refuse
+        raise AttributeError(name)
+
+
+class ViewServer(http.server.ThreadingHTTPServer):
+    """One thread for each request, at most MAX_CONNECTIONS at once: another is closed with a 503, and
+    one that stalls is dropped after REQUEST_TIMEOUT seconds."""
+    daemon_threads = True
+    request_queue_size = 16
+
+    def __init__(self, address, views):
+        super().__init__(address, ViewHandler)
+        self.views = views
+        self.slots = threading.BoundedSemaphore(MAX_CONNECTIONS)
+
+    def process_request(self, request, client_address):
+        if not self.slots.acquire(blocking=False):
+            with contextlib.suppress(OSError):
+                request.sendall(b"HTTP/1.0 503 Service Unavailable\r\nContent-Length: 0\r\n\r\n")
+            return self.shutdown_request(request)
+        super().process_request(request, client_address)
+
+    def process_request_thread(self, request, client_address):
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self.slots.release()
+
+    def handle_error(self, request, client_address):
+        log(level="warn", msg="request failed", error=type(sys.exc_info()[1]).__name__)
+
+
+def serve(path, rules, host="", port=SERVE_PORT):
+    """Starts the views in a thread of this process and returns the server. The thread is a daemon and
+    reads through a connection of its own: nothing it does reaches the loop. A port that cannot be bound is
+    logged, and the watching goes on without views."""
+    try:
+        server = ViewServer((host, port), Views(path, rules))
+    except OSError as e:
+        log(level="error", msg="views not served", error=type(e).__name__)
+        return None
+    threading.Thread(target=server.serve_forever, name="views", daemon=True).start()
+    log(msg="views served", port=server.server_address[1])
+    return server
 
 
 # --- Self-test and dry run ---------------------------------------------------
@@ -832,6 +1224,178 @@ def self_test_views(tmp, history, limits):
     assert span(119) == "119s" and span(120) == "2m" and span(3700) == "1h 1m"
     for store_ in (store, many, life, based):
         store_.db.close()
+
+
+def _offer_at(id_, ram, nvme, price, datacenter):
+    offer = _offer(id_, ram, nvme, price)
+    offer["datacenter"] = datacenter
+    offer["raw"] = {"Id": id_, "Details": {"Datacenter": {"Name": datacenter}}}
+    return offer
+
+
+def self_test_serving(tmp, rules):
+    """The views, over HTTP on a loopback port, against a record of known offers, and what they refuse."""
+    now, day = 1_800_000_000, 86400                   # 2027-01-15T08:00:00Z
+    history = rules["history"]
+    k64, k64n, k128 = (kind_of(_offer(0, ram, nvme, 0)) for ram, nvme in ((64, [512]), (64, []), (128, [512])))
+    seed = os.path.join(tmp, "serving-seed.jsonl.gz")
+    _seed_file(seed, [(1, k64, iso(now - 3 * day), iso(now - 3 * day + 3600), 50, 50), (2, k64, iso(now - 3 * day), iso(now - 2 * day), 70, 70),
+                      (3, k64n, iso(now - 40 * day), iso(now - 40 * day + 60), 30, 30), (4, k128, iso(now - 10 * day), iso(now - 9 * day), 90, 90)])
+    path = os.path.join(tmp, "serving.db")
+    record = Record(path, history, seed)
+    a, b, c = _offer_at(100, 64, [512], 55, "FSN1-DC1"), _offer_at(101, 128, [512], 95, "HEL1-DC2"), _offer_at(102, 64, [512], 65, "NBG1-DC3")
+    stamp = lambda minute: {"mailed": {}, "failing_since": 0, "alerted": False, "up": True,
+                            "last_modified": f"Fri, 15 Jan 2027 08:0{minute}:00 GMT"}
+    record.observe([a, b], now)
+    record.observe([a, b, c], now + 60)
+    record.observe([dict(a, price=52), c], now + 120)       # 101 went at 95
+    record.save_state(stamp(2))
+    clock = {"now": now + 300}
+    handler_timeout = ViewHandler.timeout
+    ViewHandler.timeout = 1
+    server = serve(path, rules, "127.0.0.1", 0)
+    views = server.views
+    views.clock = lambda: clock["now"]
+    port = server.server_address[1]
+    assert serve(path, rules, "127.0.0.1", port) is None                # a port taken: logged, nothing raised
+
+    def ask(method, target, port=port):
+        connection = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        connection.request(method, target)
+        response = connection.getresponse()
+        body = response.read()
+        connection.close()
+        return response, body
+
+    def table(target):
+        response, body = ask("GET", target)
+        assert response.status == 200, (target, response.status)
+        assert response.getheader("Content-Type") == "text/csv; charset=utf-8" and response.getheader("Cache-Control") == "max-age=60"
+        assert body.endswith(b"\r\n") and b"\n" not in body.replace(b"\r\n", b"")
+        return list(csv.reader(io.StringIO(body.decode())))
+
+    try:
+        # Each view: its header, and a known row.
+        summary = table("/views/summary.csv")
+        assert summary[0] == ["record_from", "record_to", "days", "offers", "offers_from_seed", "kinds", "live", "feed_read_at", "feed_age_seconds"]
+        assert summary[1:] == [["2026-12-06T08:00:00Z", "2027-01-15T08:02:00Z", "41", "7", "4", "3", "2", "2027-01-15T08:02:00Z", "180"]], summary
+        limits = table("/views/limits.csv")
+        assert limits[0] == ["name", "min_ram_gb", "nvme_required", "max_price_eur", "live_of_that_shape", "cheapest_live_eur",
+                             "live_under_limit", "met_last_7_days", "met_last_30_days"]
+        assert limits[1:] == [[rules["limits"][0]["name"], "64", "true", "60", "2", "52", "1", "1", "1"],
+                              [rules["limits"][1]["name"], "128", "true", "100", "0", "", "0", "1", "2"]], limits
+        groups = table("/views/groups-daily.csv")
+        assert groups[0] == ["day", "group", "offers", "median_eur", "lowest_eur", "live_at_end_of_day"] and len(groups) == 1 + 41 * 4
+        assert ["2026-12-06", "64 GB without NVMe", "1", "30", "30", "0"] in groups
+        assert ["2027-01-06", "128 GB with NVMe", "1", "90", "90", "0"] in groups and ["2027-01-05", "128 GB with NVMe", "0", "", "", "1"] in groups
+        assert ["2027-01-15", "64 GB with NVMe", "0", "", "", "2"] in groups and ["2027-01-15", "128 GB with NVMe", "1", "95", "95", "0"] in groups
+        flow = table("/views/flow-daily.csv")
+        assert flow[0] == ["day", "appeared", "gone", "live_at_end_of_day"] and len(flow) == 1 + 41
+        assert ["2027-01-12", "2", "1", "1"] in flow and ["2027-01-15", "3", "1", "2"] in flow
+        per_limit = table("/views/limits-daily.csv")
+        assert per_limit[0] == ["day", "limit", "offers", "lowest_eur", "shape_offers", "lowest_of_shape_eur"] and len(per_limit) == 1 + 41 * 2
+        assert ["2027-01-12", rules["limits"][0]["name"], "1", "50", "1", "50"] in per_limit
+        assert ["2027-01-13", rules["limits"][0]["name"], "0", "", "1", "70"] in per_limit
+        lifetimes = table("/views/lifetimes.csv")
+        assert lifetimes[0] == ["group", "offers", "half_within_seconds", "three_quarters_within_seconds", "slowest_seconds",
+                                "under_two_minutes", "live", "section"] and len(lifetimes) == 1 + 4 + 4 + 2
+        assert lifetimes[3][:7] == ["60 to 100 EUR", "0", "", "", "", "", "1"]
+        live = table("/views/live.csv")
+        assert live[0] == ["id", "cpu", "ram_gb", "nvme_gb", "sata_gb", "hdd_gb", "gpu", "ecc", "datacenter", "price_eur", "first_seen",
+                           "age_seconds", "baseline_eur", "under_baseline_pct", "limit", "url", "kind"]
+        assert live[1:] == [["100", "CPU", "64", "512", "0", "0", "false", "false", "FSN1-DC1", "52", "2027-01-15T08:00:00Z", "300", "", "",
+                             rules["limits"][0]["name"], AUCTION_PAGE + "?freetext=100", k64],
+                            ["102", "CPU", "64", "512", "0", "0", "false", "false", "NBG1-DC3", "65", "2027-01-15T08:01:00Z", "240", "", "",
+                             "", AUCTION_PAGE + "?freetext=102", k64]], live
+        assert table("/views/kinds.csv") == [["kind", "cpu", "ram_gb", "baseline_eur", "offers_in_window", "live", "cheapest_live_eur"]]
+        assert table("/views/datacenters.csv") == [
+            ["datacenter", "live", "median_live_eur", "gone_last_30_days", "median_gone_last_30_days_eur"],
+            ["FSN", "1", "52", "0", ""], ["HEL", "0", "", "1", "95"], ["NBG", "1", "65", "0", ""]]
+        response, body = ask("GET", "/views/live.csv")
+        assert response.getheader("Last-Modified") == "Fri, 15 Jan 2027 08:02:00 GMT"
+        response, body = ask("HEAD", "/views/live.csv")
+        assert response.status == 200 and body == b"" and int(response.getheader("Content-Length")) > 100
+        assert ask("GET", "/views/live.csv?x=1")[0].status == 200
+        health, body = ask("GET", "/healthz")
+        assert health.status == 200 and body == b"ok\n"
+
+        # A baseline: ten offers of a kind went in the window, and the live offer is measured against it.
+        usual = Record(os.path.join(tmp, "usual.db"), history)
+        usual.observe([_offer_at(500 + n, 64, [512], 100, "FSN1-DC1") for n in range(10)], now - 10 * day)
+        usual.observe([_offer_at(600, 64, [512], 70, "FSN1-DC1")], now - 9 * day)
+        usual.save_state(stamp(1))
+        with_base = Views(os.path.join(tmp, "usual.db"), rules, clock=lambda: now)
+        assert with_base.get("/views/kinds.csv")[0] == csv_bytes(
+            ["kind", "cpu", "ram_gb", "baseline_eur", "offers_in_window", "live", "cheapest_live_eur"], [[k64, "CPU", 64.0, 100.0, 10, 1, 70.0]])
+        assert b"600,CPU,64,512,0,0,false,false,FSN1-DC1,70," in with_base.get("/views/live.csv")[0]
+        assert b",100,30," in with_base.get("/views/live.csv")[0]                      # 30% under the usual 100
+
+        # Read-only and fixed: only GET and HEAD, no other path, and no write through the views' connection.
+        for method in ("POST", "PUT", "DELETE", "PATCH", "OPTIONS", "TRACE", "FOO"):
+            response, _ = ask(method, "/views/live.csv")
+            assert response.status == 405 and response.getheader("Allow") == "GET, HEAD", method
+        for target in ("/", "/views", "/views/", "/views/other.csv", "/views/live.csv/", "/views/../etc/passwd", "/healthz/x",
+                       "/views/live.csv'%20OR%201=1", "/%2e%2e/%2e%2e/etc/passwd", "/VIEWS/LIVE.CSV"):
+            assert ask("GET", target)[0].status == 404, target
+        try:
+            views.record.db.execute("UPDATE offers SET gone=1")
+            raise AssertionError("wrote")
+        except sqlite3.OperationalError:
+            pass
+        assert record.db.execute("SELECT count(*) FROM offers WHERE gone=0").fetchone() == (2,)
+
+        # Computed once for a version of the feed, and again for the next; the clock moves only the ages.
+        assert views.computed == 1
+        clock["now"] += 30
+        assert table("/views/live.csv")[1][11] == "330" and views.computed == 1
+        record.observe([dict(a, price=51), c], now + 360)
+        assert table("/views/live.csv")[1][9] == "52" and views.computed == 1       # the same version: the same views
+        record.save_state(stamp(6))
+        assert table("/views/live.csv")[1][9] == "51" and views.computed == 2
+
+        # Serving never touches the watching: a stalled client, one too many, and a failing view.
+        stalled = []
+        for _ in range(MAX_CONNECTIONS):
+            stalled.append(socket.create_connection(("127.0.0.1", port), timeout=5))
+            stalled[-1].sendall(b"GET /views/live.csv HTTP/1.1\r\nHost: x\r\n")      # never finished
+        extra = socket.create_connection(("127.0.0.1", port), timeout=5)
+        assert extra.recv(100).startswith(b"HTTP/1.0 503")
+        extra.close()
+        started = time.monotonic()
+        record.observe([c], now + 420)                                               # the loop's write, while all are held
+        assert time.monotonic() - started < 1
+        assert stalled[0].recv(100) == b""                                           # the stalled client is dropped
+        for held in stalled:
+            held.close()
+        assert ask("GET", "/healthz")[0].status == 200
+        original = VIEWS["/views/kinds.csv"]
+        VIEWS["/views/kinds.csv"] = (lambda s, n: 1 / 0, False)
+        try:
+            assert ask("GET", "/views/kinds.csv")[0].status == 500
+        finally:
+            VIEWS["/views/kinds.csv"] = original
+        assert ask("GET", "/views/kinds.csv")[0].status == 200
+
+        # An empty record: the header alone.
+        empty = Views(os.path.join(tmp, "serving-empty.db"), rules, clock=lambda: now)
+        Record(os.path.join(tmp, "serving-empty.db"), history).db.close()
+        for target, (function, _) in VIEWS.items():
+            rows = list(csv.reader(io.StringIO(empty.get(target)[0].decode())))
+            assert (len(rows) == 1) == (target not in ("/views/limits.csv", "/views/lifetimes.csv")), target
+        assert empty.get("/views/limits.csv")[1].endswith("GMT") and empty.healthy()
+        missing = Views(os.path.join(tmp, "no-such.db"), rules)
+        assert not missing.healthy()
+        try:
+            missing.get("/views/live.csv")
+            raise AssertionError("served")
+        except sqlite3.Error:
+            pass
+    finally:
+        server.shutdown()
+        server.server_close()
+        ViewHandler.timeout = handler_timeout
+        for store_ in (record, usual):
+            store_.db.close()
 
 
 def self_test():
@@ -1135,6 +1699,7 @@ def self_test():
         assert shown.getvalue().startswith("the record covers ")
 
         self_test_views(tmp, history, rules["limits"])
+        self_test_serving(tmp, rules)
 
         # A record written before the fix: its seed rows the pod saw are put right at the next start, once.
         old = os.path.join(tmp, "old.db")
@@ -1206,7 +1771,9 @@ def main():
     if args:
         sys.exit(__doc__)
     api_key, to = os.environ["RESEND_API_KEY"], os.environ["MAIL_TO"]
-    loop(Record(DB_FILE, rules["history"], SEED_FILE), rules, lambda subject, text: send_mail(api_key, to, subject, text))
+    record = Record(DB_FILE, rules["history"], SEED_FILE)
+    serve(DB_FILE, rules)
+    loop(record, rules, lambda subject, text: send_mail(api_key, to, subject, text))
 
 
 if __name__ == "__main__":
