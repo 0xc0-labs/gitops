@@ -251,6 +251,11 @@ Loki keep 30 days; the record keeps 400).
   only the pods `app.kubernetes.io/name: grafana` of the namespace `monitoring`.
   Nothing else is open, and the egress is as before. There is no authentication:
   the network policy is the door.
+- **The port**: `AUCTION_WATCH_VIEWS_PORT`, 8080 by default. Not
+  `AUCTION_WATCH_PORT`: the pod gets that name from Kubernetes for the Service,
+  and `enableServiceLinks: false` in `deployment.yaml` keeps those variables
+  out. A value that is not a port is logged and the watching goes on without
+  views.
 - **Only these**: `GET` and `HEAD` are answered; any other method is `405`, any
   other path `404`. A path is looked up in a fixed table and a query string is
   ignored: no part of a request reaches SQL or the filesystem as text.

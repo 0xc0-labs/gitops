@@ -38,6 +38,8 @@ spec:
         app.kubernetes.io/name: auction-watch
     spec:
       automountServiceAccountToken: false
+      # The Service's link variables (AUCTION_WATCH_PORT=tcp://...) are named like the script's own settings.
+      enableServiceLinks: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 65534
