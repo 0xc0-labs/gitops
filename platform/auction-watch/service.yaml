@@ -1,0 +1,15 @@
+# ClusterIP only, no route: the views are read by Grafana's pods alone
+# (network-policy.yaml).
+apiVersion: v1
+kind: Service
+metadata:
+  name: auction-watch
+  namespace: auction-watch
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: auction-watch
+  ports:
+    - name: views
+      port: 8080
+      targetPort: views
