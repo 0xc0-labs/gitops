@@ -58,31 +58,31 @@ images:
   # The API's and the stand-in's pins, one tag: the application's release job
   # moves both (README.md, The API).
   - name: ghcr.io/0xc0-labs/matchmark-api
-    newTag: v0.55.0
-    digest: sha256:34be42297b603acdfa7d23ae74c459f503d0465e11ab5db824307f9a3040e2b1
+    newTag: v0.56.0
+    digest: sha256:2f836f2bd48357b715266073498a97c3c93dc909a5a258e5af717e7e72722f97
   - name: ghcr.io/0xc0-labs/matchmark-stand-in-provider
-    newTag: v0.55.0
-    digest: sha256:eef163a8140742ba6c5ae0d6a52f16dbd687edbe2629ec5c5d1fce58aeac7d1e
+    newTag: v0.56.0
+    digest: sha256:368f25db0fa4b679bb6f93a0290daed4e719fe1df3338685f9e570ca9b95f324
   - name: ghcr.io/0xc0-labs/matchmark-intake-api
-    newTag: v0.55.0
-    digest: sha256:20e04f05695829f540466841eea1de98d0c58cca7d8900ea260aa40c635a60ab
+    newTag: v0.56.0
+    digest: sha256:bf8d567a7fe696c8b8c44cb77a6c984944549410d36d89d808eea2640390c146
   - name: ghcr.io/0xc0-labs/matchmark-factory-worker
-    newTag: v0.55.0
-    digest: sha256:071fe218d59b54a71aa07b6cb1eb4fc287a14d7173d146303232ba52cb7526d4
+    newTag: v0.56.0
+    digest: sha256:b6dd99c77c9adcc74993362efef40133570f54b54c8b49a68cf11de8a0e237b3
   # The tracker tools' server, one tag with the others: the release job lists
   # it in its extra images, and refuses to go on without this entry
   # (README.md, tracker-mcp).
   - name: ghcr.io/0xc0-labs/matchmark-tracker-mcp
-    newTag: v0.55.0
-    digest: sha256:9b097a46b5421330df4f8506ebd27284c7706da99476f75c4465c28269a15694
+    newTag: v0.56.0
+    digest: sha256:9e12f4a0443b673c40368eea818c49f05e5dab929a06d5f30fcc92c8652c4f0b
   # The runner's pin: the proof's init container carries it, and the worker's
   # MATCHMARK_RUNNER_IMAGE, and the sandbox proof's, are copied from there
   # (replacements, below). v0.31.0
   # was built from the commit of this digest; the registry carries that tag for
   # the runner from the first release that lists it. A pull goes by the digest.
   - name: ghcr.io/0xc0-labs/matchmark-runner
-    newTag: v0.55.0
-    digest: sha256:515255f761e86c552507e82c5bbe19590e7746d15e55121f9d71fc80f1388972
+    newTag: v0.56.0
+    digest: sha256:97cfe9dd50b323b8adfd7f22eb43f9e8ca37f4cc7d0e4530ae4478c982c2db08
 configMapGenerator:
   # No hash suffix: a Job's pod template cannot change, so a renamed ConfigMap
   # would fail the sync instead of leaving the finished Jobs alone.
@@ -110,7 +110,7 @@ configMapGenerator:
       disableNameSuffixHash: true
   - name: release
     literals:
-      - APP_VERSION=v0.55.0
+      - APP_VERSION=v0.56.0
 replacements:
   # `images:` rewrites container images only, so the worker's setting takes the
   # rendered `<name>:<tag>@sha256:<digest>` of the proof's init container:
