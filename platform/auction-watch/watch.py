@@ -806,7 +806,9 @@ def cell(value):
 def csv_bytes(header, rows):
     """RFC 4180: CRLF line ends, a field quoted only when it has to be."""
     out = io.StringIO()
-    writer = csv.writer(out, lineterminator="\r\n")
+    # The reader is Grafana, not a spreadsheet; defusedcsv would break "standard library only" and
+    # prefix a CPU name that starts with a sign.
+    writer = csv.writer(out, lineterminator="\r\n")  # nosemgrep: use-defusedcsv
     writer.writerow(header)
     writer.writerows([cell(v) for v in row] for row in rows)
     return out.getvalue().encode()
