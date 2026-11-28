@@ -66,7 +66,6 @@ HISTORY_KINDS = 10
 QUICK_SECONDS = 120
 # The views of the record (README.md, The views): the port, how long a client may cache one, how many
 # requests are answered at once, and how long a silent client is waited for.
-SERVE_PORT = int(os.environ.get("AUCTION_WATCH_PORT", "8080"))
 VIEW_CACHE_SECONDS = 60
 MAX_CONNECTIONS = 8
 REQUEST_TIMEOUT = 10
@@ -92,6 +91,23 @@ def log(**fields):
 
 def iso(epoch):
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(epoch))
+
+
+# Not AUCTION_WATCH_PORT: Kubernetes sets that one, to tcp://<ip>:8080, in every pod of a namespace
+# that has a Service called auction-watch (gitops#753).
+def parse_port(raw):
+    """The port in a setting, or None, logged, for anything that is not one: the views are not worth the watching."""
+    try:
+        port = int(raw)
+    except ValueError:
+        port = -1
+    if not 0 <= port <= 65535:
+        log(level="error", msg="views port is not a port, no views", value=raw[:80])
+        return None
+    return port
+
+
+SERVE_PORT = parse_port(os.environ.get("AUCTION_WATCH_VIEWS_PORT", "8080"))
 
 
 # --- Pure: the feed, the rules, what to mail --------------------------------
@@ -1116,6 +1132,8 @@ def serve(path, rules, host="", port=SERVE_PORT):
     """Starts the views in a thread of this process and returns the server. The thread is a daemon and
     reads through a connection of its own: nothing it does reaches the loop. A port that cannot be bound is
     logged, and the watching goes on without views."""
+    if port is None:
+        return None
     try:
         server = ViewServer((host, port), Views(path, rules))
     except OSError as e:
@@ -1396,6 +1414,40 @@ def self_test_serving(tmp, rules):
         ViewHandler.timeout = handler_timeout
         for store_ in (record, usual):
             store_.db.close()
+
+
+def self_test_start(tmp):
+    """The pod's environment: the Service's own link variables, which are named like a setting (gitops#753)."""
+    import importlib.util
+    saved = {k: os.environ.get(k) for k in ("AUCTION_WATCH_PORT", "AUCTION_WATCH_VIEWS_PORT", "AUCTION_WATCH_DB", "RESEND_API_KEY", "MAIL_TO")}
+    argv = sys.argv
+    try:
+        os.environ.update(AUCTION_WATCH_PORT="tcp://10.43.0.1:8080", AUCTION_WATCH_DB=os.path.join(tmp, "start.db"),
+                          RESEND_API_KEY="k", MAIL_TO="a@b.c")
+        sys.argv = ["watch.py"]
+        for views_port, served in (("0", True), ("tcp://10.43.0.1:8080", False)):
+            os.environ["AUCTION_WATCH_VIEWS_PORT"] = views_port
+            spec = importlib.util.spec_from_file_location("watch_start", os.path.abspath(__file__))
+            module = importlib.util.module_from_spec(spec)
+            with contextlib.redirect_stdout(io.StringIO()):
+                spec.loader.exec_module(module)
+            reached, started = [], []
+            real_serve = module.serve
+            module.serve = lambda *a: started.append(real_serve(*a))
+            module.loop = lambda *a: reached.append(True)
+            with contextlib.redirect_stdout(io.StringIO()):
+                module.main()
+            assert reached and (started[0] is not None) == served, (views_port, reached, started)
+            if started[0] is not None:
+                started[0].shutdown()
+                started[0].server_close()
+    finally:
+        sys.argv = argv
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
 
 
 def self_test():
@@ -1700,6 +1752,7 @@ def self_test():
 
         self_test_views(tmp, history, rules["limits"])
         self_test_serving(tmp, rules)
+        self_test_start(tmp)
 
         # A record written before the fix: its seed rows the pod saw are put right at the next start, once.
         old = os.path.join(tmp, "old.db")
