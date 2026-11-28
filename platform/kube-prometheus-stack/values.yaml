@@ -112,7 +112,8 @@ grafana:
   plugins:
     - volkovlabs-echarts-panel@7.3.0
     - marcusolsson-dynamictext-panel@6.3.1
-    # Reads Cloudflare's GraphQL API (the data source below; README, Cloudflare).
+    # Reads Cloudflare's GraphQL API and the auction watcher's views (the data
+    # sources below; README, Cloudflare and Hetzner auction).
     - yesoreyeram-infinity-datasource@4.1.8
   # The Cloudflare token (vault-secrets.yaml), expanded into the data source
   # below when Grafana reads its provisioning at start.
@@ -192,6 +193,16 @@ grafana:
           - https://api.cloudflare.com
       secureJsonData:
         bearerToken: $CLOUDFLARE_API_TOKEN
+    # The auction watcher's views (README, Hetzner auction). No authentication:
+    # the watcher's NetworkPolicy admits Grafana's pods alone.
+    - name: Hetzner auction
+      type: yesoreyeram-infinity-datasource
+      uid: hetzner-auction
+      url: http://auction-watch.auction-watch.svc.cluster.local:8080
+      access: proxy
+      jsonData:
+        allowedHosts:
+          - http://auction-watch.auction-watch.svc.cluster.local:8080
   grafana.ini:
     server:
       domain: grafana.int.0xc0.cc

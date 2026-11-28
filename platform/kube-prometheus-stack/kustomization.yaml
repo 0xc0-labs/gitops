@@ -155,3 +155,12 @@ configMapGenerator:
         grafana_dashboard: "1"
       annotations:
         grafana_folder: Traces
+  - name: grafana-dashboard-hetzner-auction
+    files:
+      - dashboards/hetzner/auction.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: Hetzner
